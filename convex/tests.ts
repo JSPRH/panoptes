@@ -243,10 +243,11 @@ export const getTestPyramidData = query({
 	handler: async (ctx, args) => {
 		// Temporarily simplified - query directly from testRuns instead of using aggregates
 		// This unblocks us while aggregates are being set up
-		const testRuns = args.projectId
+		const projectId = args.projectId;
+		const testRuns = projectId
 			? await ctx.db
 					.query("testRuns")
-					.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+					.withIndex("by_project", (q) => q.eq("projectId", projectId))
 					.collect()
 			: await ctx.db.query("testRuns").collect();
 
