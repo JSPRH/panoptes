@@ -55,4 +55,11 @@ else
 	fi
 fi
 
+# Run build check to catch TypeScript and build errors
+echo "🔨 Running build check..."
+if ! bun run build; then
+	echo "❌ Build failed. Please fix the errors above."
+	exit 1
+fi
+
 echo "✅ All pre-commit checks passed!"
