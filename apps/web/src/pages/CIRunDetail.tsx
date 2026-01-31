@@ -313,9 +313,13 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 								🚀 Start Cursor Agent
 							</Button>
 						)}
-						{!analysis && (
+						{(!analysis || analysis?.status === "failed") && (
 							<Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
-								{isAnalyzing ? "Analyzing..." : "Analyze Failure"}
+								{isAnalyzing
+									? "Analyzing..."
+									: analysis?.status === "failed"
+										? "Retry Analysis"
+										: "Analyze Failure"}
 							</Button>
 						)}
 					</div>
@@ -327,7 +331,12 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 					<p className="text-sm text-muted-foreground">Analysis in progress...</p>
 				)}
 				{analysis?.status === "failed" && (
-					<p className="text-sm text-destructive">Analysis failed. Please try again.</p>
+					<div className="space-y-2">
+						<p className="text-sm text-destructive">Analysis failed. Please try again.</p>
+						<Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm" variant="outline">
+							{isAnalyzing ? "Retrying..." : "Retry Analysis"}
+						</Button>
+					</div>
 				)}
 				{analysis?.status === "completed" && analysis.analysis && (
 					<div className="space-y-4">

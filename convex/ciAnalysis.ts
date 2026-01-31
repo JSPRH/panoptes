@@ -26,6 +26,22 @@ export const _createCIRunAnalysis = internalMutation({
 			.first();
 
 		if (existing) {
+			// If status is "pending" and we're trying to create a new pending analysis,
+			// or if existing is "completed", just return the existing ID
+			if (
+				existing.status === "completed" ||
+				(existing.status === "pending" && args.status === "pending")
+			) {
+				return existing._id;
+			}
+			// If existing is "failed" and we're creating a "pending" one, update it to pending
+			if (existing.status === "failed" && args.status === "pending") {
+				await ctx.db.patch(existing._id, {
+					status: "pending",
+					analyzedAt: Date.now(),
+				});
+				return existing._id;
+			}
 			return existing._id;
 		}
 
