@@ -219,13 +219,23 @@ export default function TestExecutionDetail() {
 										variant="outline"
 										size="sm"
 										onClick={async () => {
-											if (!executionId) return;
+											if (!executionId) {
+												console.error("No executionId available");
+												return;
+											}
+											console.log("Starting analysis for test:", executionId);
 											setIsAnalyzing(true);
 											setAnalysisError(null);
 											try {
-												await analyzeTestFailure({ testId: executionId as Id<"tests"> });
+												const result = await analyzeTestFailure({
+													testId: executionId as Id<"tests">,
+												});
+												console.log("Analysis completed:", result);
+												// The query should automatically refetch, but we can force a refetch if needed
 											} catch (e) {
-												setAnalysisError(e instanceof Error ? e.message : "Failed to analyze");
+												console.error("Analysis failed:", e);
+												const errorMessage = e instanceof Error ? e.message : "Failed to analyze";
+												setAnalysisError(errorMessage);
 											} finally {
 												setIsAnalyzing(false);
 											}
@@ -255,10 +265,28 @@ export default function TestExecutionDetail() {
 						</CardContent>
 					</Card>
 
+					{(isAnalyzing || analysis?.status === "pending") && (
+						<Card>
+							<CardContent className="pt-6">
+								<div className="flex items-center gap-2">
+									<div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+									<p className="text-sm text-muted-foreground">
+										{isAnalyzing ? "Starting analysis..." : "Analyzing test failure with AI..."}
+									</p>
+								</div>
+							</CardContent>
+						</Card>
+					)}
+
 					{analysisError && (
 						<Card>
 							<CardContent className="pt-6">
 								<p className="text-sm text-destructive">{analysisError}</p>
+								{analysisError.includes("OPENAI_API_KEY") && (
+									<p className="text-xs text-muted-foreground mt-2">
+										Make sure OPENAI_API_KEY is configured in Convex secrets.
+									</p>
+								)}
 							</CardContent>
 						</Card>
 					)}
