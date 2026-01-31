@@ -297,6 +297,32 @@ export const getCoverageForTestRun = query({
 	},
 });
 
+export const getFileCoverage = query({
+	args: {
+		file: v.string(),
+	},
+	handler: async (ctx, args) => {
+		// Find the latest test run with coverage for this file
+		const testRuns = await ctx.db
+			.query("testRuns")
+			.withIndex("by_started_at")
+			.order("desc")
+			.take(100);
+
+		for (const run of testRuns) {
+			const coverage = await ctx.db
+				.query("fileCoverage")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+				.filter((q) => q.eq(q.field("file"), args.file))
+				.first();
+			if (coverage) {
+				return coverage;
+			}
+		}
+		return null;
+	},
+});
+
 // Helper function to check if a file is a test file
 function isTestFilePattern(filePath: string): boolean {
 	const testPatterns = [

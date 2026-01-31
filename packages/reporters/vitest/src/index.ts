@@ -406,6 +406,9 @@ export default class PanoptesReporter implements Reporter {
 				).statementMap;
 				let linesTotal = 0;
 				let linesCovered = 0;
+				const coveredLinesSet = new Set<number>();
+				const uncoveredLinesSet = new Set<number>();
+
 				if (statementMap && typeof statementMap === "object") {
 					const lineHits = new Map<number, number>();
 					for (const [id, loc] of Object.entries(statementMap)) {
@@ -415,8 +418,13 @@ export default class PanoptesReporter implements Reporter {
 						lineHits.set(line, (lineHits.get(line) ?? 0) + count);
 					}
 					linesTotal = lineHits.size;
-					for (const hits of Array.from(lineHits.values())) {
-						if (hits > 0) linesCovered += 1;
+					for (const [line, hits] of Array.from(lineHits.entries())) {
+						if (hits > 0) {
+							linesCovered += 1;
+							coveredLinesSet.add(line);
+						} else {
+							uncoveredLinesSet.add(line);
+						}
 					}
 				}
 				const statementsTotal = Object.keys(statementCounts).length;
@@ -433,9 +441,20 @@ export default class PanoptesReporter implements Reporter {
 				const relPath = path.isAbsolute(filePath)
 					? path.relative(process.cwd(), filePath)
 					: filePath;
+
+				// Build line details JSON: { covered: [1, 2, 3], uncovered: [4, 5, 6] }
+				const lineDetails =
+					coveredLinesSet.size > 0 || uncoveredLinesSet.size > 0
+						? JSON.stringify({
+								covered: Array.from(coveredLinesSet).sort((a, b) => a - b),
+								uncovered: Array.from(uncoveredLinesSet).sort((a, b) => a - b),
+							})
+						: undefined;
+
 				files[relPath] = {
 					linesCovered,
 					linesTotal: linesTotal || 1,
+					lineDetails,
 					statementsCovered: statementsTotal > 0 ? statementsCovered : undefined,
 					statementsTotal: statementsTotal > 0 ? statementsTotal : undefined,
 				};

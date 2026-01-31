@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { TreeNode } from "../lib/pathUtils";
 import { Badge } from "./ui/badge";
 
@@ -20,6 +21,7 @@ function getCoverageColorClass(coverage: number): string {
 }
 
 export function CoverageTree({ node, level = 0 }: CoverageTreeProps) {
+	const navigate = useNavigate();
 	const [isExpanded, setIsExpanded] = useState(level < 2); // Auto-expand first 2 levels
 
 	const indent = level * 24;
@@ -27,6 +29,13 @@ export function CoverageTree({ node, level = 0 }: CoverageTreeProps) {
 	const hasChildren = node.children && node.children.length > 0;
 	const coverage = node.coverage ?? 0;
 	const hasCoverage = node.linesTotal != null && node.linesTotal > 0;
+
+	const handleFileClick = (e: React.MouseEvent) => {
+		if (!isDirectory && node.path) {
+			e.stopPropagation();
+			navigate(`/coverage/${encodeURIComponent(node.path)}`);
+		}
+	};
 
 	return (
 		<div className="group">
@@ -107,13 +116,18 @@ export function CoverageTree({ node, level = 0 }: CoverageTreeProps) {
 				)}
 
 				{/* Name */}
-				<span
-					className={`flex-1 truncate text-sm ${
-						isDirectory ? "font-semibold" : "font-medium"
-					} ${isDirectory ? "text-foreground" : "text-foreground/90"}`}
-				>
-					{node.name}
-				</span>
+				{isDirectory ? (
+					<span className="flex-1 truncate text-sm font-semibold text-foreground">{node.name}</span>
+				) : (
+					<button
+						type="button"
+						onClick={handleFileClick}
+						className="flex-1 truncate text-sm font-medium text-foreground/90 cursor-pointer hover:text-primary transition-colors text-left"
+						title={`Click to view coverage details for ${node.name}`}
+					>
+						{node.name}
+					</button>
+				)}
 
 				{/* Coverage Info */}
 				{hasCoverage && (
