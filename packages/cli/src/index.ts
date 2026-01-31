@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
+import { readFile } from "node:fs/promises";
 import type { TestRunIngest } from "@panoptes/shared";
 import { Command } from "commander";
-import { readFile } from "node:fs/promises";
 
 const program = new Command();
 
@@ -53,7 +53,7 @@ program
 			}
 
 			const result = await response.json();
-			console.log(`✅ Test results ingested successfully!`);
+			console.log("✅ Test results ingested successfully!");
 			console.log(`   Test Run ID: ${result.testRunId}`);
 		} catch (error) {
 			console.error("Error:", error instanceof Error ? error.message : "Unknown error");
