@@ -11,7 +11,31 @@ interface TestSuggestion {
 	testType: "unit" | "integration" | "e2e";
 	uncoveredLines: number[];
 	prompt: string;
-	cursorDeeplink: string;
+}
+
+/**
+ * Generate a Cursor deeplink from a prompt.
+ * This is generated dynamically on the frontend to avoid storing URLs that might change.
+ */
+function generateCursorDeeplinkFromPrompt(prompt: string): string {
+	const encodedPrompt = encodeURIComponent(prompt);
+	const maxLength = 8000;
+	let deeplink = `https://cursor.com/link/prompt?text=${encodedPrompt}`;
+
+	// Truncate if necessary to stay under URL length limit
+	if (deeplink.length > maxLength) {
+		const truncatedPrompt = prompt.substring(0, Math.floor(prompt.length * 0.7));
+		const encodedTruncated = encodeURIComponent(truncatedPrompt);
+		deeplink = `https://cursor.com/link/prompt?text=${encodedTruncated}`;
+
+		if (deeplink.length > maxLength) {
+			const ultraShortPrompt = prompt.substring(0, 500);
+			const encodedUltraShort = encodeURIComponent(ultraShortPrompt);
+			deeplink = `https://cursor.com/link/prompt?text=${encodedUltraShort}`;
+		}
+	}
+
+	return deeplink;
 }
 
 interface TestSuggestionsProps {
@@ -148,7 +172,9 @@ export default function TestSuggestions({ suggestions, loading, error }: TestSug
 								)}
 								<Button
 									onClick={() => {
-										window.location.href = suggestion.cursorDeeplink;
+										// Generate deeplink dynamically from prompt
+										const deeplink = generateCursorDeeplinkFromPrompt(suggestion.prompt);
+										window.open(deeplink, "_blank");
 									}}
 									variant="default"
 									size="sm"

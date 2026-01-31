@@ -17,7 +17,6 @@ export const _createTestSuggestions = internalMutation({
 				testType: v.union(v.literal("unit"), v.literal("integration"), v.literal("e2e")),
 				uncoveredLines: v.array(v.number()),
 				prompt: v.string(),
-				cursorDeeplink: v.string(),
 			})
 		),
 		model: v.string(),

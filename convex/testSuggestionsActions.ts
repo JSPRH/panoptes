@@ -6,7 +6,7 @@ import { z } from "zod";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action } from "./_generated/server";
-import { createOpenAIClient, generateCursorDeeplink } from "./aiAnalysisUtils";
+import { createOpenAIClient } from "./aiAnalysisUtils";
 
 export const generateTestSuggestions = action({
 	args: {
@@ -187,10 +187,7 @@ Generate 3-7 test suggestions, prioritizing high-value tests that cover critical
 				testType: "unit" | "integration" | "e2e";
 				uncoveredLines: number[];
 				prompt: string;
-			}) => ({
-				...suggestion,
-				cursorDeeplink: generateCursorDeeplink(suggestion.prompt),
-			})
+			}) => suggestion
 		);
 
 		// Store in database

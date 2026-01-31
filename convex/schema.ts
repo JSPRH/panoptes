@@ -217,7 +217,6 @@ export default defineSchema({
 			proposedTest: v.string(),
 			isFlaky: v.boolean(),
 			confidence: v.number(),
-			cursorDeeplink: v.optional(v.string()),
 			cursorPrompt: v.optional(v.string()),
 			cursorBackgroundAgentData: v.optional(
 				v.object({
@@ -386,7 +385,6 @@ export default defineSchema({
 				testType: v.union(v.literal("unit"), v.literal("integration"), v.literal("e2e")),
 				uncoveredLines: v.array(v.number()),
 				prompt: v.string(), // Full prompt for Cursor
-				cursorDeeplink: v.string(),
 			})
 		),
 		generatedAt: v.number(),

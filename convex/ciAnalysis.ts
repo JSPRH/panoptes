@@ -56,7 +56,6 @@ export const _createCIRunAnalysis = internalMutation({
 				proposedTest: "",
 				isFlaky: false,
 				confidence: 0,
-				cursorDeeplink: undefined,
 				cursorPrompt: undefined,
 				cursorBackgroundAgentData: undefined,
 				cursorAgentId: undefined,
@@ -81,7 +80,6 @@ export const _updateCIRunAnalysis = internalMutation({
 				proposedTest: v.string(),
 				isFlaky: v.boolean(),
 				confidence: v.number(),
-				cursorDeeplink: v.optional(v.string()),
 				cursorPrompt: v.optional(v.string()),
 				cursorBackgroundAgentData: v.optional(
 					v.object({

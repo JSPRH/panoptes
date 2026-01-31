@@ -269,8 +269,60 @@ function CIRunJobStep({
 	);
 }
 
+/**
+ * Generate a Cursor deeplink from CI Run analysis data.
+ * This is generated dynamically on the frontend to avoid storing URLs that might change.
+ */
+function generateCursorDeeplinkFromCIAnalysis(
+	analysis: CIRunAnalysis["analysis"],
+	ciRun: CIRun | null | undefined,
+	failedTests: Doc<"ciRunParsedTests">[] | undefined
+): string {
+	// Build a concise prompt similar to generateFixPrompt
+	const title = analysis.title || ciRun?.workflowName || "CI Failure";
+	const summary = analysis.summary.substring(0, 300);
+	const rootCause = analysis.rootCause.substring(0, 300);
+	const suggestedFix = analysis.proposedFix.substring(0, 500);
+	const failedTestsList =
+		failedTests && failedTests.length > 0
+			? failedTests
+					.slice(0, 2)
+					.map((t) => t.testName)
+					.join(", ")
+			: undefined;
+
+	let prompt = `Fix: ${title}\n\n${summary}\n\nRoot cause: ${rootCause}\n\nFix: ${suggestedFix}`;
+
+	if (failedTestsList) {
+		prompt += `\n\nContext:\nFailed: ${failedTestsList}`;
+	}
+
+	// Generate web-compatible deeplink (works in browsers and redirects to Cursor app)
+	const encodedPrompt = encodeURIComponent(prompt);
+	const maxLength = 8000;
+	let deeplink = `https://cursor.com/link/prompt?text=${encodedPrompt}`;
+
+	// Truncate if necessary to stay under URL length limit
+	if (deeplink.length > maxLength) {
+		const truncatedPrompt = prompt.substring(0, Math.floor(prompt.length * 0.7));
+		const encodedTruncated = encodeURIComponent(truncatedPrompt);
+		deeplink = `https://cursor.com/link/prompt?text=${encodedTruncated}`;
+
+		if (deeplink.length > maxLength) {
+			const ultraShortPrompt = prompt.substring(0, 500);
+			const encodedUltraShort = encodeURIComponent(ultraShortPrompt);
+			deeplink = `https://cursor.com/link/prompt?text=${encodedUltraShort}`;
+		}
+	}
+
+	return deeplink;
+}
+
 function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclusion?: string }) {
 	const analysis = useQuery(api.ciAnalysis.getCIRunAnalysis, { ciRunId });
+	const ciRun = useQuery(api.github.getCIRun, { runId: ciRunId });
+	const allParsedTests = useQuery(api.github.getCIRunParsedTests, { ciRunId });
+	const failedTests = allParsedTests?.filter((t) => t.status === "failed");
 	const analyzeFailure = useAction(api.ciAnalysisActions.analyzeCIRunFailure);
 	const triggerCloudAgent = useAction(api.ciAnalysisActions.triggerCursorCloudAgent);
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -294,15 +346,10 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 	};
 
 	const handleOpenCursorDeeplink = () => {
-		if (analysis?.analysis?.cursorDeeplink) {
-			// Convert cursor:// protocol to web format for better compatibility
-			// cursor://anysphere.cursor-deeplink/prompt?text=... -> https://cursor.com/link/prompt?text=...
-			// Web format works in browsers and redirects to Cursor app if installed
-			const webDeeplink = analysis.analysis.cursorDeeplink.replace(
-				"cursor://anysphere.cursor-deeplink/",
-				"https://cursor.com/link/"
-			);
-			window.open(webDeeplink, "_blank");
+		if (analysis?.analysis) {
+			// Generate deeplink dynamically from analysis data
+			const deeplink = generateCursorDeeplinkFromCIAnalysis(analysis.analysis, ciRun, failedTests);
+			window.open(deeplink, "_blank");
 		}
 	};
 
@@ -342,7 +389,7 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 				<div className="flex items-center justify-between">
 					<CardTitle>AI Failure Analysis</CardTitle>
 					<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-						{analysis?.analysis?.cursorDeeplink && (
+						{analysis?.analysis && (
 							<Button
 								onClick={handleOpenCursorDeeplink}
 								size="sm"
@@ -446,24 +493,22 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 								{analysis.analysis.proposedTest}
 							</div>
 						</details>
-						{(analysis.analysis.cursorDeeplink || analysis.analysis.cursorBackgroundAgentData) && (
+						{analysis.analysis.cursorBackgroundAgentData && (
 							<div className="border-t pt-4">
 								<div className="text-sm font-semibold mb-3">Fix with Cursor</div>
 								<div className="space-y-3">
-									{analysis.analysis.cursorDeeplink && (
-										<div className="p-3 bg-muted/50 rounded-lg border border-border">
-											<div className="flex items-start gap-2 mb-1">
-												<span className="text-lg">💬</span>
-												<div className="flex-1">
-													<div className="text-sm font-medium mb-1">Manual Fix (Deeplink)</div>
-													<div className="text-xs text-muted-foreground">
-														Opens the prompt in Cursor for you to review and fix manually. You'll
-														have full control over the changes.
-													</div>
+									<div className="p-3 bg-muted/50 rounded-lg border border-border">
+										<div className="flex items-start gap-2 mb-1">
+											<span className="text-lg">💬</span>
+											<div className="flex-1">
+												<div className="text-sm font-medium mb-1">Manual Fix (Deeplink)</div>
+												<div className="text-xs text-muted-foreground">
+													Opens the prompt in Cursor for you to review and fix manually. You'll have
+													full control over the changes.
 												</div>
 											</div>
 										</div>
-									)}
+									</div>
 									{analysis.analysis.cursorBackgroundAgentData && (
 										<div className="p-3 bg-muted/50 rounded-lg border border-border">
 											<div className="flex items-start gap-2 mb-1">

@@ -4,13 +4,7 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
-import {
-	CIRunFailureAnalysisSchema,
-	analyzeFailure,
-	generateCursorDeeplink,
-	generateFixPrompt,
-	getCursorApiKey,
-} from "./aiAnalysisUtils";
+import { CIRunFailureAnalysisSchema, analyzeFailure, getCursorApiKey } from "./aiAnalysisUtils";
 
 /**
  * Internal action that processes a failed CI run by fetching logs and analyzing.
@@ -270,23 +264,6 @@ ${failedTests.length > 0 ? `Failed Tests (${failedTests.length}):\n` : ""}`;
 				temperature: 0.3,
 			});
 
-			// Generate concise Cursor prompt for deeplink
-			const failedTestsList =
-				failedTests.length > 0
-					? failedTests
-							.slice(0, 2)
-							.map((t: Doc<"ciRunParsedTests">) => t.testName)
-							.join(", ")
-					: "";
-
-			const deeplinkPrompt = generateFixPrompt({
-				title: analysisData.title || ciRun.workflowName,
-				summary: analysisData.summary.substring(0, 300),
-				rootCause: analysisData.rootCause.substring(0, 300),
-				suggestedFix: analysisData.proposedFix.substring(0, 500),
-				context: failedTestsList ? `Failed: ${failedTestsList}` : undefined,
-			});
-
 			// Generate full Cursor prompt for background agent (can be longer)
 			const cursorPrompt = `Fix the CI failure in ${ciRun.workflowName} on branch ${ciRun.branch} (commit ${ciRun.commitSha.substring(0, 7)}).
 
@@ -309,9 +286,6 @@ Root Cause: ${analysisData.rootCause}
 Proposed Fix: ${analysisData.proposedFix}
 
 Please fix the issue and ensure all tests pass.`;
-
-			// Generate Cursor deeplink using shared utility
-			const cursorDeeplink = generateCursorDeeplink(deeplinkPrompt);
 
 			// Generate background agent data for Cloud Agents API
 			// See: https://cursor.com/docs/cloud-agent/api/endpoints
@@ -340,7 +314,6 @@ Please fix the issue and ensure all tests pass.`;
 								: analysisData.confidence === "medium"
 									? 0.5
 									: 0.2,
-					cursorDeeplink,
 					cursorPrompt,
 					cursorBackgroundAgentData,
 				},
@@ -426,16 +399,6 @@ export const triggerCursorCloudAgent = action({
 		// Format: https://cursor.com/agents?id={agentId}
 		const agentUrl = result.target?.url || `https://cursor.com/agents?id=${result.id}`;
 
-		// Update deeplink to include agent ID reference
-		// Add agent ID to the prompt so it's available when opening the deeplink
-		let updatedDeeplink = analysis.analysis.cursorDeeplink;
-		if (analysis.analysis.cursorDeeplink && analysis.analysis.cursorPrompt) {
-			// Update the prompt to include agent reference
-			const updatedPrompt = `${analysis.analysis.cursorPrompt}\n\nBackground Agent ID: ${result.id}\nAgent URL: ${agentUrl}`;
-			const encodedPrompt = encodeURIComponent(updatedPrompt);
-			updatedDeeplink = `cursor://anysphere.cursor-deeplink/prompt?text=${encodedPrompt}`;
-		}
-
 		// Store agent ID and URL in analysis (preserve existing analysis data)
 		const updateAnalysis: {
 			title: string;
@@ -445,7 +408,6 @@ export const triggerCursorCloudAgent = action({
 			proposedTest: string;
 			isFlaky: boolean;
 			confidence: number;
-			cursorDeeplink?: string;
 			cursorPrompt?: string;
 			cursorBackgroundAgentData?: {
 				repository: string;
@@ -466,9 +428,6 @@ export const triggerCursorCloudAgent = action({
 			cursorAgentUrl: agentUrl,
 		};
 
-		if (updatedDeeplink) {
-			updateAnalysis.cursorDeeplink = updatedDeeplink;
-		}
 		if (analysis.analysis.cursorPrompt) {
 			updateAnalysis.cursorPrompt = analysis.analysis.cursorPrompt;
 		}
