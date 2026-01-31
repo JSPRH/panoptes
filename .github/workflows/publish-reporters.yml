@@ -38,7 +38,7 @@ jobs:
         run: bun run build:shared
 
       - name: Publish @justinmiehle/shared
-        run: npm publish
+        run: npm publish --access public
         working-directory: packages/shared
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -47,13 +47,13 @@ jobs:
         run: bun run build:reporters
 
       - name: Publish @justinmiehle/reporter-playwright
-        run: npm publish
+        run: npm publish --access public
         working-directory: packages/reporters/playwright
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish @justinmiehle/reporter-vitest
-        run: npm publish
+        run: npm publish --access public
         working-directory: packages/reporters/vitest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
