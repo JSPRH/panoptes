@@ -11,6 +11,8 @@ const navItems = [
 	{ path: "/explorer", label: "Test Explorer" },
 	{ path: "/runs", label: "Test Runs" },
 	{ path: "/code-lens", label: "Code Lens" },
+	{ path: "/coverage-tree", label: "Coverage Tree" },
+	{ path: "/test-files", label: "Test Files" },
 	{ path: "/anomalies", label: "Anomalies" },
 	{ path: "/ci-runs", label: "CI Runs" },
 	{ path: "/pull-requests", label: "Pull Requests" },

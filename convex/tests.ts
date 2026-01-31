@@ -297,6 +297,287 @@ export const getCoverageForTestRun = query({
 	},
 });
 
+// Helper function to check if a file is a test file
+function isTestFilePattern(filePath: string): boolean {
+	const testPatterns = [
+		/\.test\.(ts|tsx|js|jsx)$/i,
+		/\.spec\.(ts|tsx|js|jsx)$/i,
+		/\.test\.(ts|tsx|js|jsx)\./i,
+		/\.spec\.(ts|tsx|js|jsx)\./i,
+	];
+	return testPatterns.some((pattern) => pattern.test(filePath));
+}
+
+// Helper function to split path into segments
+function splitPath(path: string): string[] {
+	return path.split(/[/\\]/).filter((segment) => segment.length > 0);
+}
+
+export const getCoverageTree = query({
+	args: {
+		projectId: v.optional(v.id("projects")),
+	},
+	handler: async (ctx, args) => {
+		// Find the latest test run with coverage
+		let testRuns: Doc<"testRuns">[];
+		if (args.projectId) {
+			testRuns = await ctx.db
+				.query("testRuns")
+				.withIndex("by_project", (q) => q.eq("projectId", args.projectId as Id<"projects">))
+				.order("desc")
+				.take(100);
+		} else {
+			testRuns = await ctx.db.query("testRuns").withIndex("by_started_at").order("desc").take(100);
+		}
+
+		// Find the first test run that has coverage
+		let coverageRunId: Id<"testRuns"> | undefined;
+		for (const run of testRuns) {
+			const coverage = await ctx.db
+				.query("fileCoverage")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+				.first();
+			if (coverage) {
+				coverageRunId = run._id;
+				break;
+			}
+		}
+
+		if (!coverageRunId) {
+			return [];
+		}
+
+		// Get all coverage for this run
+		const allCoverage = await ctx.db
+			.query("fileCoverage")
+			.withIndex("by_test_run", (q) => q.eq("testRunId", coverageRunId))
+			.take(COVERAGE_PER_RUN_LIMIT);
+
+		// Filter out test files and build tree structure
+		const sourceFiles = allCoverage.filter((fc) => !isTestFilePattern(fc.file));
+
+		// Build tree structure
+		type TreeNodeEntry = {
+			node: {
+				name: string;
+				path: string;
+				type: "file" | "directory";
+				linesCovered?: number;
+				linesTotal?: number;
+				coverage?: number;
+				children?: unknown[];
+			};
+			children: Map<string, TreeNodeEntry>;
+		};
+		const root: Map<string, TreeNodeEntry> = new Map();
+
+		for (const fileData of sourceFiles) {
+			const segments = splitPath(fileData.file);
+			if (segments.length === 0) continue;
+
+			let current = root;
+			let currentPath = "";
+
+			for (let i = 0; i < segments.length; i++) {
+				const segment = segments[i];
+				const isLast = i === segments.length - 1;
+				const path = currentPath ? `${currentPath}/${segment}` : segment;
+
+				if (isLast) {
+					// This is a file
+					if (!current.has(segment)) {
+						current.set(segment, {
+							node: {
+								name: segment,
+								path: fileData.file,
+								type: "file" as const,
+								linesCovered: fileData.linesCovered,
+								linesTotal: fileData.linesTotal,
+								coverage:
+									fileData.linesTotal > 0
+										? (fileData.linesCovered / fileData.linesTotal) * 100
+										: undefined,
+							},
+							children: new Map(),
+						});
+					}
+				} else {
+					// This is a directory
+					if (!current.has(segment)) {
+						current.set(segment, {
+							node: {
+								name: segment,
+								path,
+								type: "directory" as const,
+								children: [],
+							},
+							children: new Map(),
+						});
+					}
+					const dirEntry = current.get(segment);
+					if (dirEntry) {
+						current = dirEntry.children;
+					}
+					currentPath = path;
+				}
+			}
+		}
+
+		// Convert to tree structure and aggregate directory coverage
+		function processNode(entry: TreeNodeEntry): TreeNodeEntry["node"] {
+			const node = entry.node;
+			if (node.type === "directory") {
+				let totalLinesCovered = 0;
+				let totalLinesTotal = 0;
+				const processedChildren: TreeNodeEntry["node"][] = [];
+
+				for (const childEntry of entry.children.values()) {
+					const processed = processNode(childEntry);
+					processedChildren.push(processed);
+					if (processed.linesCovered !== undefined) {
+						totalLinesCovered += processed.linesCovered;
+					}
+					if (processed.linesTotal !== undefined) {
+						totalLinesTotal += processed.linesTotal;
+					}
+				}
+
+				// Sort children: directories first, then files, both alphabetically
+				processedChildren.sort((a, b) => {
+					if (a.type !== b.type) {
+						return a.type === "directory" ? -1 : 1;
+					}
+					return a.name.localeCompare(b.name);
+				});
+
+				return {
+					...node,
+					children: processedChildren,
+					linesCovered: totalLinesCovered,
+					linesTotal: totalLinesTotal,
+					coverage: totalLinesTotal > 0 ? (totalLinesCovered / totalLinesTotal) * 100 : undefined,
+				};
+			}
+			return node;
+		}
+
+		const rootNodes: TreeNodeEntry["node"][] = Array.from(root.values()).map(processNode);
+		rootNodes.sort((a, b) => {
+			if (a.type !== b.type) {
+				return a.type === "directory" ? -1 : 1;
+			}
+			return a.name.localeCompare(b.name);
+		});
+
+		return rootNodes;
+	},
+});
+
+export const getTestsByTestFile = query({
+	args: {
+		projectId: v.optional(v.id("projects")),
+		limit: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		const limit = args.limit ?? 1000;
+
+		// Get all tests
+		let tests: Doc<"tests">[];
+		if (args.projectId) {
+			tests = await ctx.db
+				.query("tests")
+				.withIndex("by_project", (q) => q.eq("projectId", args.projectId as Id<"projects">))
+				.take(limit);
+		} else {
+			tests = await ctx.db.query("tests").take(limit);
+		}
+
+		// Group by test file, test type, and framework
+		const groups = new Map<string, Map<string, Map<string, Doc<"tests">[]>>>();
+
+		for (const test of tests) {
+			// Check if it's a test file
+			if (!isTestFilePattern(test.file)) {
+				continue;
+			}
+
+			// Get test run to access framework and testType
+			const testRun = await ctx.db.get(test.testRunId);
+			if (!testRun) continue;
+
+			const testFile = test.file;
+			const testType = testRun.testType;
+			const framework = testRun.framework;
+
+			if (!groups.has(testFile)) {
+				groups.set(testFile, new Map());
+			}
+			const byFile = groups.get(testFile);
+			if (!byFile) continue;
+
+			if (!byFile.has(testType)) {
+				byFile.set(testType, new Map());
+			}
+			const byType = byFile.get(testType);
+			if (!byType) continue;
+
+			if (!byType.has(framework)) {
+				byType.set(framework, []);
+			}
+			const testsArray = byType.get(framework);
+			if (testsArray) {
+				testsArray.push(test);
+			}
+		}
+
+		// Convert to array format
+		const result: Array<{
+			testFile: string;
+			testType: string;
+			framework: string;
+			tests: Doc<"tests">[];
+			passed: number;
+			failed: number;
+			skipped: number;
+		}> = [];
+
+		// Sort test files alphabetically
+		const sortedFiles = Array.from(groups.keys()).sort();
+
+		for (const testFile of sortedFiles) {
+			const byFile = groups.get(testFile);
+			if (!byFile) continue;
+			// Sort test types
+			const sortedTypes = Array.from(byFile.keys()).sort();
+			for (const testType of sortedTypes) {
+				const byType = byFile.get(testType);
+				if (!byType) continue;
+				// Sort frameworks
+				const sortedFrameworks = Array.from(byType.keys()).sort();
+				for (const framework of sortedFrameworks) {
+					const tests = byType.get(framework);
+					if (!tests) continue;
+					const passed = tests.filter((t) => t.status === "passed").length;
+					const failed = tests.filter((t) => t.status === "failed").length;
+					const skipped = tests.filter((t) => t.status === "skipped").length;
+
+					result.push({
+						testFile,
+						testType,
+						framework,
+						tests,
+						passed,
+						failed,
+						skipped,
+					});
+				}
+			}
+		}
+
+		return result;
+	},
+});
+
 export const getTestRuns = query({
 	args: {
 		projectId: v.optional(v.id("projects")),

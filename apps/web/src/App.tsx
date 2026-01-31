@@ -7,11 +7,13 @@ import Anomalies from "./pages/Anomalies";
 import CIRunDetail from "./pages/CIRunDetail";
 import CIRuns from "./pages/CIRuns";
 import CodeLens from "./pages/CodeLens";
+import CoverageTree from "./pages/CoverageTree";
 import Dashboard from "./pages/Dashboard";
 import PullRequests from "./pages/PullRequests";
 import TestDetail from "./pages/TestDetail";
 import TestExecutionDetail from "./pages/TestExecutionDetail";
 import TestExplorer from "./pages/TestExplorer";
+import TestFiles from "./pages/TestFiles";
 import TestPyramid from "./pages/TestPyramid";
 import TestRunDetail from "./pages/TestRunDetail";
 import TestRuns from "./pages/TestRuns";
@@ -66,6 +68,8 @@ function App() {
 							<Route path="/executions/:executionId" element={<TestExecutionDetail />} />
 							<Route path="/tests/:projectId/:name/:file" element={<TestDetail />} />
 							<Route path="/code-lens" element={<CodeLens />} />
+							<Route path="/coverage-tree" element={<CoverageTree />} />
+							<Route path="/test-files" element={<TestFiles />} />
 							<Route path="/anomalies" element={<Anomalies />} />
 							<Route path="/ci-runs" element={<CIRuns />} />
 							<Route path="/ci-runs/:runId" element={<CIRunDetail />} />
