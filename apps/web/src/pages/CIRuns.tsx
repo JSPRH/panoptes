@@ -141,6 +141,8 @@ export default function CIRuns() {
 		return status;
 	};
 
+	const hasMultipleProjects = projects && projects.length > 1;
+
 	return (
 		<div className="space-y-8">
 			<div className="flex items-center justify-between">
@@ -152,13 +154,13 @@ export default function CIRuns() {
 				)}
 			</div>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Project Selection</CardTitle>
-					<CardDescription>Select a project to view CI runs</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{projects && projects.length > 0 ? (
+			{hasMultipleProjects && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Project Selection</CardTitle>
+						<CardDescription>Select a project to view CI runs</CardDescription>
+					</CardHeader>
+					<CardContent>
 						<div className="flex flex-wrap gap-2">
 							{projects.map((project: Project) => (
 								<Button
@@ -174,115 +176,111 @@ export default function CIRuns() {
 								</Button>
 							))}
 						</div>
-					) : (
-						<p className="text-muted-foreground">No projects found. Create a project first.</p>
-					)}
-				</CardContent>
-			</Card>
-
-			{selectedProject && !selectedProject.repository && (
-				<Card>
-					<CardHeader>
-						<CardTitle>Repository Not Configured</CardTitle>
-						<CardDescription>
-							Configure the GitHub repository URL for this project to view CI runs
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						{!showRepoConfig ? (
-							<>
-								<p className="text-muted-foreground">
-									This project doesn't have a repository configured. Add a repository URL to view CI
-									runs.
-								</p>
-								<div className="space-y-2">
-									<Button onClick={handleShowRepoConfig} variant="default" size="sm">
-										Configure Repository
-									</Button>
-									<p className="text-xs text-muted-foreground">
-										Note: Make sure GITHUB_ACCESS_TOKEN_STORYBOOK is configured in Convex secrets
-										for GitHub API access.
-									</p>
-								</div>
-							</>
-						) : (
-							<div className="space-y-4">
-								<div>
-									<label htmlFor="repo-select" className="block text-sm font-medium mb-2">
-										Select Repository
-									</label>
-									{isLoadingRepos ? (
-										<div className="text-sm text-muted-foreground">Loading repositories...</div>
-									) : availableRepos.length === 0 ? (
-										<div className="space-y-2">
-											<p className="text-sm text-muted-foreground">
-												No repositories loaded. Click "Load Repositories" to fetch from GitHub.
-											</p>
-											<Button onClick={handleLoadRepositories} variant="outline" size="sm">
-												Load Repositories
-											</Button>
-										</div>
-									) : (
-										<div className="space-y-2">
-											<input
-												type="text"
-												placeholder="Search repositories..."
-												value={repoSearch}
-												onChange={(e) => setRepoSearch(e.target.value)}
-												className="w-full px-4 py-2 border rounded-md mb-2"
-											/>
-											<select
-												id="repo-select"
-												value={selectedRepo}
-												onChange={(e) => setSelectedRepo(e.target.value)}
-												className="w-full px-4 py-2 border rounded-md"
-												size={Math.min(filteredRepos.length, 10)}
-											>
-												<option value="">-- Select a repository --</option>
-												{filteredRepos.map((repo) => (
-													<option key={repo.fullName} value={repo.fullName}>
-														{repo.fullName} {repo.private ? "(private)" : ""}
-														{repo.description ? ` - ${repo.description}` : ""}
-													</option>
-												))}
-											</select>
-											{filteredRepos.length === 0 && repoSearch && (
-												<p className="text-xs text-muted-foreground">
-													No repositories found matching "{repoSearch}"
-												</p>
-											)}
-											<p className="text-xs text-muted-foreground">
-												Showing {filteredRepos.length} of {availableRepos.length} repositories
-											</p>
-										</div>
-									)}
-								</div>
-								<div className="flex gap-2">
-									<Button
-										onClick={handleSaveRepository}
-										variant="default"
-										size="sm"
-										disabled={!selectedRepo.trim()}
-									>
-										Save Repository
-									</Button>
-									<Button
-										onClick={() => {
-											setShowRepoConfig(false);
-											setSelectedRepo("");
-											setRepoSearch("");
-										}}
-										variant="outline"
-										size="sm"
-									>
-										Cancel
-									</Button>
-								</div>
-							</div>
-						)}
 					</CardContent>
 				</Card>
 			)}
+
+			{projects && projects.length === 0 && (
+				<p className="text-muted-foreground">No projects found. Create a project first.</p>
+			)}
+
+			{selectedProject &&
+				!selectedProject.repository &&
+				(!showRepoConfig ? (
+					<div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
+						<div>
+							<p className="text-sm font-medium">Repository not configured</p>
+							<p className="text-xs text-muted-foreground mt-1">
+								Configure a GitHub repository to view CI runs for this project
+							</p>
+						</div>
+						<Button onClick={handleShowRepoConfig} variant="outline" size="sm">
+							Configure Repository
+						</Button>
+					</div>
+				) : (
+					<Card>
+						<CardHeader>
+							<CardTitle>Configure Repository</CardTitle>
+							<CardDescription>
+								Select a GitHub repository for this project to view CI runs
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div>
+								<label htmlFor="repo-select" className="block text-sm font-medium mb-2">
+									Select Repository
+								</label>
+								{isLoadingRepos ? (
+									<div className="text-sm text-muted-foreground">Loading repositories...</div>
+								) : availableRepos.length === 0 ? (
+									<div className="space-y-2">
+										<p className="text-sm text-muted-foreground">
+											No repositories loaded. Click "Load Repositories" to fetch from GitHub.
+										</p>
+										<Button onClick={handleLoadRepositories} variant="outline" size="sm">
+											Load Repositories
+										</Button>
+									</div>
+								) : (
+									<div className="space-y-2">
+										<input
+											type="text"
+											placeholder="Search repositories..."
+											value={repoSearch}
+											onChange={(e) => setRepoSearch(e.target.value)}
+											className="w-full px-4 py-2 border rounded-md mb-2"
+										/>
+										<select
+											id="repo-select"
+											value={selectedRepo}
+											onChange={(e) => setSelectedRepo(e.target.value)}
+											className="w-full px-4 py-2 border rounded-md"
+											size={Math.min(filteredRepos.length, 10)}
+										>
+											<option value="">-- Select a repository --</option>
+											{filteredRepos.map((repo) => (
+												<option key={repo.fullName} value={repo.fullName}>
+													{repo.fullName} {repo.private ? "(private)" : ""}
+													{repo.description ? ` - ${repo.description}` : ""}
+												</option>
+											))}
+										</select>
+										{filteredRepos.length === 0 && repoSearch && (
+											<p className="text-xs text-muted-foreground">
+												No repositories found matching "{repoSearch}"
+											</p>
+										)}
+										<p className="text-xs text-muted-foreground">
+											Showing {filteredRepos.length} of {availableRepos.length} repositories
+										</p>
+									</div>
+								)}
+							</div>
+							<div className="flex gap-2">
+								<Button
+									onClick={handleSaveRepository}
+									variant="default"
+									size="sm"
+									disabled={!selectedRepo.trim()}
+								>
+									Save Repository
+								</Button>
+								<Button
+									onClick={() => {
+										setShowRepoConfig(false);
+										setSelectedRepo("");
+										setRepoSearch("");
+									}}
+									variant="outline"
+									size="sm"
+								>
+									Cancel
+								</Button>
+							</div>
+						</CardContent>
+					</Card>
+				))}
 
 			{selectedProject?.repository && (
 				<>

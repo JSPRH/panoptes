@@ -67,6 +67,8 @@ export default function TestRuns() {
 		return "neutral";
 	};
 
+	const hasMultipleProjects = projects && projects.length > 1;
+
 	return (
 		<div className="space-y-8">
 			<PageHeader
@@ -74,13 +76,13 @@ export default function TestRuns() {
 				description="Browse test runs by project, source (CI/Local), and runner. Open a run to view its test executions."
 			/>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Project</CardTitle>
-					<CardDescription>Select a project to view test runs</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{projects && projects.length > 0 ? (
+			{hasMultipleProjects && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Project</CardTitle>
+						<CardDescription>Select a project to view test runs</CardDescription>
+					</CardHeader>
+					<CardContent>
 						<div className="flex flex-wrap gap-2">
 							{projects.map((project: Project) => (
 								<button
@@ -97,13 +99,15 @@ export default function TestRuns() {
 								</button>
 							))}
 						</div>
-					) : (
-						<p className="text-muted-foreground">
-							No projects found. Run tests with a reporter to create data.
-						</p>
-					)}
-				</CardContent>
-			</Card>
+					</CardContent>
+				</Card>
+			)}
+
+			{projects && projects.length === 0 && (
+				<p className="text-muted-foreground">
+					No projects found. Run tests with a reporter to create data.
+				</p>
+			)}
 
 			{selectedProjectId && (
 				<>
