@@ -322,6 +322,15 @@ export const getTestRuns = query({
 	},
 });
 
+export const getTestRun = query({
+	args: {
+		runId: v.id("testRuns"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.runId);
+	},
+});
+
 export const getTestAttachments = query({
 	args: {
 		testId: v.id("tests"),
@@ -566,20 +575,30 @@ export const updateProjectRepository = mutation({
 	},
 });
 
+function testDefinitionKey(
+	projectId: Id<"projects">,
+	name: string,
+	file: string,
+	line: number | undefined
+): string {
+	return `${projectId}|${name}|${file}|${line ?? ""}`;
+}
+
 export const getTestPyramidData = query({
 	args: {
 		projectId: v.optional(v.id("projects")),
 	},
 	handler: async (ctx, args) => {
-		// Temporarily simplified - query directly from testRuns instead of using aggregates
-		// This unblocks us while aggregates are being set up
+		// Count unique test definitions per type; passed/failed from latest execution per definition.
+		// See docs/TERMINOLOGY.md: test = definition, tests table = test executions.
 		const projectId = args.projectId;
-		const testRuns = projectId
+		const runsUnsorted = projectId
 			? await ctx.db
 					.query("testRuns")
 					.withIndex("by_project", (q) => q.eq("projectId", projectId))
 					.collect()
 			: await ctx.db.query("testRuns").collect();
+		const testRuns = runsUnsorted.sort((a, b) => b.startedAt - a.startedAt);
 
 		const pyramid = {
 			unit: { total: 0, passed: 0, failed: 0 },
@@ -588,12 +607,39 @@ export const getTestPyramidData = query({
 			visual: { total: 0, passed: 0, failed: 0 },
 		};
 
+		// Per type: map of definition key -> latest status (we process runs newest-first)
+		const seenByType: Record<
+			keyof typeof pyramid,
+			Map<string, "passed" | "failed" | "skipped" | "running">
+		> = {
+			unit: new Map(),
+			integration: new Map(),
+			e2e: new Map(),
+			visual: new Map(),
+		};
+
 		for (const run of testRuns) {
 			const type = run.testType;
-			if (type in pyramid) {
-				pyramid[type as keyof typeof pyramid].total += run.totalTests;
-				pyramid[type as keyof typeof pyramid].passed += run.passedTests;
-				pyramid[type as keyof typeof pyramid].failed += run.failedTests;
+			if (!(type in seenByType)) continue;
+			const map = seenByType[type as keyof typeof seenByType];
+			const tests = await ctx.db
+				.query("tests")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+				.collect();
+			for (const test of tests) {
+				const key = testDefinitionKey(test.projectId, test.name, test.file, test.line);
+				if (!map.has(key)) {
+					map.set(key, test.status);
+				}
+			}
+		}
+
+		for (const type of ["unit", "integration", "e2e", "visual"] as const) {
+			const map = seenByType[type];
+			pyramid[type].total = map.size;
+			for (const status of map.values()) {
+				if (status === "passed") pyramid[type].passed += 1;
+				else if (status === "failed") pyramid[type].failed += 1;
 			}
 		}
 

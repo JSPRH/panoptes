@@ -10,7 +10,6 @@ import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 
 type TestRun = Doc<"testRuns">;
-type Test = Doc<"tests">;
 type Project = Doc<"projects">;
 
 function formatTime(ts: number): string {
@@ -30,7 +29,6 @@ export default function TestRuns() {
 	const [selectedProjectId, setSelectedProjectId] = useState<Id<"projects"> | null>(null);
 	const [sourceFilter, setSourceFilter] = useState<string>("all");
 	const [runnerFilter, setRunnerFilter] = useState<string>("all");
-	const [selectedRunId, setSelectedRunId] = useState<Id<"testRuns"> | null>(null);
 
 	const projects = useQuery(api.tests.getProjects);
 	const testRuns = useQuery(
@@ -44,12 +42,6 @@ export default function TestRuns() {
 				}
 			: "skip"
 	);
-	const testsForRun = useQuery(
-		api.tests.getTests,
-		selectedRunId ? { testRunId: selectedRunId } : "skip"
-	);
-
-	const selectedRun = testRuns?.find((r) => r._id === selectedRunId);
 
 	// Derive distinct runners from current runs (for dropdown; only truthy triggeredBy)
 	const distinctRunners = useMemo(() => {
@@ -68,12 +60,6 @@ export default function TestRuns() {
 		}
 	}, [projects, selectedProjectId]);
 
-	// Clear selected run when project or filters change
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally clear selection when filters change
-	useEffect(() => {
-		setSelectedRunId(null);
-	}, [selectedProjectId, sourceFilter, runnerFilter]);
-
 	const getStatusVariant = (status: string): "success" | "error" | "info" | "neutral" => {
 		if (status === "passed") return "success";
 		if (status === "failed") return "error";
@@ -85,7 +71,7 @@ export default function TestRuns() {
 		<div className="space-y-8">
 			<PageHeader
 				title="Test Runs"
-				description="Browse test runs by project, source (CI/Local), and runner. Select a run to see its tests."
+				description="Browse test runs by project, source (CI/Local), and runner. Open a run to view its test executions."
 			/>
 
 			<Card>
@@ -175,8 +161,8 @@ export default function TestRuns() {
 						<CardHeader>
 							<CardTitle>Runs</CardTitle>
 							<CardDescription>
-								{testRuns?.length ?? 0} run{testRuns?.length !== 1 ? "s" : ""}. Select one to see
-								tests.
+								{testRuns?.length ?? 0} run{testRuns?.length !== 1 ? "s" : ""}. Open a run to view
+								details.
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
@@ -187,98 +173,41 @@ export default function TestRuns() {
 								/>
 							) : (
 								<div className="space-y-2">
-									{testRuns.map((run: TestRun) => {
-										const isSelected = selectedRunId === run._id;
-										return (
-											<button
-												key={run._id}
-												type="button"
-												onClick={() => setSelectedRunId(run._id)}
-												className={`w-full text-left rounded-lg border p-4 transition-colors ${
-													isSelected
-														? "border-primary bg-primary/5"
-														: "border-border bg-card hover:bg-muted/50"
-												}`}
-											>
-												<div className="flex flex-wrap items-center gap-2">
-													<span className="text-sm text-muted-foreground">
-														{formatTime(run.startedAt)}
-													</span>
-													<Badge variant={getStatusVariant(run.status)}>{run.status}</Badge>
-													<Badge variant="neutral">{run.framework}</Badge>
-													<Badge variant="neutral">{run.testType}</Badge>
-													{run.ci != null && (
-														<Badge variant={run.ci ? "info" : "neutral"}>
-															{run.ci ? "CI" : "Local"}
-														</Badge>
-													)}
-													<span className="text-sm text-muted-foreground">
-														{run.triggeredBy ?? "—"}
-													</span>
-													<span className="text-sm text-muted-foreground">
-														{formatDuration(run.duration)}
-													</span>
-													<span className="text-sm text-muted-foreground">
-														{run.passedTests}/{run.totalTests} passed
-														{run.failedTests > 0 && `, ${run.failedTests} failed`}
-													</span>
-												</div>
-											</button>
-										);
-									})}
+									{testRuns.map((run: TestRun) => (
+										<Link
+											key={run._id}
+											to={`/runs/${run._id}`}
+											className="block w-full text-left rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/50"
+										>
+											<div className="flex flex-wrap items-center gap-2">
+												<span className="text-sm text-muted-foreground">
+													{formatTime(run.startedAt)}
+												</span>
+												<Badge variant={getStatusVariant(run.status)}>{run.status}</Badge>
+												<Badge variant="neutral">{run.framework}</Badge>
+												<Badge variant="neutral">{run.testType}</Badge>
+												{run.ci != null && (
+													<Badge variant={run.ci ? "info" : "neutral"}>
+														{run.ci ? "CI" : "Local"}
+													</Badge>
+												)}
+												<span className="text-sm text-muted-foreground">
+													{run.triggeredBy ?? "—"}
+												</span>
+												<span className="text-sm text-muted-foreground">
+													{formatDuration(run.duration)}
+												</span>
+												<span className="text-sm text-muted-foreground">
+													{run.passedTests}/{run.totalTests} passed
+													{run.failedTests > 0 && `, ${run.failedTests} failed`}
+												</span>
+											</div>
+										</Link>
+									))}
 								</div>
 							)}
 						</CardContent>
 					</Card>
-
-					{selectedRunId && selectedRun && (
-						<Card>
-							<CardHeader>
-								<div className="flex items-center justify-between">
-									<div>
-										<CardTitle>Tests in this run</CardTitle>
-										<CardDescription>
-											{formatTime(selectedRun.startedAt)} • {selectedRun.framework} •{" "}
-											{selectedRun.testType}
-											{selectedRun.triggeredBy != null && ` • ${selectedRun.triggeredBy}`}
-										</CardDescription>
-									</div>
-									<Link
-										to={`/explorer?runId=${selectedRunId}`}
-										className="text-sm text-primary hover:underline"
-									>
-										Open in Test Explorer
-									</Link>
-								</div>
-							</CardHeader>
-							<CardContent>
-								{testsForRun?.length ? (
-									<div className="space-y-2">
-										{testsForRun.map((test: Test) => (
-											<div
-												key={test._id}
-												className="flex items-center justify-between py-2 px-3 rounded-md border border-border bg-card"
-											>
-												<div>
-													<div className="font-medium text-sm">{test.name}</div>
-													<div className="text-xs text-muted-foreground">
-														{test.file}
-														{test.line != null && `:${test.line}`}
-													</div>
-												</div>
-												<div className="flex items-center gap-2">
-													<span className="text-xs text-muted-foreground">{test.duration}ms</span>
-													<Badge variant={getStatusVariant(test.status)}>{test.status}</Badge>
-												</div>
-											</div>
-										))}
-									</div>
-								) : (
-									<p className="text-muted-foreground text-sm">No tests in this run.</p>
-								)}
-							</CardContent>
-						</Card>
-					)}
 				</>
 			)}
 		</div>

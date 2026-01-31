@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import PullRequests from "./pages/PullRequests";
 import TestExplorer from "./pages/TestExplorer";
 import TestPyramid from "./pages/TestPyramid";
+import TestRunDetail from "./pages/TestRunDetail";
 import TestRuns from "./pages/TestRuns";
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL || "";
@@ -58,6 +59,7 @@ function App() {
 							<Route path="/pyramid" element={<TestPyramid />} />
 							<Route path="/explorer" element={<TestExplorer />} />
 							<Route path="/runs" element={<TestRuns />} />
+							<Route path="/runs/:runId" element={<TestRunDetail />} />
 							<Route path="/code-lens" element={<CodeLens />} />
 							<Route path="/anomalies" element={<Anomalies />} />
 							<Route path="/ci-runs" element={<CIRuns />} />
