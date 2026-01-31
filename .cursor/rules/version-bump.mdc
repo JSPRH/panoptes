@@ -1,0 +1,36 @@
+---
+description: "Bump package versions when making changes to published packages. Use semver (patch/minor/major)."
+globs: ["packages/**/package.json"]
+---
+
+# Version Bumping for Published Packages
+
+When you change code in a **published** package (one that is not `"private": true` and is released to npm/GitHub Packages), bump its `version` in `package.json` in the same PR/commit as the change.
+
+## Which Packages Are Published?
+
+- **packages/shared** (`@justinmiehle/shared`) – published
+- **packages/reporters/vitest** (`@justinmiehle/reporter-vitest`) – published
+- **packages/reporters/playwright** (`@justinmiehle/reporter-playwright`) – published
+- **packages/cli** (`@panoptes/cli`) – `"private": true`, not published
+- **apps/web** – not published
+
+## Semver (0.x)
+
+We use **0.x** versions. Treat the last number as **patch** and the middle as **minor**:
+
+- **Patch** (e.g. 0.0.6 → 0.0.7): Backward-compatible fixes, additive types/schemas, new optional fields, bug fixes.
+- **Minor** (e.g. 0.0.7 → 0.1.0): New features or behavior that remain backward compatible.
+- **Major** (e.g. 0.1.0 → 1.0.0): Breaking API or behavior changes (rare before 1.0).
+
+When in doubt, use **patch** for additive or fix-only changes.
+
+## Dependency Order
+
+If **shared** is bumped, any published package that depends on it (e.g. reporters) should usually be bumped in the same release so consumers get a consistent set. Use the same patch/minor bump for the release (e.g. shared 0.0.7, reporters 0.0.7).
+
+## Checklist
+
+- [ ] Did I change code in `packages/shared`, `packages/reporters/vitest`, or `packages/reporters/playwright`?
+- [ ] If yes, did I bump that package’s `version` in its `package.json`?
+- [ ] If I bumped `packages/shared`, did I bump the reporter packages that depend on it (same release)?

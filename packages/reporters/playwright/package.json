@@ -1,6 +1,6 @@
 {
 	"name": "@justinmiehle/reporter-playwright",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"description": "Panoptes reporter for Playwright test results",
 	"type": "module",
 	"main": "./dist/index.js",

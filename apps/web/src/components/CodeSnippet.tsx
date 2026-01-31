@@ -1,3 +1,4 @@
+import { parseRepositoryUrl } from "../lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 interface CodeSnippetProps {
@@ -9,6 +10,8 @@ interface CodeSnippetProps {
 	file?: string;
 	repository?: string;
 	commitSha?: string;
+	/** Show "View on GitHub" link. Default true. Set false for non-CI runs. */
+	showGitHubLink?: boolean;
 }
 
 export default function CodeSnippet({
@@ -20,12 +23,13 @@ export default function CodeSnippet({
 	file,
 	repository,
 	commitSha,
+	showGitHubLink = true,
 }: CodeSnippetProps) {
 	const lines = content.split("\n");
 	const maxLineNumberLength = String(endLine).length;
 
 	const getGitHubUrl = () => {
-		if (!repository || !file) return null;
+		if (!showGitHubLink || !repository || !file) return null;
 		const repoInfo = parseRepositoryUrl(repository);
 		if (!repoInfo) return null;
 		const ref = commitSha || "main";
@@ -84,20 +88,4 @@ export default function CodeSnippet({
 			</CardContent>
 		</Card>
 	);
-}
-
-function parseRepositoryUrl(repository: string): { owner: string; repo: string } | null {
-	const patterns = [
-		/https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?(?:\/|$)/,
-		/git@github\.com:([^\/]+)\/([^\/]+?)(?:\.git)?$/,
-		/^([^\/]+)\/([^\/]+)$/,
-	];
-
-	for (const pattern of patterns) {
-		const match = repository.match(pattern);
-		if (match) {
-			return { owner: match[1], repo: match[2] };
-		}
-	}
-	return null;
 }
