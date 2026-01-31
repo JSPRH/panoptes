@@ -202,6 +202,7 @@ export default defineSchema({
 		linesCovered: v.number(),
 		linesTotal: v.number(),
 		lineDetails: v.optional(v.string()),
+		statementDetails: v.optional(v.string()), // JSON: array of statement coverage info
 		statementsCovered: v.optional(v.number()),
 		statementsTotal: v.optional(v.number()),
 		branchesCovered: v.optional(v.number()),

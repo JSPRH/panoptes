@@ -56,6 +56,7 @@ export default function FileCoverageDetail() {
 	const [activeTab, setActiveTab] = useState("coverage");
 	const [useStatementCoverage, setUseStatementCoverage] = useState(false);
 	const [showInfo, setShowInfo] = useState(false);
+	const [coverageViewType, setCoverageViewType] = useState<"line" | "statement">("line");
 
 	const fileCoverage = fileCoverageData
 		? {
@@ -72,6 +73,7 @@ export default function FileCoverageDetail() {
 				branchesTotal: fileCoverageData.branchesTotal,
 				functionsCovered: fileCoverageData.functionsCovered,
 				functionsTotal: fileCoverageData.functionsTotal,
+				statementDetails: fileCoverageData.statementDetails,
 			}
 		: null;
 
@@ -86,6 +88,36 @@ export default function FileCoverageDetail() {
 			return null;
 		}
 	}, [fileCoverage?.lineDetails]);
+
+	const statementDetails = useMemo(() => {
+		if (!fileCoverage?.statementDetails) return null;
+		try {
+			return JSON.parse(fileCoverage.statementDetails) as Array<{
+				id: string;
+				startLine: number;
+				endLine: number;
+				covered: boolean;
+			}>;
+		} catch {
+			return null;
+		}
+	}, [fileCoverage?.statementDetails]);
+
+	// Create a map of line numbers to statement coverage status
+	const lineToStatementCoverage = useMemo(() => {
+		if (!statementDetails) return null;
+		const map = new Map<number, { covered: boolean; statementId: string }>();
+		for (const stmt of statementDetails) {
+			for (let line = stmt.startLine; line <= stmt.endLine; line++) {
+				// If a line is part of multiple statements, mark as covered if any statement is covered
+				const existing = map.get(line);
+				if (!existing || !existing.covered) {
+					map.set(line, { covered: stmt.covered, statementId: stmt.id });
+				}
+			}
+		}
+		return map;
+	}, [statementDetails]);
 
 	const coverage = useMemo(() => {
 		if (!fileCoverage) return 0;
@@ -369,14 +401,57 @@ export default function FileCoverageDetail() {
 					</Card>
 
 					{/* Line-by-line Coverage */}
-					{lineDetails && (
+					{(lineDetails || statementDetails) && (
 						<Card>
 							<CardHeader>
-								<CardTitle>Line-by-line Coverage</CardTitle>
-								<CardDescription>
-									{lineDetails.covered.length} covered, {lineDetails.uncovered.length} uncovered
-									{lineDetails.uncovered.length > 0 && " lines"}
-								</CardDescription>
+								<div className="flex items-center justify-between">
+									<div>
+										<CardTitle>
+											{coverageViewType === "line" ? "Line-by-line Coverage" : "Statement Coverage"}
+										</CardTitle>
+										<CardDescription>
+											{coverageViewType === "line" ? (
+												<>
+													{lineDetails?.covered.length ?? 0} covered,{" "}
+													{lineDetails?.uncovered.length ?? 0} uncovered
+													{(lineDetails?.uncovered.length ?? 0) > 0 && " lines"}
+												</>
+											) : (
+												<>
+													{statementDetails?.filter((s) => s.covered).length ?? 0} covered,{" "}
+													{statementDetails?.filter((s) => !s.covered).length ?? 0} uncovered
+													{(statementDetails?.filter((s) => !s.covered).length ?? 0) > 0 &&
+														" statements"}
+												</>
+											)}
+										</CardDescription>
+									</div>
+									{statementDetails && (
+										<div className="flex items-center gap-3">
+											<label htmlFor="coverage-view-type" className="text-sm font-medium">
+												View:
+											</label>
+											<div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+												<Button
+													variant={coverageViewType === "line" ? "default" : "ghost"}
+													size="sm"
+													onClick={() => setCoverageViewType("line")}
+													className="h-7"
+												>
+													Line
+												</Button>
+												<Button
+													variant={coverageViewType === "statement" ? "default" : "ghost"}
+													size="sm"
+													onClick={() => setCoverageViewType("statement")}
+													className="h-7"
+												>
+													Statement
+												</Button>
+											</div>
+										</div>
+									)}
+								</div>
 							</CardHeader>
 							<CardContent>
 								{loadingContent ? (
@@ -388,21 +463,47 @@ export default function FileCoverageDetail() {
 										<div className="text-sm text-error bg-error-muted/20 p-4 rounded-lg">
 											{contentError}
 										</div>
-										<div className="text-sm text-muted-foreground">Uncovered lines:</div>
+										<div className="text-sm text-muted-foreground">
+											{coverageViewType === "statement"
+												? "Uncovered statements:"
+												: "Uncovered lines:"}
+										</div>
 										<div className="flex flex-wrap gap-2">
-											{lineDetails?.uncovered.map((line) => (
-												<Badge
-													key={line}
-													variant="error"
-													className="font-mono cursor-pointer hover:bg-error/20"
-													onClick={() => {
-														const link = generateCursorDeeplink(decodedFilePath, [line]);
-														window.location.href = link;
-													}}
-												>
-													Line {line}
-												</Badge>
-											))}
+											{coverageViewType === "statement" && statementDetails
+												? statementDetails
+														.filter((s) => !s.covered)
+														.map((stmt) => {
+															const lines = [];
+															for (let line = stmt.startLine; line <= stmt.endLine; line++) {
+																lines.push(line);
+															}
+															return (
+																<Badge
+																	key={stmt.id}
+																	variant="error"
+																	className="font-mono cursor-pointer hover:bg-error/20"
+																	onClick={() => {
+																		const link = generateCursorDeeplink(decodedFilePath, lines);
+																		window.location.href = link;
+																	}}
+																>
+																	Statement {stmt.id} (lines {stmt.startLine}-{stmt.endLine})
+																</Badge>
+															);
+														})
+												: lineDetails?.uncovered.map((line) => (
+														<Badge
+															key={line}
+															variant="error"
+															className="font-mono cursor-pointer hover:bg-error/20"
+															onClick={() => {
+																const link = generateCursorDeeplink(decodedFilePath, [line]);
+																window.location.href = link;
+															}}
+														>
+															Line {line}
+														</Badge>
+													))}
 										</div>
 									</div>
 								) : fileLines.length > 0 ? (
@@ -410,8 +511,20 @@ export default function FileCoverageDetail() {
 										<div className="max-h-[600px] overflow-y-auto">
 											{fileLines.map((line, index) => {
 												const lineNum = index + 1;
-												const isCovered = lineDetails?.covered.includes(lineNum) ?? false;
-												const isUncovered = lineDetails?.uncovered.includes(lineNum) ?? false;
+												let isCovered = false;
+												let isUncovered = false;
+
+												if (coverageViewType === "statement" && lineToStatementCoverage) {
+													const stmtInfo = lineToStatementCoverage.get(lineNum);
+													if (stmtInfo) {
+														isCovered = stmtInfo.covered;
+														isUncovered = !stmtInfo.covered;
+													}
+												} else if (coverageViewType === "line" && lineDetails) {
+													isCovered = lineDetails.covered.includes(lineNum);
+													isUncovered = lineDetails.uncovered.includes(lineNum);
+												}
+
 												return (
 													<div
 														key={lineNum}
@@ -432,7 +545,9 @@ export default function FileCoverageDetail() {
 														{isUncovered && (
 															<div className="text-error text-xs flex items-center flex-shrink-0">
 																<Badge variant="error" className="text-xs">
-																	Uncovered
+																	{coverageViewType === "statement"
+																		? "Uncovered Statement"
+																		: "Uncovered"}
 																</Badge>
 															</div>
 														)}
@@ -444,22 +559,47 @@ export default function FileCoverageDetail() {
 								) : (
 									<div className="space-y-2">
 										<div className="text-sm text-muted-foreground mb-4">
-											File content not available. Uncovered lines:
+											File content not available.{" "}
+											{coverageViewType === "statement"
+												? "Uncovered statements:"
+												: "Uncovered lines:"}
 										</div>
 										<div className="flex flex-wrap gap-2">
-											{lineDetails.uncovered.map((line) => (
-												<Badge
-													key={line}
-													variant="error"
-													className="font-mono cursor-pointer hover:bg-error/20"
-													onClick={() => {
-														const link = generateCursorDeeplink(decodedFilePath, [line]);
-														window.location.href = link;
-													}}
-												>
-													Line {line}
-												</Badge>
-											))}
+											{coverageViewType === "statement" && statementDetails
+												? statementDetails
+														.filter((s) => !s.covered)
+														.map((stmt) => {
+															const lines = [];
+															for (let line = stmt.startLine; line <= stmt.endLine; line++) {
+																lines.push(line);
+															}
+															return (
+																<Badge
+																	key={stmt.id}
+																	variant="error"
+																	className="font-mono cursor-pointer hover:bg-error/20"
+																	onClick={() => {
+																		const link = generateCursorDeeplink(decodedFilePath, lines);
+																		window.location.href = link;
+																	}}
+																>
+																	Statement {stmt.id} (lines {stmt.startLine}-{stmt.endLine})
+																</Badge>
+															);
+														})
+												: lineDetails?.uncovered.map((line) => (
+														<Badge
+															key={line}
+															variant="error"
+															className="font-mono cursor-pointer hover:bg-error/20"
+															onClick={() => {
+																const link = generateCursorDeeplink(decodedFilePath, [line]);
+																window.location.href = link;
+															}}
+														>
+															Line {line}
+														</Badge>
+													))}
 										</div>
 										{cursorLink && (
 											<div className="mt-4 p-4 bg-muted rounded-lg">

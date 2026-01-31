@@ -455,10 +455,38 @@ export default class PanoptesReporter implements Reporter {
 							})
 						: undefined;
 
+				// Build statement details JSON: array of { id, startLine, endLine, covered }
+				let statementDetails: string | undefined;
+				if (statementMap && typeof statementMap === "object" && statementsTotal > 0) {
+					const statements: Array<{
+						id: string;
+						startLine: number;
+						endLine: number;
+						covered: boolean;
+					}> = [];
+					for (const [id, loc] of Object.entries(statementMap)) {
+						if (!loc?.start?.line || !loc?.end?.line) continue;
+						const count = statementCounts[id] ?? 0;
+						statements.push({
+							id,
+							startLine: loc.start.line,
+							endLine: loc.end.line,
+							covered: count > 0,
+						});
+					}
+					// Sort by start line, then by end line
+					statements.sort((a, b) => {
+						if (a.startLine !== b.startLine) return a.startLine - b.startLine;
+						return a.endLine - b.endLine;
+					});
+					statementDetails = JSON.stringify(statements);
+				}
+
 				files[relPath] = {
 					linesCovered,
 					linesTotal: linesTotal || 1,
 					lineDetails,
+					statementDetails,
 					statementsCovered: statementsTotal > 0 ? statementsCovered : undefined,
 					statementsTotal: statementsTotal > 0 ? statementsTotal : undefined,
 				};

@@ -88,6 +88,7 @@ http.route({
 						linesCovered: number;
 						linesTotal: number;
 						lineDetails?: string;
+						statementDetails?: string;
 						statementsCovered?: number;
 						statementsTotal?: number;
 						branchesCovered?: number;

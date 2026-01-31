@@ -48,6 +48,7 @@ export const FileCoverageSchema = z.object({
 	linesCovered: z.number(),
 	linesTotal: z.number(),
 	lineDetails: z.string().optional(), // JSON: covered/uncovered line numbers
+	statementDetails: z.string().optional(), // JSON: array of statement coverage info
 	statementsCovered: z.number().optional(),
 	statementsTotal: z.number().optional(),
 	branchesCovered: z.number().optional(),
