@@ -165,12 +165,20 @@ export const ingestTestRun = mutation({
 			);
 		}
 
+		// Determine if run is actually complete - either has completedAt OR all tests have final status
+		const hasFinalStatusTests = args.tests.filter(
+			(t) => t.status !== "running"
+		).length;
+		const allTestsHaveFinalStatus = hasFinalStatusTests === args.tests.length;
+		const runIsActuallyComplete = isComplete || allTestsHaveFinalStatus;
+
 		// Determine status based on test results
 		// If run is complete, it should never be "running"
 		// If run is not complete and has running tests, status should be "running"
 		let status: "passed" | "failed" | "skipped" | "running";
-		if (isComplete) {
+		if (runIsActuallyComplete) {
 			// Run is complete - determine final status from completed tests
+			// Note: runningTests count is before conversion, but we'll treat them as failed
 			status =
 				actualFailedTests > 0 || runningTests > 0
 					? "failed"
@@ -241,14 +249,16 @@ export const ingestTestRun = mutation({
 
 		// Insert individual tests
 		const now = Date.now();
+		// Use runIsActuallyComplete calculated above to convert any "running" tests to "failed"
+
 		for (const test of args.tests) {
 			// If test run is complete but test has "running" status, convert to "failed"
 			// This ensures tests don't stay in "running" state forever
 			let finalStatus = test.status;
-			if (isComplete && test.status === "running") {
+			if (runIsActuallyComplete && test.status === "running") {
 				finalStatus = "failed";
 				console.warn(
-					`[ingestTestRun] Test "${test.name}" has "running" status but run is complete. Converting to "failed".`
+					`[ingestTestRun] Test "${test.name}" has "running" status but run is complete (completedAt=${args.completedAt}, allFinal=${allTestsHaveFinalStatus}). Converting to "failed".`
 				);
 			}
 
