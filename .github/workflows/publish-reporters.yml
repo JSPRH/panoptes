@@ -1,5 +1,10 @@
 # Publish @justinmiehle/shared and reporter packages to GitHub Packages.
 # Run on push of version tag (e.g. v0.0.1) or manually.
+#
+# After first publish: GitHub defaults personal-account packages to PRIVATE.
+# Make each package public once: GitHub → Your profile → Packages → each package
+# → Package settings → Danger Zone → Change visibility → Public.
+# See SETUP.md "Making packages public (one-time)".
 name: Publish reporters to GitHub Packages
 
 on:

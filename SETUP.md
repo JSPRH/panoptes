@@ -150,6 +150,17 @@ The reporters and shared types are published to [GitHub Packages](https://github
    ```
    Or use the workflow below.
 
+### Making packages public (one-time)
+
+GitHub Packages **defaults personal-account packages to private**. Even with `npm publish --access public`, you must set visibility in the GitHub UI once per package:
+
+1. Open [your Packages tab](https://github.com/JustinMiehle?tab=packages).
+2. Click each package: **shared**, **reporter-playwright**, **reporter-vitest**.
+3. On the package page, click **Package settings** (right side).
+4. Scroll to **Danger Zone** → **Change visibility** → choose **Public** → confirm.
+
+After that, anyone can install the packages (with `.npmrc` and auth as described below). You cannot change a package back to private after making it public.
+
 ### Using in another GitHub Action
 
 In the repo that uses the reporters, add before installing dependencies:
