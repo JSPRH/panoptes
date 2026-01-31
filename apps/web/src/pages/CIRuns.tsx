@@ -1,122 +1,34 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
-import type { Doc, Id } from "@convex/_generated/dataModel";
-import { useAction, useMutation, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
+import type { Doc } from "@convex/_generated/dataModel";
+import { useQuery } from "convex/react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
-import { PageHeader } from "../components/PageHeader";
+import { GitHubPageHeader } from "../components/GitHubPageHeader";
+import { ProjectSelector } from "../components/ProjectSelector";
+import { RepositoryConfig } from "../components/RepositoryConfig";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { useGitHubSync } from "../hooks/useGitHubSync";
+import { useProjectSelection } from "../hooks/useProjectSelection";
 
 type CIRun = Doc<"ciRuns">;
-type Project = Doc<"projects">;
-
-type Repository = {
-	fullName: string;
-	name: string;
-	owner: string;
-	url: string;
-	private: boolean;
-	description: string | null;
-};
 
 export default function CIRuns() {
-	const [selectedProjectId, setSelectedProjectId] = useState<Id<"projects"> | null>(null);
 	const [statusFilter, setStatusFilter] = useState<string>("all");
 	const [showRepoConfig, setShowRepoConfig] = useState(false);
-	const [selectedRepo, setSelectedRepo] = useState<string>("");
-	const [repoSearch, setRepoSearch] = useState("");
-	const [isLoadingRepos, setIsLoadingRepos] = useState(false);
-	const [availableRepos, setAvailableRepos] = useState<Repository[]>([]);
 
-	const projects = useQuery(api.tests.getProjects);
-	const syncGitHubData = useAction(api.github.syncProjectGitHubData);
-	const updateProjectRepository = useMutation(api.tests.updateProjectRepository);
-	const getAvailableRepositories = useAction(api.github.getAvailableRepositories);
+	const { selectedProjectId, setSelectedProjectId, selectedProject } = useProjectSelection();
+	const { handleSync } = useGitHubSync({
+		projectId: selectedProjectId,
+		onRepositoryNotConfigured: () => setShowRepoConfig(true),
+	});
 
 	const ciRuns = useQuery(
 		api.github.getCIRunsForProject,
 		selectedProjectId ? { projectId: selectedProjectId, limit: 50 } : "skip"
-	);
-
-	const selectedProject = projects?.find((p) => p._id === selectedProjectId);
-
-	// Auto-select first project if only one exists
-	useEffect(() => {
-		if (projects && projects.length === 1 && !selectedProjectId) {
-			setSelectedProjectId(projects[0]._id);
-		}
-	}, [projects, selectedProjectId]);
-
-	const handleSync = async () => {
-		if (!selectedProjectId) return;
-		try {
-			const result = await syncGitHubData({ projectId: selectedProjectId });
-			let message = "";
-			if (result.partialSuccess && result.warnings) {
-				message = `Partially synced: ${result.ciRunsCount || 0} CI runs, ${result.prsCount || 0} PRs.\n\nWarnings:\n${result.warnings.join("\n")}`;
-			} else {
-				message = `GitHub data synced successfully! Stored ${result.ciRunsCount || 0} CI runs and ${result.prsCount || 0} PRs.`;
-			}
-			alert(message);
-		} catch (error) {
-			console.error("Failed to sync GitHub data:", error);
-			const errorMessage = error instanceof Error ? error.message : String(error);
-			if (errorMessage.includes("repository not configured")) {
-				setShowRepoConfig(true);
-			}
-			alert(`Failed to sync: ${errorMessage}`);
-		}
-	};
-
-	const handleLoadRepositories = async () => {
-		setIsLoadingRepos(true);
-		try {
-			const repos = await getAvailableRepositories({ limit: 100 });
-			setAvailableRepos(repos);
-		} catch (error) {
-			console.error("Failed to load repositories:", error);
-			alert(
-				`Failed to load repositories: ${error instanceof Error ? error.message : String(error)}`
-			);
-		} finally {
-			setIsLoadingRepos(false);
-		}
-	};
-
-	const handleShowRepoConfig = () => {
-		setShowRepoConfig(true);
-		if (availableRepos.length === 0) {
-			handleLoadRepositories();
-		}
-	};
-
-	const handleSaveRepository = async () => {
-		if (!selectedProjectId || !selectedRepo.trim()) {
-			alert("Please select a repository");
-			return;
-		}
-		try {
-			await updateProjectRepository({
-				projectId: selectedProjectId,
-				repository: selectedRepo.trim(),
-			});
-			setShowRepoConfig(false);
-			setSelectedRepo("");
-			setRepoSearch("");
-			alert("Repository saved successfully!");
-		} catch (error) {
-			console.error("Failed to save repository:", error);
-			alert(`Failed to save: ${error instanceof Error ? error.message : String(error)}`);
-		}
-	};
-
-	const filteredRepos = availableRepos.filter(
-		(repo) =>
-			repo.fullName.toLowerCase().includes(repoSearch.toLowerCase()) ||
-			repo.description?.toLowerCase().includes(repoSearch.toLowerCase())
 	);
 
 	const filteredRuns = ciRuns?.filter((run: CIRun) => {
@@ -141,161 +53,28 @@ export default function CIRuns() {
 		return status;
 	};
 
-	const hasMultipleProjects = projects && projects.length > 1;
-
 	return (
 		<div className="space-y-8">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-3">
-					<Link
-						to="/"
-						className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
-					>
-						<img
-							src="/panoptes_logo_icon_only.png"
-							alt=""
-							className="h-8 w-auto"
-							aria-hidden="true"
-						/>
-						<span className="font-heading font-semibold text-lg text-foreground">Panoptes</span>
-					</Link>
-					<div className="h-6 w-px bg-border" />
-					<PageHeader title="CI Runs" description="GitHub Actions workflow runs" />
-				</div>
-				{selectedProjectId && (
-					<Button onClick={handleSync} variant="outline" size="sm">
-						Sync GitHub Data
-					</Button>
-				)}
-			</div>
+			<GitHubPageHeader
+				title="CI Runs"
+				description="GitHub Actions workflow runs"
+				onSync={handleSync}
+				showSyncButton={!!selectedProjectId}
+			/>
 
-			{hasMultipleProjects && (
-				<Card>
-					<CardHeader>
-						<CardTitle>Project Selection</CardTitle>
-						<CardDescription>Select a project to view CI runs</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<div className="flex flex-wrap gap-2">
-							{projects.map((project: Project) => (
-								<Button
-									key={project._id}
-									variant={selectedProjectId === project._id ? "default" : "outline"}
-									size="sm"
-									onClick={() => setSelectedProjectId(project._id as Id<"projects">)}
-								>
-									{project.name}
-									{!project.repository && (
-										<span className="ml-2 text-xs text-warning">(no repo)</span>
-									)}
-								</Button>
-							))}
-						</div>
-					</CardContent>
-				</Card>
+			<ProjectSelector
+				selectedProjectId={selectedProjectId}
+				onProjectSelect={setSelectedProjectId}
+				description="Select a project to view CI runs"
+			/>
+
+			{selectedProject && !selectedProject.repository && (
+				<RepositoryConfig
+					projectId={selectedProject._id}
+					description="Select a GitHub repository for this project to view CI runs"
+					compact={!showRepoConfig}
+				/>
 			)}
-
-			{projects && projects.length === 0 && (
-				<p className="text-muted-foreground">No projects found. Create a project first.</p>
-			)}
-
-			{selectedProject &&
-				!selectedProject.repository &&
-				(!showRepoConfig ? (
-					<div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
-						<div>
-							<p className="text-sm font-medium">Repository not configured</p>
-							<p className="text-xs text-muted-foreground mt-1">
-								Configure a GitHub repository to view CI runs for this project
-							</p>
-						</div>
-						<Button onClick={handleShowRepoConfig} variant="outline" size="sm">
-							Configure Repository
-						</Button>
-					</div>
-				) : (
-					<Card>
-						<CardHeader>
-							<CardTitle>Configure Repository</CardTitle>
-							<CardDescription>
-								Select a GitHub repository for this project to view CI runs
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							<div>
-								<label htmlFor="repo-select" className="block text-sm font-medium mb-2">
-									Select Repository
-								</label>
-								{isLoadingRepos ? (
-									<div className="text-sm text-muted-foreground">Loading repositories...</div>
-								) : availableRepos.length === 0 ? (
-									<div className="space-y-2">
-										<p className="text-sm text-muted-foreground">
-											No repositories loaded. Click "Load Repositories" to fetch from GitHub.
-										</p>
-										<Button onClick={handleLoadRepositories} variant="outline" size="sm">
-											Load Repositories
-										</Button>
-									</div>
-								) : (
-									<div className="space-y-2">
-										<input
-											type="text"
-											placeholder="Search repositories..."
-											value={repoSearch}
-											onChange={(e) => setRepoSearch(e.target.value)}
-											className="w-full px-4 py-2 border rounded-md mb-2"
-										/>
-										<select
-											id="repo-select"
-											value={selectedRepo}
-											onChange={(e) => setSelectedRepo(e.target.value)}
-											className="w-full px-4 py-2 border rounded-md"
-											size={Math.min(filteredRepos.length, 10)}
-										>
-											<option value="">-- Select a repository --</option>
-											{filteredRepos.map((repo) => (
-												<option key={repo.fullName} value={repo.fullName}>
-													{repo.fullName} {repo.private ? "(private)" : ""}
-													{repo.description ? ` - ${repo.description}` : ""}
-												</option>
-											))}
-										</select>
-										{filteredRepos.length === 0 && repoSearch && (
-											<p className="text-xs text-muted-foreground">
-												No repositories found matching "{repoSearch}"
-											</p>
-										)}
-										<p className="text-xs text-muted-foreground">
-											Showing {filteredRepos.length} of {availableRepos.length} repositories
-										</p>
-									</div>
-								)}
-							</div>
-							<div className="flex gap-2">
-								<Button
-									onClick={handleSaveRepository}
-									variant="default"
-									size="sm"
-									disabled={!selectedRepo.trim()}
-								>
-									Save Repository
-								</Button>
-								<Button
-									onClick={() => {
-										setShowRepoConfig(false);
-										setSelectedRepo("");
-										setRepoSearch("");
-									}}
-									variant="outline"
-									size="sm"
-								>
-									Cancel
-								</Button>
-							</div>
-						</CardContent>
-					</Card>
-				))}
 
 			{selectedProject?.repository && (
 				<>
