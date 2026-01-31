@@ -230,4 +230,38 @@ export default defineSchema({
 	})
 		.index("by_project", ["projectId"])
 		.index("by_status", ["status"]),
+
+	// Pre-computed dashboard overview (one doc). Updated incrementally in ingestTestRun.
+	dashboardStats: defineTable({
+		projectCount: v.number(),
+		testRunCount: v.number(),
+		pyramid: v.object({
+			unit: v.object({ total: v.number(), passed: v.number(), failed: v.number() }),
+			integration: v.object({ total: v.number(), passed: v.number(), failed: v.number() }),
+			e2e: v.object({ total: v.number(), passed: v.number(), failed: v.number() }),
+			visual: v.object({ total: v.number(), passed: v.number(), failed: v.number() }),
+		}),
+		updatedAt: v.number(),
+	}).index("by_updated_at", ["updatedAt"]),
+
+	// Latest status per test definition (projectId + name + file + line) for pyramid counts.
+	testDefinitionLatest: defineTable({
+		projectId: v.id("projects"),
+		testType: v.union(
+			v.literal("unit"),
+			v.literal("integration"),
+			v.literal("e2e"),
+			v.literal("visual")
+		),
+		definitionKey: v.string(),
+		status: v.union(
+			v.literal("passed"),
+			v.literal("failed"),
+			v.literal("skipped"),
+			v.literal("running")
+		),
+		lastRunStartedAt: v.number(),
+	})
+		.index("by_project_type_key", ["projectId", "testType", "definitionKey"])
+		.index("by_project", ["projectId"]),
 });

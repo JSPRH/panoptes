@@ -1,9 +1,11 @@
 // Aggregates temporarily disabled to unblock - will re-enable once components are working
 // import { TableAggregate } from "@convex-dev/aggregate";
 import { paginationOptsValidator } from "convex/server";
+import type { GenericMutationCtx } from "convex/server";
 import { v } from "convex/values";
 // import { components } from "./_generated/api";
 import { api } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, mutation, query } from "./_generated/server";
 
@@ -124,6 +126,7 @@ export const ingestTestRun = mutation({
 	handler: async (ctx, args) => {
 		// Get or create project
 		let projectId = args.projectId;
+		let projectCreated = false;
 		if (!projectId) {
 			const existingProject = await ctx.db
 				.query("projects")
@@ -132,7 +135,6 @@ export const ingestTestRun = mutation({
 
 			if (existingProject) {
 				projectId = existingProject._id;
-				// Update project
 				await ctx.db.patch(projectId, {
 					updatedAt: Date.now(),
 				});
@@ -142,6 +144,7 @@ export const ingestTestRun = mutation({
 					createdAt: Date.now(),
 					updatedAt: Date.now(),
 				});
+				projectCreated = true;
 			}
 		}
 
@@ -265,6 +268,15 @@ export const ingestTestRun = mutation({
 				});
 			}
 		}
+
+		// Update pre-computed dashboard stats (one doc read + one patch; pyramid updated per definition)
+		await updateDashboardStats(ctx, {
+			projectId,
+			testType: args.testType,
+			startedAt: args.startedAt,
+			tests: args.tests,
+			projectCreated,
+		});
 
 		return { testRunId, projectId };
 	},
@@ -594,6 +606,25 @@ export const getProjects = query({
 	},
 });
 
+/** Pre-computed overview for dashboard (one doc read). Use this instead of loading all projects/pyramid for overview cards. */
+export const getDashboardStats = query({
+	handler: async (ctx) => {
+		const doc = await ctx.db.query("dashboardStats").first();
+		if (!doc) {
+			return {
+				projectCount: 0,
+				testRunCount: 0,
+				pyramid: ZERO_PYRAMID,
+			};
+		}
+		return {
+			projectCount: doc.projectCount,
+			testRunCount: doc.testRunCount,
+			pyramid: doc.pyramid,
+		};
+	},
+});
+
 export const updateProjectRepository = mutation({
 	args: {
 		projectId: v.id("projects"),
@@ -615,6 +646,94 @@ function testDefinitionKey(
 	line: number | undefined
 ): string {
 	return `${projectId}|${name}|${file}|${line ?? ""}`;
+}
+
+const ZERO_PYRAMID = {
+	unit: { total: 0, passed: 0, failed: 0 },
+	integration: { total: 0, passed: 0, failed: 0 },
+	e2e: { total: 0, passed: 0, failed: 0 },
+	visual: { total: 0, passed: 0, failed: 0 },
+};
+
+type PyramidType = keyof typeof ZERO_PYRAMID;
+type TestStatus = "passed" | "failed" | "skipped" | "running";
+
+async function updateDashboardStats(
+	ctx: GenericMutationCtx<DataModel>,
+	args: {
+		projectId: Id<"projects">;
+		testType: "unit" | "integration" | "e2e" | "visual";
+		startedAt: number;
+		tests: Array<{ name: string; file: string; line?: number; status: TestStatus }>;
+		projectCreated: boolean;
+	}
+) {
+	const now = Date.now();
+	let statsDoc = await ctx.db.query("dashboardStats").first();
+	if (!statsDoc) {
+		const id = await ctx.db.insert("dashboardStats", {
+			projectCount: 0,
+			testRunCount: 0,
+			pyramid: { ...ZERO_PYRAMID },
+			updatedAt: now,
+		});
+		const created = await ctx.db.get(id);
+		if (!created) throw new Error("Failed to create dashboardStats");
+		statsDoc = created;
+	}
+
+	const pyramid = {
+		unit: { ...statsDoc.pyramid.unit },
+		integration: { ...statsDoc.pyramid.integration },
+		e2e: { ...statsDoc.pyramid.e2e },
+		visual: { ...statsDoc.pyramid.visual },
+	};
+
+	const projectCount = statsDoc.projectCount + (args.projectCreated ? 1 : 0);
+	const testRunCount = statsDoc.testRunCount + 1;
+	const typeKey = args.testType as PyramidType;
+
+	for (const test of args.tests) {
+		const definitionKey = testDefinitionKey(args.projectId, test.name, test.file, test.line);
+		const existing = await ctx.db
+			.query("testDefinitionLatest")
+			.withIndex("by_project_type_key", (q) =>
+				q
+					.eq("projectId", args.projectId)
+					.eq("testType", args.testType)
+					.eq("definitionKey", definitionKey)
+			)
+			.first();
+
+		if (!existing) {
+			await ctx.db.insert("testDefinitionLatest", {
+				projectId: args.projectId,
+				testType: args.testType,
+				definitionKey,
+				status: test.status,
+				lastRunStartedAt: args.startedAt,
+			});
+			pyramid[typeKey].total += 1;
+			if (test.status === "passed") pyramid[typeKey].passed += 1;
+			else if (test.status === "failed") pyramid[typeKey].failed += 1;
+		} else if (args.startedAt >= existing.lastRunStartedAt) {
+			if (existing.status === "passed") pyramid[typeKey].passed -= 1;
+			else if (existing.status === "failed") pyramid[typeKey].failed -= 1;
+			await ctx.db.patch("testDefinitionLatest", existing._id, {
+				status: test.status,
+				lastRunStartedAt: args.startedAt,
+			});
+			if (test.status === "passed") pyramid[typeKey].passed += 1;
+			else if (test.status === "failed") pyramid[typeKey].failed += 1;
+		}
+	}
+
+	await ctx.db.patch("dashboardStats", statsDoc._id, {
+		projectCount,
+		testRunCount,
+		pyramid,
+		updatedAt: now,
+	});
 }
 
 const PYRAMID_RUNS_LIMIT = 50; // Max runs to consider (newest first)

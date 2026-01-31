@@ -3,6 +3,10 @@
 Write your Convex functions here.
 See https://docs.convex.dev/functions for more.
 
+## Dashboard stats
+
+Overview counts (project count, test run count, pyramid) are pre-computed in `dashboardStats` and updated incrementally in `ingestTestRun`, so the dashboard only reads one doc instead of scanning many. Use `getDashboardStats` for overview pages; use `getTestPyramidData` only when you need pyramid data filtered by project or computed from a capped set of runs.
+
 A query function that takes two arguments looks like:
 
 ```ts

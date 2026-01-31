@@ -71,16 +71,16 @@ export default function Dashboard() {
 						<CardTitle className="text-sm font-medium">Total Projects</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">{projects?.length || 0}</div>
+						<div className="text-2xl font-bold">{dashboardStats?.projectCount ?? 0}</div>
 					</CardContent>
 				</Card>
 
 				<Card>
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">Recent Test Runs</CardTitle>
+						<CardTitle className="text-sm font-medium">Total Test Runs</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="text-2xl font-bold">{testRuns?.length || 0}</div>
+						<div className="text-2xl font-bold">{dashboardStats?.testRunCount ?? 0}</div>
 					</CardContent>
 				</Card>
 
