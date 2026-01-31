@@ -12,6 +12,8 @@ export default defineConfig({
 	test: {
 		environment: "jsdom",
 		setupFiles: ["./apps/web/src/test-setup.ts"],
+		exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
+		include: ["tests/**/*.test.ts", "apps/web/src/**/*.test.ts", "apps/web/src/**/*.test.tsx"],
 		reporters: [
 			"default",
 			new PanoptesReporter({

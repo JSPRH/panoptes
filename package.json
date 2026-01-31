@@ -17,7 +17,7 @@
 		"lint:fix": "biome check --write .",
 		"format": "biome format --write .",
 		"typecheck": "bun run --cwd apps/web typecheck",
-		"test": "bun test",
+		"test": "bun test tests apps/web/src",
 		"test:vitest": "bunx vitest run",
 		"test:coverage": "bunx vitest run --coverage",
 		"ci": "bun run lint && bun run typecheck && bun run test && bun run build",
