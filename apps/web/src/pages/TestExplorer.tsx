@@ -1,17 +1,19 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
+import type { Doc } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+
+type Test = Doc<"tests">;
 
 export default function TestExplorer() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [statusFilter, setStatusFilter] = useState<string>("all");
 
 	const tests = useQuery(api.tests.getTests, { limit: 100 });
-	const testRuns = useQuery(api.tests.getTestRuns, { limit: 20 });
 
-	const filteredTests = tests?.filter((test) => {
+	const filteredTests = tests?.filter((test: Test) => {
 		const matchesSearch =
 			test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			test.file.toLowerCase().includes(searchQuery.toLowerCase());
@@ -64,7 +66,7 @@ export default function TestExplorer() {
 				<CardContent>
 					{filteredTests && filteredTests.length > 0 ? (
 						<div className="space-y-2">
-							{filteredTests.map((test) => (
+							{filteredTests.map((test: Test) => (
 								<div
 									key={test._id}
 									className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"

@@ -1,21 +1,24 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
+import type { Doc } from "@convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+
+type Anomaly = Doc<"anomalies">;
 
 export default function Anomalies() {
 	const anomalies = useQuery(api.anomalies.getAnomalies, { resolved: false });
 	const resolveAnomaly = useMutation(api.anomalies.resolveAnomaly);
 
 	const handleResolve = async (anomalyId: string) => {
-		await resolveAnomaly({ anomalyId: anomalyId as any });
+		await resolveAnomaly({ anomalyId: anomalyId as Anomaly["_id"] });
 	};
 
 	const groupedAnomalies = {
-		flaky: anomalies?.filter((a) => a.type === "flaky") || [],
-		slow: anomalies?.filter((a) => a.type === "slow") || [],
-		frequently_failing: anomalies?.filter((a) => a.type === "frequently_failing") || [],
-		resource_intensive: anomalies?.filter((a) => a.type === "resource_intensive") || [],
+		flaky: anomalies?.filter((a: Anomaly) => a.type === "flaky") || [],
+		slow: anomalies?.filter((a: Anomaly) => a.type === "slow") || [],
+		frequently_failing: anomalies?.filter((a: Anomaly) => a.type === "frequently_failing") || [],
+		resource_intensive: anomalies?.filter((a: Anomaly) => a.type === "resource_intensive") || [],
 	};
 
 	const getSeverityColor = (severity: string) => {
@@ -87,7 +90,7 @@ export default function Anomalies() {
 				<CardContent>
 					{anomalies && anomalies.length > 0 ? (
 						<div className="space-y-4">
-							{anomalies.map((anomaly) => (
+							{anomalies.map((anomaly: Anomaly) => (
 								<div
 									key={anomaly._id}
 									className={`border rounded-lg p-4 ${getSeverityColor(anomaly.severity)}`}

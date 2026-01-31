@@ -1,12 +1,15 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
+import type { Doc } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+
+type TestRun = Doc<"testRuns">;
 
 export default function Dashboard() {
 	const projects = useQuery(api.tests.getProjects);
 	const testRuns = useQuery(api.tests.getTestRuns, { limit: 10 });
-	const pyramidData = useQuery(api.tests.getTestPyramidData);
+	const pyramidData = useQuery(api.tests.getTestPyramidData, {});
 
 	if (projects === undefined || testRuns === undefined) {
 		return (
@@ -82,7 +85,7 @@ export default function Dashboard() {
 				<CardContent>
 					{testRuns && testRuns.length > 0 ? (
 						<div className="space-y-2">
-							{testRuns.map((run) => (
+							{testRuns.map((run: TestRun) => (
 								<div key={run._id} className="flex items-center justify-between p-2 border rounded">
 									<div>
 										<div className="font-medium">

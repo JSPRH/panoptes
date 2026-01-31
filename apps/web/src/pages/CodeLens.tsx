@@ -1,13 +1,16 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
+import type { Doc } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+
+type Test = Doc<"tests">;
 
 export default function CodeLens() {
 	const tests = useQuery(api.tests.getTests, { limit: 500 });
 
 	// Group tests by file
-	const testsByFile = new Map<string, typeof tests>();
+	const testsByFile = new Map<string, Test[]>();
 	if (tests) {
 		for (const test of tests) {
 			if (!testsByFile.has(test.file)) {
@@ -19,8 +22,8 @@ export default function CodeLens() {
 
 	const fileStats = Array.from(testsByFile.entries())
 		.map(([file, fileTests]) => {
-			const passed = fileTests.filter((t) => t.status === "passed").length;
-			const failed = fileTests.filter((t) => t.status === "failed").length;
+			const passed = fileTests.filter((t: Test) => t.status === "passed").length;
+			const failed = fileTests.filter((t: Test) => t.status === "failed").length;
 			const total = fileTests.length;
 			const coverage = total > 0 ? (passed / total) * 100 : 0;
 

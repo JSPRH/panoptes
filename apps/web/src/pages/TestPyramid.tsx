@@ -1,9 +1,10 @@
+// @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
 import { useQuery } from "convex/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 
 export default function TestPyramid() {
-	const pyramidData = useQuery(api.tests.getTestPyramidData);
+	const pyramidData = useQuery(api.tests.getTestPyramidData, {});
 
 	if (!pyramidData) {
 		return <div>Loading...</div>;
