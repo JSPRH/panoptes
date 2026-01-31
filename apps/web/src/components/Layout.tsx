@@ -36,7 +36,7 @@ function NavLinks({
 					<Link
 						key={item.path}
 						to={item.path}
-						className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isTop ? "inline-block" : "block"} ${activeClass}`}
+						className={`px-3 py-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${isTop ? "inline-block" : "block"} ${activeClass}`}
 					>
 						{item.label}
 					</Link>

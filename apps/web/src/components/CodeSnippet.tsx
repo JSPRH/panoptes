@@ -47,7 +47,7 @@ export default function CodeSnippet({
 							href={githubUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="text-xs text-blue-600 hover:text-blue-800 underline"
+							className="text-xs text-primary hover:underline"
 						>
 							View on GitHub
 						</a>
