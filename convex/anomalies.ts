@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 
 export const detectAnomalies = mutation({
@@ -19,15 +20,16 @@ export const detectAnomalies = mutation({
 			if (!testGroups.has(key)) {
 				testGroups.set(key, []);
 			}
-			testGroups.get(key)!.push(test);
+			const group = testGroups.get(key);
+			if (group) group.push(test);
 		}
 
 		const anomalies: Array<{
-			testId: string;
+			testId: Id<"tests">;
 			testName: string;
 			type: "flaky" | "slow" | "resource_intensive" | "frequently_failing";
 			severity: "low" | "medium" | "high";
-			details: any;
+			details: Record<string, unknown>;
 		}> = [];
 
 		// Detect flaky tests (tests that have inconsistent pass/fail patterns)
@@ -97,7 +99,7 @@ export const detectAnomalies = mutation({
 			// Check if anomaly already exists
 			const existing = await ctx.db
 				.query("anomalies")
-				.withIndex("by_test", (q) => q.eq("testId", anomaly.testId as any))
+				.withIndex("by_test", (q) => q.eq("testId", anomaly.testId))
 				.filter((q) => q.eq(q.field("type"), anomaly.type))
 				.filter((q) => q.eq(q.field("resolved"), false))
 				.first();
@@ -105,7 +107,7 @@ export const detectAnomalies = mutation({
 			if (!existing) {
 				await ctx.db.insert("anomalies", {
 					projectId: args.projectId,
-					testId: anomaly.testId as any,
+					testId: anomaly.testId,
 					testName: anomaly.testName,
 					type: anomaly.type,
 					severity: anomaly.severity,
@@ -135,11 +137,12 @@ export const getAnomalies = query({
 	},
 	handler: async (ctx, args) => {
 		// Use the most specific index available and collect results
-		let results;
+		let results: Doc<"anomalies">[];
 		if (args.projectId) {
+			const projectId = args.projectId;
 			results = await ctx.db
 				.query("anomalies")
-				.withIndex("by_project", (q) => q.eq("projectId", args.projectId!))
+				.withIndex("by_project", (q) => q.eq("projectId", projectId))
 				.collect();
 			// Apply additional filters in memory
 			if (args.type) {
@@ -149,18 +152,20 @@ export const getAnomalies = query({
 				results = results.filter((a) => a.resolved === args.resolved);
 			}
 		} else if (args.type) {
+			const type = args.type;
 			results = await ctx.db
 				.query("anomalies")
-				.withIndex("by_type", (q) => q.eq("type", args.type!))
+				.withIndex("by_type", (q) => q.eq("type", type))
 				.collect();
 			// Apply additional filters in memory
 			if (args.resolved !== undefined) {
 				results = results.filter((a) => a.resolved === args.resolved);
 			}
 		} else if (args.resolved !== undefined) {
+			const resolved = args.resolved;
 			results = await ctx.db
 				.query("anomalies")
-				.withIndex("by_resolved", (q) => q.eq("resolved", args.resolved!))
+				.withIndex("by_resolved", (q) => q.eq("resolved", resolved))
 				.collect();
 		} else {
 			results = await ctx.db.query("anomalies").collect();
