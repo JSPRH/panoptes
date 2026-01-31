@@ -204,7 +204,7 @@ Please provide:
 
 Focus on actionable, high-level insights that help teams improve their testing practices.`;
 
-				const { object: overall } = await generateObject({
+				const result = await generateObject({
 					model: openai("gpt-4"),
 					system:
 						"You are an expert software engineer specializing in test strategy and quality. Provide clear, actionable insights at the test suite level.",
@@ -213,6 +213,7 @@ Focus on actionable, high-level insights that help teams improve their testing p
 					temperature: 0.3,
 				});
 
+				const overall: z.infer<typeof overallInsightSchema> = result.object;
 				overallInsights = overall;
 			} catch (error) {
 				console.error("Failed to generate overall insights:", error);
