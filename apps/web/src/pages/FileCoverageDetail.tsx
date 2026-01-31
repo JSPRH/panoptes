@@ -8,7 +8,6 @@ import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Switch } from "../components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 
 function getCoverageVariant(coverage: number): "success" | "warning" | "error" | "neutral" {
@@ -54,7 +53,6 @@ export default function FileCoverageDetail() {
 	const [loadingContent, setLoadingContent] = useState(false);
 	const [contentError, setContentError] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState("coverage");
-	const [useStatementCoverage, setUseStatementCoverage] = useState(false);
 	const [showInfo, setShowInfo] = useState(false);
 	const [coverageViewType, setCoverageViewType] = useState<"line" | "statement">("line");
 
@@ -122,24 +120,24 @@ export default function FileCoverageDetail() {
 	const coverage = useMemo(() => {
 		if (!fileCoverage) return 0;
 		if (
-			useStatementCoverage &&
+			coverageViewType === "statement" &&
 			fileCoverage.statementsTotal != null &&
 			fileCoverage.statementsTotal > 0
 		) {
 			return ((fileCoverage.statementsCovered ?? 0) / fileCoverage.statementsTotal) * 100;
 		}
 		return (fileCoverage.linesCovered / fileCoverage.linesTotal) * 100;
-	}, [fileCoverage, useStatementCoverage]);
+	}, [fileCoverage, coverageViewType]);
 
 	const coverageLabel =
-		useStatementCoverage &&
+		coverageViewType === "statement" &&
 		fileCoverage?.statementsTotal != null &&
 		fileCoverage.statementsTotal > 0
 			? "Statement Coverage"
 			: "LOC Coverage";
 
 	const coverageValue =
-		useStatementCoverage &&
+		coverageViewType === "statement" &&
 		fileCoverage?.statementsTotal != null &&
 		fileCoverage.statementsTotal > 0
 			? `${fileCoverage.statementsCovered ?? 0}/${fileCoverage.statementsTotal}`
@@ -281,62 +279,6 @@ export default function FileCoverageDetail() {
 							</div>
 						</CardHeader>
 						<CardContent>
-							{/* Coverage Type Switch */}
-							{fileCoverage.statementsTotal != null && fileCoverage.statementsTotal > 0 && (
-								<div className="mb-6 p-4 bg-muted/50 rounded-lg border border-border">
-									<div className="flex items-center justify-between">
-										<div className="flex items-center gap-3">
-											<label htmlFor="coverage-type" className="text-sm font-medium cursor-pointer">
-												{coverageLabel}
-											</label>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-5 w-5"
-												onClick={() => setShowInfo(!showInfo)}
-												title="What is statement coverage?"
-											>
-												<svg
-													xmlns="http://www.w3.org/2000/svg"
-													width="14"
-													height="14"
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													strokeWidth="2"
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													className="text-muted-foreground"
-													aria-label="Info"
-												>
-													<title>Info icon</title>
-													<circle cx="12" cy="12" r="10" />
-													<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-													<line x1="12" y1="17" x2="12.01" y2="17" />
-												</svg>
-											</Button>
-										</div>
-										<Switch
-											id="coverage-type"
-											checked={useStatementCoverage}
-											onCheckedChange={setUseStatementCoverage}
-										/>
-									</div>
-									{showInfo && (
-										<div className="mt-3 p-3 bg-background rounded border border-border text-sm text-muted-foreground">
-											<p className="font-medium mb-1">Statement Coverage vs LOC Coverage</p>
-											<p>
-												<strong>LOC Coverage</strong> measures which physical lines of code were
-												executed. <strong>Statement Coverage</strong> measures which executable
-												statements were executed. Statement coverage is more precise because
-												multiple statements can be on one line, or one statement can span multiple
-												lines.
-											</p>
-										</div>
-									)}
-								</div>
-							)}
-
 							<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 								<div>
 									<div className="text-sm text-muted-foreground flex items-center gap-1">
