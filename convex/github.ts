@@ -1468,3 +1468,107 @@ export const storeCodeSnippet = mutation({
 		});
 	},
 });
+
+// Helper mutation to create fake failing CI runs with jobs and logs (for testing)
+export const createFakeFailingCIRuns = internalMutation({
+	args: {
+		projectId: v.id("projects"),
+		count: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		const count = args.count || 3;
+		const now = Date.now();
+		const createdRuns: Id<"ciRuns">[] = [];
+
+		for (let i = 0; i < count; i++) {
+			const runId = 1000000 + i; // Fake GitHub run ID
+			const workflowId = 12345 + i;
+			const startedAt = now - (i + 1) * 3600000; // 1 hour apart
+			const completedAt = startedAt + 300000; // 5 minutes duration
+
+			// Create CI run
+			const ciRunId = await ctx.db.insert("ciRuns", {
+				projectId: args.projectId,
+				workflowId,
+				workflowName: `CI Workflow ${i + 1}`,
+				runId,
+				status: "completed",
+				conclusion: "failure",
+				commitSha: `abc123def456${i}`,
+				commitMessage: `Fix: Add feature ${i + 1}`,
+				branch: `feature/branch-${i + 1}`,
+				startedAt,
+				completedAt,
+				htmlUrl: `https://github.com/example/repo/actions/runs/${runId}`,
+			});
+
+			createdRuns.push(ciRunId);
+
+			// Create 1-2 jobs per run
+			const jobCount = i % 2 === 0 ? 1 : 2;
+			for (let j = 0; j < jobCount; j++) {
+				const jobId = runId * 100 + j;
+				const jobStartedAt = startedAt + j * 60000; // 1 minute apart
+				const jobCompletedAt = jobStartedAt + 180000; // 3 minutes duration
+
+				const jobRecordId = await ctx.db.insert("ciRunJobs", {
+					ciRunId,
+					jobId,
+					name: `Test Job ${j + 1}`,
+					status: "completed",
+					conclusion: "failure",
+					startedAt: jobStartedAt,
+					completedAt: jobCompletedAt,
+					runnerName: `ubuntu-latest-${j}`,
+					workflowName: `CI Workflow ${i + 1}`,
+				});
+
+				// Create 2-3 steps per job with mock logs
+				const stepCount = 2 + (j % 2); // 2 or 3 steps
+				for (let k = 0; k < stepCount; k++) {
+					const stepStartedAt = jobStartedAt + k * 30000; // 30 seconds apart
+					const stepCompletedAt = stepStartedAt + 60000; // 1 minute duration
+					const isFailureStep = k === stepCount - 1; // Last step fails
+
+					// Generate mock logs
+					let mockLogs = `##[group]Step ${k + 1}: ${isFailureStep ? "Run Tests" : "Setup"}\n`;
+					mockLogs += `Running step ${k + 1}...\n`;
+					mockLogs += "✓ Checking dependencies\n";
+					mockLogs += "✓ Installing packages\n";
+
+					if (isFailureStep) {
+						mockLogs += "\n##[error]Test failures detected:\n";
+						mockLogs +=
+							"FAIL  src/components/Button.test.tsx > Button Component > should render correctly\n";
+						mockLogs += "  Error: AssertionError: expected 'Click me' to equal 'Click Me'\n";
+						mockLogs += "    at Object.<anonymous> (src/components/Button.test.tsx:42:15)\n";
+						mockLogs += "    at Test.run (node_modules/vitest/dist/index.js:1234:23)\n";
+						mockLogs +=
+							"\nFAIL  src/utils/helpers.test.ts > formatDate > should format dates correctly\n";
+						mockLogs += "  Error: TypeError: Cannot read property 'toISOString' of undefined\n";
+						mockLogs += "    at formatDate (src/utils/helpers.ts:18:5)\n";
+						mockLogs += "    at Object.<anonymous> (src/utils/helpers.test.ts:25:10)\n";
+						mockLogs += "\n##[error]Process completed with exit code 1.\n";
+						mockLogs += "Error: Command failed with exit code 1\n";
+					} else {
+						mockLogs += "✓ Step completed successfully\n";
+						mockLogs += "##[endgroup]\n";
+					}
+
+					await ctx.db.insert("ciRunJobSteps", {
+						jobId: jobRecordId,
+						stepNumber: k + 1,
+						name: isFailureStep ? "Run Tests" : `Setup Step ${k + 1}`,
+						status: "completed",
+						conclusion: isFailureStep ? "failure" : "success",
+						startedAt: stepStartedAt,
+						completedAt: stepCompletedAt,
+						logs: mockLogs,
+					});
+				}
+			}
+		}
+
+		return { success: true, createdRuns, count: createdRuns.length };
+	},
+});
