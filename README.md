@@ -26,10 +26,16 @@ bun install
 
 1. **Set up Convex**:
    ```bash
+   bun run dev:convex
+   ```
+   Or from the `convex` directory:
+   ```bash
    cd convex
-   bunx convex dev
+   bun run dev
    ```
    This will create a `.env` file with your `CONVEX_URL`.
+   
+   **Note**: Use `bun run dev` (not `bunx convex dev`) to avoid bundling issues with Bun.
 
 2. **Configure environment variables**:
    - Copy `.env.example` to `.env` and fill in your Convex URL

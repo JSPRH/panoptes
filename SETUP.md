@@ -9,9 +9,15 @@
 
 2. **Set up Convex**:
    ```bash
-   cd convex
-   bunx convex dev
+   bun run dev:convex
    ```
+   Or from the `convex` directory:
+   ```bash
+   cd convex
+   bun run dev
+   ```
+   
+   **Note**: Use `bun run dev` (not `bunx convex dev`) to avoid bundling issues with Bun.
    
    This will:
    - Prompt you to login/create a Convex account (if first time)
@@ -36,7 +42,7 @@
    VITE_CONVEX_URL=https://xxxxx.convex.cloud  # Same URL from convex/.env.local
    ```
    
-   **Important**: Keep `bunx convex dev` running in a terminal - it watches for changes and generates types.
+   **Important**: Keep `bun run dev:convex` (or `bun run dev` from the convex directory) running in a terminal - it watches for changes and generates types.
 
 4. **Start the frontend**:
    ```bash
@@ -106,12 +112,12 @@
 
 ### Convex types not found
 
-Run `bunx convex dev` in the `convex` directory to generate types.
+Run `bun run dev:convex` (or `bun run dev` from the convex directory) to generate types.
 
 ### Test results not appearing
 
 Make sure:
-1. Convex dev server is running (`bunx convex dev`)
+1. Convex dev server is running (`bun run dev:convex`)
 2. `CONVEX_URL` is set in your environment (for reporters) or `.env` file
 3. The URL format is correct (should be `https://xxx.convex.cloud`)
 

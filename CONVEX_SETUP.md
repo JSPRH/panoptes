@@ -9,8 +9,15 @@
 
 2. **Start Convex dev server**:
    ```bash
-   bunx convex dev
+   bun run dev
    ```
+   
+   Or from the root directory:
+   ```bash
+   bun run dev:convex
+   ```
+   
+   **Note**: Use `bun run dev` (not `bunx convex dev`) to avoid bundling issues with Bun.
 
    This will:
    - Prompt you to login/create account (if first time)
@@ -40,7 +47,7 @@
 
 ## Important Notes
 
-- **Keep `bunx convex dev` running** - This watches for schema changes and generates TypeScript types
+- **Keep `bun run dev` running** - This watches for schema changes and generates TypeScript types
 - The `convex/_generated/` folder is created automatically - don't edit it manually
 - If you see import errors for `convex/_generated/api`, make sure `convex dev` is running
 - The `.env.local` file in `convex/` is automatically created - don't commit it
@@ -52,7 +59,11 @@
 This means Convex hasn't generated the types yet. Run:
 ```bash
 cd convex
-bunx convex dev
+bun run dev
+```
+Or from the root:
+```bash
+bun run dev:convex
 ```
 
 Wait for it to finish initializing and generating types.
@@ -60,7 +71,7 @@ Wait for it to finish initializing and generating types.
 ### "CONVEX_URL not set"
 
 Make sure you've:
-1. Run `bunx convex dev` in the `convex/` directory
+1. Run `bun run dev:convex` (or `bun run dev` from the convex directory)
 2. Copied the `CONVEX_URL` from `convex/.env.local` to:
    - Root `.env` file
    - `apps/web/.env` file (as `VITE_CONVEX_URL`)

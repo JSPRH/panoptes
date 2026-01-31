@@ -13,25 +13,32 @@ if [ -z "$STAGED_FILES" ]; then
 	exit 0
 fi
 
-# Format staged files
-echo "📝 Formatting staged files..."
+# Format staged files (only TypeScript/JavaScript/JSON files)
 FILE_ARRAY=()
 for file in $STAGED_FILES; do
-	if [ -f "$file" ]; then
+	if [ -f "$file" ] && [[ "$file" =~ \.(ts|tsx|js|jsx|json)$ ]]; then
 		FILE_ARRAY+=("$file")
 	fi
 done
 
 if [ ${#FILE_ARRAY[@]} -gt 0 ]; then
-	bunx biome format --write "${FILE_ARRAY[@]}" || true
+	echo "📝 Formatting staged files..."
+	bunx biome format --write "${FILE_ARRAY[@]}" 2>/dev/null || true
 	# Stage formatted files (in case formatting changed them)
 	git add "${FILE_ARRAY[@]}" || true
 fi
 
-# Lint staged files
-echo "🔎 Linting staged files..."
-if [ ${#FILE_ARRAY[@]} -gt 0 ]; then
-	if ! bunx biome check "${FILE_ARRAY[@]}"; then
+# Lint staged files (only TypeScript/JavaScript/JSON files, exclude markdown)
+LINT_FILES=()
+for file in "${FILE_ARRAY[@]}"; do
+	if [[ "$file" =~ \.(ts|tsx|js|jsx|json)$ ]]; then
+		LINT_FILES+=("$file")
+	fi
+done
+
+if [ ${#LINT_FILES[@]} -gt 0 ]; then
+	echo "🔎 Linting staged files..."
+	if ! bunx biome check "${LINT_FILES[@]}" 2>/dev/null; then
 		echo "❌ Linting failed. Please fix the errors above."
 		exit 1
 	fi
