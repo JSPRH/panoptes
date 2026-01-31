@@ -2,6 +2,8 @@
 
 Custom reporter for Vitest that sends test results directly to Convex.
 
+Published as **@justinmiehle/reporter-vitest** on [GitHub Packages](https://github.com/JustinMiehle?tab=packages).
+
 ## Installation
 
 ### Within the Panoptes Monorepo
@@ -9,67 +11,41 @@ Custom reporter for Vitest that sends test results directly to Convex.
 If you're using this reporter in another package within the Panoptes monorepo, use the workspace protocol:
 
 ```bash
-bun add -d @panoptes/reporter-vitest@workspace:*
+bun add -d @justinmiehle/reporter-vitest@workspace:*
 ```
 
-This will reference the local package directly without needing to publish to NPM or use a local registry.
+This will reference the local package directly without needing to publish or use a local registry.
 
-### Outside the Monorepo
+### Outside the Monorepo (GitHub Packages)
 
-If you want to use this reporter in a project outside the monorepo, you have a few options:
+Install from GitHub Packages. You need to point the `@justinmiehle` scope at GitHub's registry and authenticate.
 
-1. **Use a local file path** (recommended for local development):
+**In a GitHub Action** (other repo), add a step before installing dependencies:
 
-   Since this reporter depends on `@panoptes/shared`, you'll need to install both packages using file paths. **Important: You must build the packages before using them.**
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: '20'
+    registry-url: 'https://npm.pkg.github.com'
+    scope: '@justinmiehle'
+- run: bun install  # or npm ci
+  env:
+    NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
 
-   **Step 1: Build the packages**
+Create an `.npmrc` in that repo (or inject it in CI):
 
-   First, build both packages in the Panoptes monorepo:
+```
+@justinmiehle:registry=https://npm.pkg.github.com
+```
 
-   ```bash
-   cd /path/to/panoptes
-   cd packages/shared && bun run build && cd ..
-   cd packages/reporters/vitest && bun run build && cd ../..
-   ```
+Then install:
 
-   **Step 2: Install in your project**
+```bash
+bun add -d @justinmiehle/reporter-vitest
+```
 
-   **For Bun users:**
-
-   ```bash
-   # Replace /path/to/panoptes with the actual path to your Panoptes repo
-   bun add -d @panoptes/shared@file:/path/to/panoptes/packages/shared
-   bun add -d @panoptes/reporter-vitest@file:/path/to/panoptes/packages/reporters/vitest
-   ```
-
-   **For Yarn users (e.g., Storybook repo):**
-
-   If your Panoptes repo and Storybook are in the same folder:
-
-   ```bash
-   cd storybook
-   yarn add -D @panoptes/shared@file:../panoptes/packages/shared
-   yarn add -D @panoptes/reporter-vitest@file:../panoptes/packages/reporters/vitest
-   ```
-
-   **Important notes:**
-   - The packages export compiled JavaScript from the `dist/` directory, not TypeScript source
-   - You must rebuild the packages whenever you make changes to the source code
-   - Yarn will automatically resolve the `workspace:*` dependency in the reporter's `package.json` to the file path you provide for `@panoptes/shared`
-   - If you reinstall dependencies in your project, you may need to rebuild the Panoptes packages
-
-2. **Publish to NPM** (if the package is made public):
-
-   ```bash
-   bun add -d @panoptes/reporter-vitest
-   ```
-
-3. **Use a local package registry** (like Verdaccio):
-
-   ```bash
-   # Configure your registry, then:
-   bun add -d @panoptes/reporter-vitest
-   ```
+**Local / other CI:** Use a [Personal Access Token](https://github.com/settings/tokens) with `read:packages` and set `NODE_AUTH_TOKEN` or use `npm login` against `https://npm.pkg.github.com`.
 
 ## Configuration
 
@@ -77,7 +53,7 @@ Add the reporter to your `vitest.config.ts`:
 
 ```typescript
 import { defineConfig } from 'vitest/config'
-import PanoptesReporter from '@panoptes/reporter-vitest'
+import PanoptesReporter from '@justinmiehle/reporter-vitest'
 
 export default defineConfig({
   test: {
@@ -94,7 +70,7 @@ export default defineConfig({
 })
 ```
 
-**Important:** Do not add `@panoptes/reporter-vitest` or `@panoptes/shared` to `ssr.noExternal` in your Vite/Vitest config. The packages are designed to be treated as external dependencies and will be loaded from their compiled JavaScript files in the `dist/` directory.
+**Important:** Do not add `@justinmiehle/reporter-vitest` or `@justinmiehle/shared` to `ssr.noExternal` in your Vite/Vitest config. The packages are designed to be treated as external dependencies and will be loaded from their compiled JavaScript files in the `dist/` directory.
 
 ## Environment Variables
 

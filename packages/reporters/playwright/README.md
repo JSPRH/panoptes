@@ -2,11 +2,17 @@
 
 Custom reporter for Playwright that sends test results directly to Convex.
 
+Published as **@justinmiehle/reporter-playwright** on [GitHub Packages](https://github.com/JustinMiehle?tab=packages).
+
 ## Installation
 
+From GitHub Packages (e.g. in another repo or GitHub Action), configure npm to use the scope and authenticate, then:
+
 ```bash
-bun add -d @panoptes/reporter-playwright
+bun add -d @justinmiehle/reporter-playwright
 ```
+
+Consumers need an `.npmrc` with `@justinmiehle:registry=https://npm.pkg.github.com` and auth (e.g. `GITHUB_TOKEN` in CI). To publish new versions, run the "Publish reporters to GitHub Packages" workflow or see SETUP.md.
 
 ## Configuration
 
@@ -14,7 +20,7 @@ Add the reporter to your `playwright.config.ts`:
 
 ```typescript
 import { defineConfig } from '@playwright/test'
-import PanoptesReporter from '@panoptes/reporter-playwright'
+import PanoptesReporter from '@justinmiehle/reporter-playwright'
 
 export default defineConfig({
   reporter: [

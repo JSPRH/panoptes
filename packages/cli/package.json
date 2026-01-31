@@ -11,7 +11,7 @@
 		"dev": "tsx src/index.ts"
 	},
 	"dependencies": {
-		"@panoptes/shared": "workspace:*",
+		"@justinmiehle/shared": "workspace:*",
 		"commander": "^11.1.0"
 	},
 	"devDependencies": {

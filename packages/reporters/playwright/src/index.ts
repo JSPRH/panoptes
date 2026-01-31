@@ -1,4 +1,4 @@
-import type { TestResult, TestRunIngest } from "@panoptes/shared";
+import type { TestResult, TestRunIngest } from "@justinmiehle/shared";
 import type { Reporter } from "@playwright/test/reporter";
 
 interface PanoptesReporterOptions {
@@ -108,11 +108,12 @@ export default class PanoptesReporter implements Reporter {
 			const failed = suiteTests.filter((t) => t.status === "failed").length;
 			const skipped = suiteTests.filter((t) => t.status === "skipped").length;
 
+			const status: "passed" | "failed" | "skipped" =
+				failed > 0 ? "failed" : skipped === suiteTests.length ? "skipped" : "passed";
 			return {
 				name: suite.name,
 				file: suite.file,
-				status:
-					failed > 0 ? "failed" : skipped === suiteTests.length ? "skipped" : ("passed" as const),
+				status,
 				duration: suiteTests.reduce((sum, t) => sum + t.duration, 0),
 				totalTests: suiteTests.length,
 				passedTests: passed,

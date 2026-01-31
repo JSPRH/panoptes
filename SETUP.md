@@ -71,14 +71,14 @@
 
 ### Vitest Reporter
 
-1. Install the reporter:
+1. Install the reporter (from GitHub Packages; see [Publishing report packages](#publishing-reporter-packages) for auth):
    ```bash
-   bun add -d @panoptes/reporter-vitest
+   bun add -d @justinmiehle/reporter-vitest
    ```
 
 2. Configure in `vitest.config.ts`:
    ```typescript
-   import PanoptesReporter from '@panoptes/reporter-vitest'
+   import PanoptesReporter from '@justinmiehle/reporter-vitest'
    
    export default defineConfig({
      test: {
@@ -100,14 +100,14 @@
 
 ### Playwright Reporter
 
-1. Install the reporter:
+1. Install the reporter (from GitHub Packages; see [Publishing reporter packages](#publishing-reporter-packages) for auth):
    ```bash
-   bun add -d @panoptes/reporter-playwright
+   bun add -d @justinmiehle/reporter-playwright
    ```
 
 2. Configure in `playwright.config.ts`:
    ```typescript
-   import PanoptesReporter from '@panoptes/reporter-playwright'
+   import PanoptesReporter from '@justinmiehle/reporter-playwright'
    
    export default defineConfig({
      reporter: [
@@ -124,6 +124,54 @@
    ```bash
    playwright test
    ```
+
+## Publishing reporter packages
+
+The reporters and shared types are published to [GitHub Packages](https://github.com/JustinMiehle?tab=packages) under the `@justinmiehle` scope:
+
+- `@justinmiehle/shared` (required by both reporters)
+- `@justinmiehle/reporter-playwright`
+- `@justinmiehle/reporter-vitest`
+
+### Publishing (manual)
+
+1. **Auth**: Create a [Personal Access Token](https://github.com/settings/tokens) with `write:packages` and `read:packages`. Then:
+   ```bash
+   echo "//npm.pkg.github.com/:_authToken=YOUR_TOKEN" >> ~/.npmrc
+   ```
+   Or set `NODE_AUTH_TOKEN` when running publish.
+
+2. **Build and publish** (order matters; shared first):
+   ```bash
+   bun run build:shared
+   bun run --cwd packages/shared publish
+   bun run --cwd packages/reporters/playwright build && bun run --cwd packages/reporters/playwright publish
+   bun run --cwd packages/reporters/vitest build && bun run --cwd packages/reporters/vitest publish
+   ```
+   Or use the workflow below.
+
+### Using in another GitHub Action
+
+In the repo that uses the reporters, add before installing dependencies:
+
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: '20'
+    registry-url: 'https://npm.pkg.github.com'
+    scope: '@justinmiehle'
+- run: bun install  # or npm ci
+  env:
+    NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Add an `.npmrc` in that repo (or a step that writes it):
+
+```
+@justinmiehle:registry=https://npm.pkg.github.com
+```
+
+Then add `@justinmiehle/reporter-playwright` or `@justinmiehle/reporter-vitest` to that repo’s dependencies and use the reporter in your test config.
 
 ## Troubleshooting
 

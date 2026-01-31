@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readFile } from "node:fs/promises";
-import type { TestRunIngest } from "@panoptes/shared";
+import type { TestRunIngest } from "@justinmiehle/shared";
 import { Command } from "commander";
 
 const program = new Command();

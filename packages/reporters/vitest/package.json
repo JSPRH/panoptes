@@ -1,7 +1,7 @@
 {
-	"name": "@panoptes/reporter-vitest",
-	"version": "0.1.0",
-	"private": true,
+	"name": "@justinmiehle/reporter-vitest",
+	"version": "0.0.1",
+	"description": "Panoptes reporter for Vitest test results",
 	"type": "module",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -12,12 +12,21 @@
 			"require": "./dist/index.js"
 		}
 	},
+	"files": ["dist", "src"],
 	"scripts": {
-		"build": "bunx esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:@panoptes/shared --external:vitest --external:@vitest/reporter && bunx tsc --emitDeclarationOnly --declaration --outDir dist src/index.ts || true"
+		"build": "bunx esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:@justinmiehle/shared --external:vitest && bunx tsc --emitDeclarationOnly --declaration --outDir dist src/index.ts || true"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/JustinMiehle/panoptes.git",
+		"directory": "packages/reporters/vitest"
+	},
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com",
+		"access": "public"
 	},
 	"dependencies": {
-		"@panoptes/shared": "workspace:*",
-		"@vitest/reporter": "^1.0.0"
+		"@justinmiehle/shared": "workspace:*"
 	},
 	"devDependencies": {
 		"@types/node": "^20.10.0",

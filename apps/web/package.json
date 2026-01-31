@@ -24,7 +24,7 @@
 	},
 	"devDependencies": {
 		"@chromatic-com/storybook": "^5.0.0",
-		"@panoptes/reporter-playwright": "../../packages/reporters/playwright",
+		"@justinmiehle/reporter-playwright": "workspace:*",
 		"@storybook/addon-a11y": "^10.2.3",
 		"@storybook/addon-docs": "^10.2.3",
 		"@storybook/addon-onboarding": "^10.2.3",

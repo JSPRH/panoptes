@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"description": "Test visualization platform for the testing pyramid",
-	"workspaces": ["apps/*", "packages/*"],
+	"workspaces": ["apps/*", "packages/*", "packages/reporters/*"],
 	"scripts": {
 		"dev:web": "bun --cwd apps/web dev",
 		"dev": "bun run dev:web",
