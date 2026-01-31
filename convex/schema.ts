@@ -210,6 +210,7 @@ export default defineSchema({
 		ciRunId: v.id("ciRuns"),
 		status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
 		analysis: v.object({
+			title: v.string(),
 			summary: v.string(),
 			rootCause: v.string(),
 			proposedFix: v.string(),
@@ -225,6 +226,8 @@ export default defineSchema({
 					prompt: v.string(),
 				})
 			),
+			cursorAgentId: v.optional(v.string()),
+			cursorAgentUrl: v.optional(v.string()),
 		}),
 		analyzedAt: v.number(),
 		model: v.string(),

@@ -343,11 +343,24 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 						{analysis?.analysis?.cursorBackgroundAgentData && (
 							<Button
 								onClick={handleTriggerCloudAgent}
-								disabled={isTriggeringAgent}
+								disabled={isTriggeringAgent || !!analysis?.analysis?.cursorAgentId}
 								size="sm"
 								variant="default"
 							>
-								{isTriggeringAgent ? "Launching..." : "🚀 Launch Cloud Agent"}
+								{isTriggeringAgent
+									? "Launching..."
+									: analysis?.analysis?.cursorAgentId
+										? "✅ Agent Launched"
+										: "🚀 Launch Cloud Agent"}
+							</Button>
+						)}
+						{analysis?.analysis?.cursorAgentUrl && (
+							<Button
+								onClick={() => window.open(analysis.analysis.cursorAgentUrl, "_blank")}
+								size="sm"
+								variant="outline"
+							>
+								View Agent →
 							</Button>
 						)}
 						{(!analysis || analysis?.status === "failed") && (
@@ -377,14 +390,29 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 				)}
 				{analysis?.status === "completed" && analysis.analysis && (
 					<div className="space-y-4">
-						<div>
-							<div className="text-sm font-medium mb-1">Summary</div>
-							<div className="text-sm text-muted-foreground">{analysis.analysis.summary}</div>
-						</div>
-						<div>
-							<div className="text-sm font-medium mb-1">Root Cause</div>
-							<div className="text-sm text-muted-foreground">{analysis.analysis.rootCause}</div>
-						</div>
+						{analysis.analysis.title && (
+							<div className="text-lg font-semibold">{analysis.analysis.title}</div>
+						)}
+						<details className="group">
+							<summary className="text-sm font-medium cursor-pointer list-none flex items-center gap-2 hover:text-foreground transition-colors">
+								<span className="text-xs">▶</span>
+								<span className="hidden group-open:inline text-xs">▼</span>
+								Summary
+							</summary>
+							<div className="text-sm text-muted-foreground mt-2 ml-5 pl-1 border-l-2 border-border">
+								{analysis.analysis.summary}
+							</div>
+						</details>
+						<details className="group">
+							<summary className="text-sm font-medium cursor-pointer list-none flex items-center gap-2 hover:text-foreground transition-colors">
+								<span className="text-xs">▶</span>
+								<span className="hidden group-open:inline text-xs">▼</span>
+								Root Cause
+							</summary>
+							<div className="text-sm text-muted-foreground mt-2 ml-5 pl-1 border-l-2 border-border">
+								{analysis.analysis.rootCause}
+							</div>
+						</details>
 						<div>
 							<div className="text-sm font-medium mb-1">Proposed Fix</div>
 							<div className="text-sm text-muted-foreground whitespace-pre-wrap">
@@ -415,9 +443,34 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 										</div>
 									)}
 								</div>
-								{agentResult && (
+								{(agentResult || analysis.analysis.cursorAgentId) && (
 									<div className="mt-2 p-2 bg-muted rounded text-sm">
-										{agentResult.prUrl ? (
+										{analysis.analysis.cursorAgentUrl ? (
+											<div>
+												✅ Cloud agent launched!{" "}
+												<a
+													href={analysis.analysis.cursorAgentUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-primary hover:underline"
+												>
+													View Agent →
+												</a>
+												{agentResult?.prUrl && (
+													<>
+														{" • "}
+														<a
+															href={agentResult.prUrl}
+															target="_blank"
+															rel="noopener noreferrer"
+															className="text-primary hover:underline"
+														>
+															View Pull Request →
+														</a>
+													</>
+												)}
+											</div>
+										) : agentResult?.prUrl ? (
 											<div>
 												✅ Cloud agent launched!{" "}
 												<a
@@ -429,7 +482,7 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 													View Pull Request →
 												</a>
 											</div>
-										) : agentResult.agentUrl ? (
+										) : agentResult?.agentUrl ? (
 											<div>
 												✅ Cloud agent launched!{" "}
 												<a

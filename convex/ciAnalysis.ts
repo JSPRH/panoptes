@@ -49,6 +49,7 @@ export const _createCIRunAnalysis = internalMutation({
 			ciRunId: args.ciRunId,
 			status: args.status,
 			analysis: {
+				title: "",
 				summary: "",
 				rootCause: "",
 				proposedFix: "",
@@ -58,6 +59,8 @@ export const _createCIRunAnalysis = internalMutation({
 				cursorDeeplink: undefined,
 				cursorPrompt: undefined,
 				cursorBackgroundAgentData: undefined,
+				cursorAgentId: undefined,
+				cursorAgentUrl: undefined,
 			},
 			analyzedAt: Date.now(),
 			model: "",
@@ -71,6 +74,7 @@ export const _updateCIRunAnalysis = internalMutation({
 		status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
 		analysis: v.optional(
 			v.object({
+				title: v.string(),
 				summary: v.string(),
 				rootCause: v.string(),
 				proposedFix: v.string(),
@@ -86,6 +90,8 @@ export const _updateCIRunAnalysis = internalMutation({
 						prompt: v.string(),
 					})
 				),
+				cursorAgentId: v.optional(v.string()),
+				cursorAgentUrl: v.optional(v.string()),
 			})
 		),
 		model: v.optional(v.string()),
@@ -95,6 +101,7 @@ export const _updateCIRunAnalysis = internalMutation({
 			status: "pending" | "completed" | "failed";
 			analyzedAt: number;
 			analysis?: {
+				title: string;
 				summary: string;
 				rootCause: string;
 				proposedFix: string;
@@ -108,6 +115,8 @@ export const _updateCIRunAnalysis = internalMutation({
 					ref: string;
 					prompt: string;
 				};
+				cursorAgentId?: string;
+				cursorAgentUrl?: string;
 			};
 			model?: string;
 		} = {

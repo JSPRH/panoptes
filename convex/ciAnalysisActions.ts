@@ -264,6 +264,7 @@ ${failedTests.length > 0 ? `Failed Tests (${failedTests.length}):\n` : ""}`;
 
 			prompt += `\nPlease provide a JSON response with the following structure:
 {
+  "title": "A very short, concise title summarizing the failure (max 10 words)",
   "summary": "Brief summary of what went wrong (2-3 sentences)",
   "rootCause": "Detailed root cause analysis explaining why the failure occurred",
   "proposedFix": "Specific steps or code changes to fix the issue",
@@ -278,6 +279,7 @@ ${failedTests.length > 0 ? `Failed Tests (${failedTests.length}):\n` : ""}`;
 			});
 
 			const analysisSchema = z.object({
+				title: z.string(),
 				summary: z.string(),
 				rootCause: z.string(),
 				proposedFix: z.string(),
@@ -337,6 +339,7 @@ Please fix the issue and ensure all tests pass.`;
 				analysisId,
 				status: "completed",
 				analysis: {
+					title: analysisData.title,
 					summary: analysisData.summary,
 					rootCause: analysisData.rootCause,
 					proposedFix: analysisData.proposedFix,
@@ -425,9 +428,59 @@ export const triggerCursorCloudAgent = action({
 			};
 		};
 
+		// Construct agent URL with agent ID
+		// Format: https://cursor.com/agents?id={agentId}
+		const agentUrl = result.target?.url || `https://cursor.com/agents?id=${result.id}`;
+
+		// Store agent ID and URL in analysis (preserve existing analysis data)
+		const updateAnalysis: {
+			title: string;
+			summary: string;
+			rootCause: string;
+			proposedFix: string;
+			proposedTest: string;
+			isFlaky: boolean;
+			confidence: number;
+			cursorDeeplink?: string;
+			cursorPrompt?: string;
+			cursorBackgroundAgentData?: {
+				repository: string;
+				ref: string;
+				prompt: string;
+			};
+			cursorAgentId: string;
+			cursorAgentUrl: string;
+		} = {
+			title: analysis.analysis.title,
+			summary: analysis.analysis.summary,
+			rootCause: analysis.analysis.rootCause,
+			proposedFix: analysis.analysis.proposedFix,
+			proposedTest: analysis.analysis.proposedTest,
+			isFlaky: analysis.analysis.isFlaky,
+			confidence: analysis.analysis.confidence,
+			cursorAgentId: result.id,
+			cursorAgentUrl: agentUrl,
+		};
+
+		if (analysis.analysis.cursorDeeplink) {
+			updateAnalysis.cursorDeeplink = analysis.analysis.cursorDeeplink;
+		}
+		if (analysis.analysis.cursorPrompt) {
+			updateAnalysis.cursorPrompt = analysis.analysis.cursorPrompt;
+		}
+		if (analysis.analysis.cursorBackgroundAgentData) {
+			updateAnalysis.cursorBackgroundAgentData = analysis.analysis.cursorBackgroundAgentData;
+		}
+
+		await ctx.runMutation(internal.ciAnalysis._updateCIRunAnalysis, {
+			analysisId: analysis._id,
+			status: analysis.status,
+			analysis: updateAnalysis,
+		});
+
 		return {
 			agentId: result.id,
-			agentUrl: result.target?.url,
+			agentUrl,
 			prUrl: result.target?.prUrl,
 		};
 	},
