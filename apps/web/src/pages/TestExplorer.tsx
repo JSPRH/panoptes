@@ -295,7 +295,12 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 													})()}
 												</div>
 												<div className="flex items-center gap-2">
-													<div className="text-sm text-muted-foreground">{test.duration}ms</div>
+													<div className="text-sm text-muted-foreground">
+														{typeof test.duration === "number"
+															? test.duration.toFixed(2)
+															: test.duration}
+														ms
+													</div>
 													<Link to={`/executions/${test._id}`}>
 														<Badge
 															variant={
