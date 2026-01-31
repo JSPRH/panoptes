@@ -6,7 +6,7 @@ interface LayoutProps {
 }
 
 const navItems = [
-	{ path: "/", label: "Dashboard" },
+	{ path: "/dashboard", label: "Dashboard" },
 	{ path: "/pyramid", label: "Test Pyramid" },
 	{ path: "/explorer", label: "Test Explorer" },
 	{ path: "/runs", label: "Test Runs" },
@@ -17,6 +17,9 @@ const navItems = [
 	{ path: "/ci-runs", label: "CI Runs" },
 	{ path: "/pull-requests", label: "Pull Requests" },
 ];
+
+// Pages that should not show the navigation sidebar
+const pagesWithoutNav = ["/", "/imprint", "/agb", "/privacy"];
 
 function NavLinks({
 	currentPath,
@@ -51,43 +54,52 @@ function NavLinks({
 
 export default function Layout({ children }: LayoutProps) {
 	const location = useLocation();
+	const showNav = !pagesWithoutNav.includes(location.pathname);
 
 	return (
 		<div className="min-h-screen bg-background flex flex-col lg:flex-row">
-			{/* Top bar on small screens */}
-			<header className="lg:hidden border-b border-border bg-card flex-shrink-0">
-				<div className="px-4 py-4">
-					<Link
-						to="/"
-						className="font-heading font-semibold text-lg text-foreground hover:text-primary transition-colors"
-					>
-						Panoptes
-					</Link>
-					<nav className="mt-3 flex flex-wrap gap-1">
-						<NavLinks currentPath={location.pathname} variant="top" />
-					</nav>
-				</div>
-			</header>
-
-			{/* Sidebar on lg+ */}
-			<aside className="hidden lg:flex lg:w-56 lg:min-w-[14rem] border-r border-border bg-card flex-shrink-0">
-				<div className="sticky top-0 flex flex-col w-full min-h-screen">
-					<Link
-						to="/"
-						className="px-4 py-5 border-b border-border font-heading font-semibold text-lg text-foreground hover:text-primary transition-colors"
-					>
-						Panoptes
-					</Link>
-					<nav className="flex-1 overflow-y-auto py-3">
-						<div className="space-y-0.5 px-3">
-							<NavLinks currentPath={location.pathname} variant="sidebar" />
+			{showNav && (
+				<>
+					{/* Top bar on small screens */}
+					<header className="lg:hidden border-b border-border bg-card flex-shrink-0">
+						<div className="px-4 py-4">
+							<Link
+								to="/"
+								className="font-heading font-semibold text-lg text-foreground hover:text-primary transition-colors"
+							>
+								Panoptes
+							</Link>
+							<nav className="mt-3 flex flex-wrap gap-1">
+								<NavLinks currentPath={location.pathname} variant="top" />
+							</nav>
 						</div>
-					</nav>
-				</div>
-			</aside>
+					</header>
+
+					{/* Sidebar on lg+ */}
+					<aside className="hidden lg:flex lg:w-56 lg:min-w-[14rem] border-r border-border bg-card flex-shrink-0">
+						<div className="sticky top-0 flex flex-col w-full min-h-screen">
+							<Link
+								to="/"
+								className="px-4 py-5 border-b border-border font-heading font-semibold text-lg text-foreground hover:text-primary transition-colors"
+							>
+								Panoptes
+							</Link>
+							<nav className="flex-1 overflow-y-auto py-3">
+								<div className="space-y-0.5 px-3">
+									<NavLinks currentPath={location.pathname} variant="sidebar" />
+								</div>
+							</nav>
+						</div>
+					</aside>
+				</>
+			)}
 
 			<main className="flex-1 min-w-0">
-				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</div>
+				{showNav ? (
+					<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</div>
+				) : (
+					children
+				)}
 			</main>
 		</div>
 	);

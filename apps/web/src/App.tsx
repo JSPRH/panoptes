@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ConvexConfigError } from "./components/ConvexConfigError";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
+import AGB from "./pages/AGB";
 import Anomalies from "./pages/Anomalies";
 import CIRunDetail from "./pages/CIRunDetail";
 import CIRuns from "./pages/CIRuns";
@@ -10,6 +11,9 @@ import CodeLens from "./pages/CodeLens";
 import CoverageTree from "./pages/CoverageTree";
 import Dashboard from "./pages/Dashboard";
 import FileCoverageDetail from "./pages/FileCoverageDetail";
+import Homepage from "./pages/Homepage";
+import Imprint from "./pages/Imprint";
+import Privacy from "./pages/Privacy";
 import PullRequests from "./pages/PullRequests";
 import TestDetail from "./pages/TestDetail";
 import TestExecutionDetail from "./pages/TestExecutionDetail";
@@ -61,7 +65,11 @@ function App() {
 				<BrowserRouter>
 					<Layout>
 						<Routes>
-							<Route path="/" element={<Dashboard />} />
+							<Route path="/" element={<Homepage />} />
+							<Route path="/dashboard" element={<Dashboard />} />
+							<Route path="/imprint" element={<Imprint />} />
+							<Route path="/agb" element={<AGB />} />
+							<Route path="/privacy" element={<Privacy />} />
 							<Route path="/pyramid" element={<TestPyramid />} />
 							<Route path="/explorer" element={<TestExplorer />} />
 							<Route path="/runs" element={<TestRuns />} />
