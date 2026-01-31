@@ -3,7 +3,7 @@ import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
@@ -26,6 +26,9 @@ function formatDuration(ms: number | undefined): string {
 }
 
 export default function TestRuns() {
+	const [searchParams] = useSearchParams();
+	const urlTestType = searchParams.get("testType");
+
 	const [selectedProjectId, setSelectedProjectId] = useState<Id<"projects"> | null>(null);
 	const [sourceFilter, setSourceFilter] = useState<string>("all");
 	const [runnerFilter, setRunnerFilter] = useState<string>("all");
@@ -36,6 +39,10 @@ export default function TestRuns() {
 		selectedProjectId
 			? {
 					projectId: selectedProjectId,
+					testType:
+						urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
+							? (urlTestType as "unit" | "integration" | "e2e" | "visual")
+							: undefined,
 					ci: sourceFilter === "ci" ? true : sourceFilter === "local" ? false : undefined,
 					triggeredBy: runnerFilter === "all" ? undefined : runnerFilter,
 					limit: 100,
@@ -69,11 +76,20 @@ export default function TestRuns() {
 
 	const hasMultipleProjects = projects && projects.length > 1;
 
+	const testTypeFilter =
+		urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
+			? urlTestType.charAt(0).toUpperCase() + urlTestType.slice(1)
+			: null;
+
 	return (
 		<div className="space-y-8">
 			<PageHeader
-				title="Test Runs"
-				description="Browse test runs by project, source (CI/Local), and runner. Open a run to view its test executions."
+				title={testTypeFilter ? `${testTypeFilter} Test Runs` : "Test Runs"}
+				description={
+					testTypeFilter
+						? `Browse ${testTypeFilter.toLowerCase()} test runs by project, source (CI/Local), and runner. Open a run to view its test executions.`
+						: "Browse test runs by project, source (CI/Local), and runner. Open a run to view its test executions."
+				}
 			/>
 
 			{hasMultipleProjects && (
@@ -111,6 +127,20 @@ export default function TestRuns() {
 
 			{selectedProjectId && (
 				<>
+					{testTypeFilter && (
+						<Card>
+							<CardContent className="p-4">
+								<div className="flex items-center gap-2">
+									<span className="text-sm text-muted-foreground">Filtered by:</span>
+									<Badge variant="neutral">{testTypeFilter}</Badge>
+									<Link to="/runs" className="text-sm text-primary hover:underline ml-auto">
+										Clear filter
+									</Link>
+								</div>
+							</CardContent>
+						</Card>
+					)}
+
 					<Card>
 						<CardHeader>
 							<CardTitle>Filters</CardTitle>

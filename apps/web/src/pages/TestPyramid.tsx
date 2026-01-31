@@ -1,6 +1,7 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
 import { useQuery } from "convex/react";
+import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -87,7 +88,7 @@ export default function TestPyramid() {
 	}
 
 	// Build layers in pyramid order (top to bottom: E2E, Visual, Integration, Unit)
-	const layers: PyramidLayer[] = [
+	const layers: (PyramidLayer & { testTypeKey: string })[] = [
 		{
 			total: pyramidData.e2e.total,
 			passed: pyramidData.e2e.passed,
@@ -96,6 +97,7 @@ export default function TestPyramid() {
 			shortLabel: LAYER_CONFIGS.e2e.shortLabel,
 			color: LAYER_CONFIGS.e2e.color,
 			order: LAYER_CONFIGS.e2e.order,
+			testTypeKey: "e2e",
 		},
 		{
 			total: pyramidData.visual.total,
@@ -105,6 +107,7 @@ export default function TestPyramid() {
 			shortLabel: LAYER_CONFIGS.visual.shortLabel,
 			color: LAYER_CONFIGS.visual.color,
 			order: LAYER_CONFIGS.visual.order,
+			testTypeKey: "visual",
 		},
 		{
 			total: pyramidData.integration.total,
@@ -114,6 +117,7 @@ export default function TestPyramid() {
 			shortLabel: LAYER_CONFIGS.integration.shortLabel,
 			color: LAYER_CONFIGS.integration.color,
 			order: LAYER_CONFIGS.integration.order,
+			testTypeKey: "integration",
 		},
 		{
 			total: pyramidData.unit.total,
@@ -123,6 +127,7 @@ export default function TestPyramid() {
 			shortLabel: LAYER_CONFIGS.unit.shortLabel,
 			color: LAYER_CONFIGS.unit.color,
 			order: LAYER_CONFIGS.unit.order,
+			testTypeKey: "unit",
 		},
 	].filter((layer) => layer.total > 0);
 
@@ -179,10 +184,13 @@ export default function TestPyramid() {
 									const isBottomLayer = index === layers.length - 1;
 									const isTopLayer = index === 0;
 
+									const testRunsUrl = `/runs?testType=${layer.testTypeKey}`;
+
 									return (
-										<div
+										<Link
 											key={layer.label}
-											className="group relative w-full transition-all duration-300"
+											to={testRunsUrl}
+											className="group relative w-full transition-all duration-300 block"
 											style={{ maxWidth: `${width}%` }}
 										>
 											<div
@@ -191,6 +199,7 @@ export default function TestPyramid() {
 													${layer.color.bg} ${layer.color.border}
 													transition-all duration-300
 													group-hover:shadow-lg group-hover:scale-[1.02]
+													cursor-pointer
 													${isTopLayer ? "rounded-t-lg" : ""}
 													${isBottomLayer ? "rounded-b-lg" : ""}
 												`}
@@ -258,7 +267,7 @@ export default function TestPyramid() {
 													)}
 												</div>
 											</div>
-										</div>
+										</Link>
 									);
 								})}
 							</div>
@@ -305,44 +314,51 @@ export default function TestPyramid() {
 				].map((stat) => {
 					const hasResults = stat.passed + stat.failed > 0;
 					const passRate = hasResults ? (stat.passed / (stat.passed + stat.failed)) * 100 : 0;
+					const testRunsUrl = `/runs?testType=${stat.key}`;
 
 					return (
-						<Card key={stat.key} className="overflow-hidden">
-							<CardContent className="p-5">
-								<div className="space-y-3">
-									<div className="flex items-center justify-between">
-										<span className="text-sm font-medium text-muted-foreground">{stat.label}</span>
+						<Link key={stat.key} to={testRunsUrl} className="block">
+							<Card className="overflow-hidden transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+								<CardContent className="p-5">
+									<div className="space-y-3">
+										<div className="flex items-center justify-between">
+											<span className="text-sm font-medium text-muted-foreground">
+												{stat.label}
+											</span>
+											{hasResults && (
+												<Badge
+													variant={
+														passRate >= 90 ? "success" : passRate >= 70 ? "warning" : "error"
+													}
+													className="text-xs"
+												>
+													{passRate.toFixed(0)}%
+												</Badge>
+											)}
+										</div>
+										<div className="text-3xl font-bold tabular-nums">
+											{stat.value.toLocaleString()}
+										</div>
 										{hasResults && (
-											<Badge
-												variant={passRate >= 90 ? "success" : passRate >= 70 ? "warning" : "error"}
-												className="text-xs"
-											>
-												{passRate.toFixed(0)}%
-											</Badge>
+											<div className="space-y-1.5">
+												<div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+													<div
+														className={`h-full ${stat.config.color.accent} transition-all duration-500`}
+														style={{ width: `${passRate}%` }}
+													/>
+												</div>
+												<div className="flex justify-between text-xs text-muted-foreground">
+													<span>{stat.passed} passed</span>
+													{stat.failed > 0 && (
+														<span className="text-destructive">{stat.failed} failed</span>
+													)}
+												</div>
+											</div>
 										)}
 									</div>
-									<div className="text-3xl font-bold tabular-nums">
-										{stat.value.toLocaleString()}
-									</div>
-									{hasResults && (
-										<div className="space-y-1.5">
-											<div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-												<div
-													className={`h-full ${stat.config.color.accent} transition-all duration-500`}
-													style={{ width: `${passRate}%` }}
-												/>
-											</div>
-											<div className="flex justify-between text-xs text-muted-foreground">
-												<span>{stat.passed} passed</span>
-												{stat.failed > 0 && (
-													<span className="text-destructive">{stat.failed} failed</span>
-												)}
-											</div>
-										</div>
-									)}
-								</div>
-							</CardContent>
-						</Card>
+								</CardContent>
+							</Card>
+						</Link>
 					);
 				})}
 			</div>
