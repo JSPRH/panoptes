@@ -16,13 +16,28 @@ function getCoverageVariant(coverage: number): "success" | "warning" | "error" |
 }
 
 function generateCursorDeeplink(file: string, uncoveredLines: number[]): string {
-	// Cursor deeplink format: cursor://file?path=<file>&line=<line>
-	// We'll create a link that opens the file and includes instructions
-	const firstUncoveredLine = uncoveredLines.length > 0 ? uncoveredLines[0] : 1;
-	const instructions = encodeURIComponent(
-		`Add test coverage for ${file}. Uncovered lines: ${uncoveredLines.slice(0, 10).join(", ")}${uncoveredLines.length > 10 ? ` and ${uncoveredLines.length - 10} more` : ""}`
-	);
-	return `cursor://file?path=${encodeURIComponent(file)}&line=${firstUncoveredLine}&instructions=${instructions}`;
+	// Cursor deeplink format: cursor://anysphere.cursor-deeplink/prompt?text=...
+	// See: https://cursor.com/docs/integrations/deeplinks
+	const uncoveredLinesList =
+		uncoveredLines.length > 0
+			? uncoveredLines.slice(0, 20).join(", ") +
+				(uncoveredLines.length > 20 ? ` and ${uncoveredLines.length - 20} more` : "")
+			: "all lines";
+
+	const prompt = `Add test coverage for ${file}. 
+
+The following lines are currently uncovered: ${uncoveredLinesList}
+
+Please:
+1. Open the file: ${file}
+2. Review the uncovered lines
+3. Add appropriate test cases to cover these lines
+4. Ensure the tests follow the existing test patterns in the codebase
+
+Focus on covering the uncovered lines listed above.`;
+
+	const encodedPrompt = encodeURIComponent(prompt);
+	return `cursor://anysphere.cursor-deeplink/prompt?text=${encodedPrompt}`;
 }
 
 export default function FileCoverageDetail() {
@@ -72,11 +87,8 @@ export default function FileCoverageDetail() {
 	const cursorLink = useMemo(() => {
 		if (!filePath) return null;
 		const uncoveredLines = lineDetails?.uncovered || [];
-		// Always generate link, even if all lines are covered (for viewing the file)
-		return generateCursorDeeplink(
-			decodeURIComponent(filePath),
-			uncoveredLines.length > 0 ? uncoveredLines : [1]
-		);
+		// Always generate link - if all lines covered, prompt to review/add more tests
+		return generateCursorDeeplink(decodeURIComponent(filePath), uncoveredLines);
 	}, [filePath, lineDetails]);
 
 	// Fetch file content from GitHub
@@ -264,10 +276,8 @@ export default function FileCoverageDetail() {
 											variant="error"
 											className="font-mono cursor-pointer hover:bg-error/20"
 											onClick={() => {
-												if (cursorLink) {
-													const link = generateCursorDeeplink(decodedFilePath, [line]);
-													window.location.href = link;
-												}
+												const link = generateCursorDeeplink(decodedFilePath, [line]);
+												window.location.href = link;
 											}}
 										>
 											Line {line}
@@ -321,10 +331,8 @@ export default function FileCoverageDetail() {
 											variant="error"
 											className="font-mono cursor-pointer hover:bg-error/20"
 											onClick={() => {
-												if (cursorLink) {
-													const link = generateCursorDeeplink(decodedFilePath, [line]);
-													window.location.href = link;
-												}
+												const link = generateCursorDeeplink(decodedFilePath, [line]);
+												window.location.href = link;
 											}}
 										>
 											Line {line}
