@@ -486,6 +486,51 @@ export const getCodeSnippet = action({
 	},
 });
 
+export const getAvailableRepositories = action({
+	args: {
+		limit: v.optional(v.number()),
+	},
+	handler: async (_ctx, args) => {
+		const token = getGitHubToken();
+		const limit = args.limit || 100;
+
+		// Fetch repositories the authenticated user has access to
+		const response = await fetch(
+			`https://api.github.com/user/repos?per_page=${limit}&sort=updated&direction=desc&affiliation=owner,collaborator,organization_member`,
+			{
+				headers: {
+					Authorization: `Bearer ${token}`,
+					Accept: "application/vnd.github.v3+json",
+				},
+			}
+		);
+
+		if (!response.ok) {
+			const error = await response.text();
+			throw new Error(`GitHub API error: ${response.status} - ${error}`);
+		}
+
+		const repos = (await response.json()) as Array<{
+			id: number;
+			full_name: string;
+			name: string;
+			owner: { login: string };
+			html_url: string;
+			private: boolean;
+			description: string | null;
+		}>;
+
+		return repos.map((repo) => ({
+			fullName: repo.full_name,
+			name: repo.name,
+			owner: repo.owner.login,
+			url: repo.html_url,
+			private: repo.private,
+			description: repo.description,
+		}));
+	},
+});
+
 export const syncProjectGitHubData = action({
 	args: {
 		projectId: v.id("projects"),

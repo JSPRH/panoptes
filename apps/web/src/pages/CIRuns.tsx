@@ -9,15 +9,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 type CIRun = Doc<"ciRuns">;
 type Project = Doc<"projects">;
 
+type Repository = {
+	fullName: string;
+	name: string;
+	owner: string;
+	url: string;
+	private: boolean;
+	description: string | null;
+};
+
 export default function CIRuns() {
 	const [selectedProjectId, setSelectedProjectId] = useState<Id<"projects"> | null>(null);
 	const [statusFilter, setStatusFilter] = useState<string>("all");
 	const [showRepoConfig, setShowRepoConfig] = useState(false);
-	const [repoUrl, setRepoUrl] = useState("");
+	const [selectedRepo, setSelectedRepo] = useState<string>("");
+	const [repoSearch, setRepoSearch] = useState("");
+	const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+	const [availableRepos, setAvailableRepos] = useState<Repository[]>([]);
 
 	const projects = useQuery(api.tests.getProjects);
 	const syncGitHubData = useAction(api.github.syncProjectGitHubData);
 	const updateProjectRepository = useMutation(api.tests.updateProjectRepository);
+	const getAvailableRepositories = useAction(api.github.getAvailableRepositories);
 
 	const ciRuns = useQuery(
 		api.github.getCIRunsForProject,
@@ -41,21 +54,53 @@ export default function CIRuns() {
 		}
 	};
 
+	const handleLoadRepositories = async () => {
+		setIsLoadingRepos(true);
+		try {
+			const repos = await getAvailableRepositories({ limit: 100 });
+			setAvailableRepos(repos);
+		} catch (error) {
+			console.error("Failed to load repositories:", error);
+			alert(
+				`Failed to load repositories: ${error instanceof Error ? error.message : String(error)}`
+			);
+		} finally {
+			setIsLoadingRepos(false);
+		}
+	};
+
+	const handleShowRepoConfig = () => {
+		setShowRepoConfig(true);
+		if (availableRepos.length === 0) {
+			handleLoadRepositories();
+		}
+	};
+
 	const handleSaveRepository = async () => {
-		if (!selectedProjectId || !repoUrl.trim()) {
-			alert("Please enter a repository URL");
+		if (!selectedProjectId || !selectedRepo.trim()) {
+			alert("Please select a repository");
 			return;
 		}
 		try {
-			await updateProjectRepository({ projectId: selectedProjectId, repository: repoUrl.trim() });
+			await updateProjectRepository({
+				projectId: selectedProjectId,
+				repository: selectedRepo.trim(),
+			});
 			setShowRepoConfig(false);
-			setRepoUrl("");
-			alert("Repository URL saved successfully!");
+			setSelectedRepo("");
+			setRepoSearch("");
+			alert("Repository saved successfully!");
 		} catch (error) {
 			console.error("Failed to save repository:", error);
 			alert(`Failed to save: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	};
+
+	const filteredRepos = availableRepos.filter(
+		(repo) =>
+			repo.fullName.toLowerCase().includes(repoSearch.toLowerCase()) ||
+			repo.description?.toLowerCase().includes(repoSearch.toLowerCase())
+	);
 
 	const filteredRuns = ciRuns?.filter((run: CIRun) => {
 		if (statusFilter === "all") return true;
@@ -134,7 +179,7 @@ export default function CIRuns() {
 									runs.
 								</p>
 								<div className="space-y-2">
-									<Button onClick={() => setShowRepoConfig(true)} variant="default" size="sm">
+									<Button onClick={handleShowRepoConfig} variant="default" size="sm">
 										Configure Repository
 									</Button>
 									<p className="text-xs text-muted-foreground">
@@ -146,30 +191,69 @@ export default function CIRuns() {
 						) : (
 							<div className="space-y-4">
 								<div>
-									<label htmlFor="repo-url" className="block text-sm font-medium mb-2">
-										Repository URL
+									<label htmlFor="repo-select" className="block text-sm font-medium mb-2">
+										Select Repository
 									</label>
-									<input
-										id="repo-url"
-										type="text"
-										placeholder="https://github.com/owner/repo or owner/repo"
-										value={repoUrl}
-										onChange={(e) => setRepoUrl(e.target.value)}
-										className="w-full px-4 py-2 border rounded-md"
-									/>
-									<p className="text-xs text-muted-foreground mt-1">
-										Enter a GitHub repository URL (e.g., https://github.com/owner/repo) or
-										owner/repo
-									</p>
+									{isLoadingRepos ? (
+										<div className="text-sm text-muted-foreground">Loading repositories...</div>
+									) : availableRepos.length === 0 ? (
+										<div className="space-y-2">
+											<p className="text-sm text-muted-foreground">
+												No repositories loaded. Click "Load Repositories" to fetch from GitHub.
+											</p>
+											<Button onClick={handleLoadRepositories} variant="outline" size="sm">
+												Load Repositories
+											</Button>
+										</div>
+									) : (
+										<div className="space-y-2">
+											<input
+												type="text"
+												placeholder="Search repositories..."
+												value={repoSearch}
+												onChange={(e) => setRepoSearch(e.target.value)}
+												className="w-full px-4 py-2 border rounded-md mb-2"
+											/>
+											<select
+												id="repo-select"
+												value={selectedRepo}
+												onChange={(e) => setSelectedRepo(e.target.value)}
+												className="w-full px-4 py-2 border rounded-md"
+												size={Math.min(filteredRepos.length, 10)}
+											>
+												<option value="">-- Select a repository --</option>
+												{filteredRepos.map((repo) => (
+													<option key={repo.fullName} value={repo.fullName}>
+														{repo.fullName} {repo.private ? "(private)" : ""}
+														{repo.description ? ` - ${repo.description}` : ""}
+													</option>
+												))}
+											</select>
+											{filteredRepos.length === 0 && repoSearch && (
+												<p className="text-xs text-muted-foreground">
+													No repositories found matching "{repoSearch}"
+												</p>
+											)}
+											<p className="text-xs text-muted-foreground">
+												Showing {filteredRepos.length} of {availableRepos.length} repositories
+											</p>
+										</div>
+									)}
 								</div>
 								<div className="flex gap-2">
-									<Button onClick={handleSaveRepository} variant="default" size="sm">
+									<Button
+										onClick={handleSaveRepository}
+										variant="default"
+										size="sm"
+										disabled={!selectedRepo.trim()}
+									>
 										Save Repository
 									</Button>
 									<Button
 										onClick={() => {
 											setShowRepoConfig(false);
-											setRepoUrl("");
+											setSelectedRepo("");
+											setRepoSearch("");
 										}}
 										variant="outline"
 										size="sm"
