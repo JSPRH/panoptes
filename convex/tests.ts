@@ -412,7 +412,7 @@ export const getCoverageTree = query({
 
 			let historicalRuns: Doc<"testRuns">[];
 			if (args.projectId) {
-				const projectId = args.projectId; // Type narrowing
+				const projectId: Id<"projects"> = args.projectId; // Type narrowing
 				historicalRuns = await ctx.db
 					.query("testRuns")
 					.withIndex("by_project", (q) => q.eq("projectId", projectId))

@@ -14,6 +14,43 @@ function base64ToBlob(base64: string, contentType: string): Blob {
 	return new Blob([bytes], { type: contentType });
 }
 
+/**
+ * Normalizes file paths by removing URL prefixes and ensuring paths start from repo root.
+ * Strips prefixes like:
+ * - http://localhost:5173/test-files/...
+ * - https://example.com/test-files/...
+ * - file:///...
+ * Returns the repo-relative path (e.g., "src/utils.ts" instead of "http://localhost:5173/test-files/src/utils.ts")
+ */
+function normalizeFilePath(filePath: string): string {
+	if (!filePath) return filePath;
+
+	// Remove URL schemes (http://, https://, file://)
+	let normalized = filePath.replace(/^(https?|file):\/\//i, "");
+
+	// Remove localhost:port/test-files prefix
+	normalized = normalized.replace(/^[^/]+\/test-files\//i, "");
+
+	// Remove any leading slashes
+	normalized = normalized.replace(/^\/+/, "");
+
+	// Remove file:// protocol remnants (e.g., file:///path/to/file)
+	normalized = normalized.replace(/^\/+/, "");
+
+	// Normalize path separators (handle both / and \)
+	normalized = normalized.replace(/\\/g, "/");
+
+	// Remove any remaining absolute path indicators if they exist
+	// (e.g., C:/, /Users/, etc.) - but keep relative paths
+	if (normalized.match(/^[a-zA-Z]:\/|^\/[a-zA-Z]/)) {
+		// This looks like an absolute path, try to extract relative part
+		// For now, just return as-is but normalized
+		return normalized;
+	}
+
+	return normalized;
+}
+
 const http = httpRouter();
 
 http.route({
@@ -101,6 +138,29 @@ http.route({
 			metadata?: unknown;
 		};
 
+		// Normalize file paths: strip URL prefixes and normalize to repo-relative paths
+		const normalizeFilePaths = <T extends { file: string }>(items: T[]): T[] => {
+			return items.map((item) => ({
+				...item,
+				file: normalizeFilePath(item.file),
+			}));
+		};
+
+		// Normalize coverage file paths
+		const normalizedCoverage = data.coverage
+			? {
+					...data.coverage,
+					files: data.coverage.files
+						? Object.fromEntries(
+								Object.entries(data.coverage.files).map(([file, coverage]) => [
+									normalizeFilePath(file),
+									coverage,
+								])
+							)
+						: undefined,
+				}
+			: undefined;
+
 		// Process attachments: store bodyBase64 in Convex storage, replace with storageId
 		const normalizedTests = await Promise.all(
 			data.tests.map(async (test) => {
@@ -108,6 +168,7 @@ http.route({
 				if (!attachments?.length) {
 					return {
 						...test,
+						file: normalizeFilePath(test.file),
 						attachments: undefined as
 							| Array<{ name: string; contentType: string; storageId: Id<"_storage"> }>
 							| undefined,
@@ -145,10 +206,14 @@ http.route({
 				}
 				return {
 					...test,
+					file: normalizeFilePath(test.file),
 					attachments: normalizedAttachments.length > 0 ? normalizedAttachments : undefined,
 				};
 			})
 		);
+
+		// Normalize suite file paths
+		const normalizedSuites = data.suites ? normalizeFilePaths(data.suites) : undefined;
 
 		const result = await ctx.runMutation(api.tests.ingestTestRun, {
 			projectId: data.projectId as Id<"projects"> | undefined,
@@ -168,8 +233,8 @@ http.route({
 			triggeredBy: data.triggeredBy,
 			reporterVersion: data.reporterVersion,
 			tests: normalizedTests,
-			suites: data.suites,
-			coverage: data.coverage,
+			suites: normalizedSuites,
+			coverage: normalizedCoverage,
 			metadata: data.metadata,
 		});
 
