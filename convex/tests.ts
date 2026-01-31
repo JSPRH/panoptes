@@ -251,24 +251,31 @@ export const ingestTestRun = mutation({
 			}
 		}
 
-		// Insert file coverage when provided
+		// Insert file coverage when provided - batch in chunks to avoid exceeding read limits
 		if (args.coverage?.files && Object.keys(args.coverage.files).length > 0) {
-			for (const [file, fileCov] of Object.entries(args.coverage.files)) {
-				await ctx.db.insert("fileCoverage", {
-					testRunId,
-					projectId,
-					file,
-					linesCovered: fileCov.linesCovered,
-					linesTotal: fileCov.linesTotal,
-					lineDetails: fileCov.lineDetails,
-					statementDetails: fileCov.statementDetails,
-					statementsCovered: fileCov.statementsCovered,
-					statementsTotal: fileCov.statementsTotal,
-					branchesCovered: fileCov.branchesCovered,
-					branchesTotal: fileCov.branchesTotal,
-					functionsCovered: fileCov.functionsCovered,
-					functionsTotal: fileCov.functionsTotal,
-				});
+			const coverageEntries = Object.entries(args.coverage.files);
+			const COVERAGE_BATCH_SIZE = 100; // Process 100 files at a time
+
+			for (let i = 0; i < coverageEntries.length; i += COVERAGE_BATCH_SIZE) {
+				const batch = coverageEntries.slice(i, i + COVERAGE_BATCH_SIZE);
+				// Insert batch atomically
+				for (const [file, fileCov] of batch) {
+					await ctx.db.insert("fileCoverage", {
+						testRunId,
+						projectId,
+						file,
+						linesCovered: fileCov.linesCovered,
+						linesTotal: fileCov.linesTotal,
+						lineDetails: fileCov.lineDetails,
+						statementDetails: fileCov.statementDetails,
+						statementsCovered: fileCov.statementsCovered,
+						statementsTotal: fileCov.statementsTotal,
+						branchesCovered: fileCov.branchesCovered,
+						branchesTotal: fileCov.branchesTotal,
+						functionsCovered: fileCov.functionsCovered,
+						functionsTotal: fileCov.functionsTotal,
+					});
+				}
 			}
 		}
 
@@ -1230,20 +1237,45 @@ async function updateDashboardStats(
 	const testRunCount = statsDoc.testRunCount + 1;
 	const typeKey = args.testType as PyramidType;
 
+	// Batch optimization: Fetch all existing test definitions for this project/type in one query
+	// instead of querying per test to avoid exceeding read limits
+	// Limit to 2000 definitions to stay well under the 4096 read limit
+	const MAX_DEFINITIONS_TO_FETCH = 2000;
+	const existingDefinitions = await ctx.db
+		.query("testDefinitionLatest")
+		.withIndex("by_project_type_key", (q) =>
+			q.eq("projectId", args.projectId).eq("testType", args.testType)
+		)
+		.take(MAX_DEFINITIONS_TO_FETCH);
+
+	// Build map for O(1) lookups
+	const existingDefinitionsMap = new Map<string, Doc<"testDefinitionLatest">>();
+	for (const def of existingDefinitions) {
+		existingDefinitionsMap.set(def.definitionKey, def);
+	}
+
+	// Process tests in batches to avoid too many writes
+	const TEST_BATCH_SIZE = 200; // Process 200 tests at a time
+	const inserts: Array<{
+		projectId: Id<"projects">;
+		testType: "unit" | "integration" | "e2e" | "visual";
+		definitionKey: string;
+		status: TestStatus;
+		lastRunStartedAt: number;
+	}> = [];
+	const patches: Array<{
+		id: Id<"testDefinitionLatest">;
+		status: TestStatus;
+		lastRunStartedAt: number;
+		oldStatus: TestStatus;
+	}> = [];
+
 	for (const test of args.tests) {
 		const definitionKey = testDefinitionKey(args.projectId, test.name, test.file, test.line);
-		const existing = await ctx.db
-			.query("testDefinitionLatest")
-			.withIndex("by_project_type_key", (q) =>
-				q
-					.eq("projectId", args.projectId)
-					.eq("testType", args.testType)
-					.eq("definitionKey", definitionKey)
-			)
-			.first();
+		const existing = existingDefinitionsMap.get(definitionKey);
 
 		if (!existing) {
-			await ctx.db.insert("testDefinitionLatest", {
+			inserts.push({
 				projectId: args.projectId,
 				testType: args.testType,
 				definitionKey,
@@ -1256,15 +1288,37 @@ async function updateDashboardStats(
 		} else if (args.startedAt >= existing.lastRunStartedAt) {
 			if (existing.status === "passed") pyramid[typeKey].passed -= 1;
 			else if (existing.status === "failed") pyramid[typeKey].failed -= 1;
-			await ctx.db.patch("testDefinitionLatest", existing._id, {
+			patches.push({
+				id: existing._id,
 				status: test.status,
 				lastRunStartedAt: args.startedAt,
+				oldStatus: existing.status,
 			});
 			if (test.status === "passed") pyramid[typeKey].passed += 1;
 			else if (test.status === "failed") pyramid[typeKey].failed += 1;
 		}
 	}
 
+	// Execute inserts in batches (atomic per batch)
+	for (let i = 0; i < inserts.length; i += TEST_BATCH_SIZE) {
+		const batch = inserts.slice(i, i + TEST_BATCH_SIZE);
+		for (const insert of batch) {
+			await ctx.db.insert("testDefinitionLatest", insert);
+		}
+	}
+
+	// Execute patches in batches (atomic per batch)
+	for (let i = 0; i < patches.length; i += TEST_BATCH_SIZE) {
+		const batch = patches.slice(i, i + TEST_BATCH_SIZE);
+		for (const patch of batch) {
+			await ctx.db.patch("testDefinitionLatest", patch.id, {
+				status: patch.status,
+				lastRunStartedAt: patch.lastRunStartedAt,
+			});
+		}
+	}
+
+	// Final atomic update to dashboard stats
 	await ctx.db.patch("dashboardStats", statsDoc._id, {
 		projectCount,
 		testRunCount,
