@@ -181,8 +181,8 @@ export default function PullRequests() {
 										Configure Repository
 									</Button>
 									<p className="text-xs text-muted-foreground">
-										Note: Make sure GITHUB_ACCESS_TOKEN_STORYBOOK is configured in Convex secrets
-										for GitHub API access.
+										Note: Make sure GITHUB_ACCESS_TOKEN is configured in Convex secrets for GitHub
+										API access.
 									</p>
 								</div>
 							</>

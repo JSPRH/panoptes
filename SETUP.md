@@ -50,7 +50,7 @@
    
    b. Add it to Convex secrets:
       - Go to Convex Dashboard → Settings → Environment Variables
-      - Add secret: `GITHUB_ACCESS_TOKEN_STORYBOOK`
+      - Add secret: `GITHUB_ACCESS_TOKEN`
       - Paste your GitHub token
    
    c. Configure project repository:
@@ -242,7 +242,7 @@ Make sure:
 
 ### GitHub integration not working
 
-1. Verify `GITHUB_ACCESS_TOKEN_STORYBOOK` is set in Convex secrets
+1. Verify `GITHUB_ACCESS_TOKEN` is set in Convex secrets
 2. Check that project has a repository URL configured
 3. Ensure token has correct permissions (`repo`, `actions:read`)
 4. Try clicking "Sync GitHub Data" button on CI Runs or Pull Requests page

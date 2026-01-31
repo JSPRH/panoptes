@@ -42,9 +42,9 @@ interface GitHubFileContent {
 }
 
 function getGitHubToken(): string {
-	const token = process.env.GITHUB_ACCESS_TOKEN_STORYBOOK;
+	const token = process.env.GITHUB_ACCESS_TOKEN;
 	if (!token) {
-		throw new Error("GITHUB_ACCESS_TOKEN_STORYBOOK not configured in Convex secrets");
+		throw new Error("GITHUB_ACCESS_TOKEN not configured in Convex secrets");
 	}
 	return token;
 }

@@ -29,7 +29,7 @@ You need a GitHub Personal Access Token (PAT) with the following permissions:
 **Add token to Convex:**
 1. Go to your Convex dashboard
 2. Navigate to Settings → Environment Variables
-3. Add a new secret: `GITHUB_ACCESS_TOKEN_STORYBOOK`
+3. Add a new secret: `GITHUB_ACCESS_TOKEN`
 4. Paste your GitHub token as the value
 5. Save
 
@@ -135,11 +135,11 @@ Note: Direct API integration requires Cursor API access. The GitHub Action appro
 
 ## Troubleshooting
 
-### "GITHUB_ACCESS_TOKEN_STORYBOOK not configured"
+### "GITHUB_ACCESS_TOKEN not configured"
 
 Make sure you've added the token to Convex secrets:
 1. Go to Convex dashboard → Settings → Environment Variables
-2. Verify `GITHUB_ACCESS_TOKEN_STORYBOOK` exists
+2. Verify `GITHUB_ACCESS_TOKEN` exists
 3. Check that the token value is correct
 
 ### "Project repository not configured"
@@ -183,7 +183,7 @@ Panoptes caches data in the database to minimize API calls. Sync only when neede
 
 ## Security Considerations
 
-- **Never commit tokens**: Store `GITHUB_ACCESS_TOKEN_STORYBOOK` only in Convex secrets
+- **Never commit tokens**: Store `GITHUB_ACCESS_TOKEN` only in Convex secrets
 - **Use minimal permissions**: Only grant the minimum required scopes
 - **Rotate tokens regularly**: Update tokens periodically for security
 - **Review access**: Regularly review which repositories the token can access
