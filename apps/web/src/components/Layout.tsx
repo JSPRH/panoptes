@@ -63,8 +63,17 @@ export default function Layout({ children }: LayoutProps) {
 					{/* Top bar on small screens */}
 					<header className="lg:hidden border-b border-border bg-card flex-shrink-0">
 						<div className="px-4 py-4">
-							<Link to="/" className="inline-block">
-								<img src="/panoptes_logo_icon_only.png" alt="Panoptes" className="h-8 w-auto" />
+							<Link
+								to="/"
+								className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
+							>
+								<img
+									src="/panoptes_logo_icon_only.png"
+									alt=""
+									className="h-8 w-auto"
+									aria-hidden="true"
+								/>
+								<span className="font-heading font-semibold text-lg text-foreground">Panoptes</span>
 							</Link>
 							<nav className="mt-3 flex flex-wrap gap-1">
 								<NavLinks currentPath={location.pathname} variant="top" />
@@ -77,9 +86,15 @@ export default function Layout({ children }: LayoutProps) {
 						<div className="sticky top-0 flex flex-col w-full min-h-screen">
 							<Link
 								to="/"
-								className="px-4 py-5 border-b border-border flex items-center justify-center hover:opacity-80 transition-opacity"
+								className="px-4 py-5 border-b border-border flex items-center gap-2 hover:opacity-80 transition-opacity"
 							>
-								<img src="/panoptes_logo_icon_only.png" alt="Panoptes" className="h-10 w-auto" />
+								<img
+									src="/panoptes_logo_icon_only.png"
+									alt=""
+									className="h-8 w-auto"
+									aria-hidden="true"
+								/>
+								<span className="font-heading font-semibold text-lg text-foreground">Panoptes</span>
 							</Link>
 							<nav className="flex-1 overflow-y-auto py-3">
 								<div className="space-y-0.5 px-3">
