@@ -65,7 +65,13 @@ export interface TreeNode {
 	type: "file" | "directory";
 	linesCovered?: number;
 	linesTotal?: number;
-	coverage?: number; // percentage
+	statementsCovered?: number;
+	statementsTotal?: number;
+	coverage?: number; // percentage (can be LOC or statement coverage)
+	historicalCoverage?: {
+		coverage: number;
+		change: number; // percentage point change
+	};
 	children?: TreeNode[];
 }
 

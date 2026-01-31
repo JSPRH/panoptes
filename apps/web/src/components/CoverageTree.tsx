@@ -6,6 +6,7 @@ import { Badge } from "./ui/badge";
 interface CoverageTreeProps {
 	node: TreeNode;
 	level?: number;
+	useStatementCoverage?: boolean;
 }
 
 function getCoverageVariant(coverage: number): "success" | "warning" | "error" | "neutral" {
@@ -20,7 +21,7 @@ function getCoverageColorClass(coverage: number): string {
 	return "bg-error";
 }
 
-export function CoverageTree({ node, level = 0 }: CoverageTreeProps) {
+export function CoverageTree({ node, level = 0, useStatementCoverage = false }: CoverageTreeProps) {
 	const navigate = useNavigate();
 	const [isExpanded, setIsExpanded] = useState(level < 2); // Auto-expand first 2 levels
 
@@ -28,7 +29,13 @@ export function CoverageTree({ node, level = 0 }: CoverageTreeProps) {
 	const isDirectory = node.type === "directory";
 	const hasChildren = node.children && node.children.length > 0;
 	const coverage = node.coverage ?? 0;
-	const hasCoverage = node.linesTotal != null && node.linesTotal > 0;
+	const hasCoverage = useStatementCoverage
+		? node.statementsTotal != null && node.statementsTotal > 0
+		: node.linesTotal != null && node.linesTotal > 0;
+	const coverageValue = useStatementCoverage
+		? `${node.statementsCovered ?? 0}/${node.statementsTotal ?? 0}`
+		: `${node.linesCovered ?? 0}/${node.linesTotal ?? 0}`;
+	const historicalCoverage = node.historicalCoverage;
 
 	const handleFileClick = (e: React.MouseEvent) => {
 		if (!isDirectory && node.path) {
@@ -132,6 +139,23 @@ export function CoverageTree({ node, level = 0 }: CoverageTreeProps) {
 				{/* Coverage Info */}
 				{hasCoverage && (
 					<div className="flex items-center gap-3 flex-shrink-0">
+						{/* Historical Change Indicator */}
+						{historicalCoverage && (
+							<div
+								className={`text-xs font-medium px-2 py-0.5 rounded ${
+									historicalCoverage.change > 0
+										? "bg-success-muted/30 text-success"
+										: historicalCoverage.change < 0
+											? "bg-error-muted/30 text-error"
+											: "bg-muted text-muted-foreground"
+								}`}
+								title={`${historicalCoverage.change > 0 ? "+" : ""}${historicalCoverage.change.toFixed(1)}% vs historical`}
+							>
+								{historicalCoverage.change > 0 ? "↑" : historicalCoverage.change < 0 ? "↓" : "→"}{" "}
+								{Math.abs(historicalCoverage.change).toFixed(1)}%
+							</div>
+						)}
+
 						{/* Coverage Badge */}
 						<Badge
 							variant={getCoverageVariant(coverage)}
@@ -142,10 +166,7 @@ export function CoverageTree({ node, level = 0 }: CoverageTreeProps) {
 
 						{/* Coverage Stats */}
 						<div className="flex items-center gap-2 text-xs text-muted-foreground min-w-[5rem] justify-end">
-							<span className="font-mono">
-								{node.linesCovered ?? 0}
-								<span className="text-muted-foreground/60">/{node.linesTotal}</span>
-							</span>
+							<span className="font-mono">{coverageValue}</span>
 						</div>
 
 						{/* Progress Bar */}
@@ -165,7 +186,12 @@ export function CoverageTree({ node, level = 0 }: CoverageTreeProps) {
 			{isDirectory && hasChildren && isExpanded && node.children && (
 				<div className="ml-2 border-l border-border/30 pl-1">
 					{node.children.map((child) => (
-						<CoverageTree key={child.path} node={child} level={level + 1} />
+						<CoverageTree
+							key={child.path}
+							node={child}
+							level={level + 1}
+							useStatementCoverage={useStatementCoverage}
+						/>
 					))}
 				</div>
 			)}

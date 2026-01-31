@@ -350,8 +350,13 @@ function splitPath(path: string): string[] {
 export const getCoverageTree = query({
 	args: {
 		projectId: v.optional(v.id("projects")),
+		useStatementCoverage: v.optional(v.boolean()),
+		historicalPeriod: v.optional(v.union(v.literal("1w"), v.literal("1m"), v.literal("1y"))),
 	},
 	handler: async (ctx, args) => {
+		const useStatementCoverage = args.useStatementCoverage ?? false;
+		const historicalPeriod = args.historicalPeriod;
+
 		// Find the latest test run with coverage
 		let testRuns: Doc<"testRuns">[];
 		if (args.projectId) {
@@ -366,6 +371,7 @@ export const getCoverageTree = query({
 
 		// Find the first test run that has coverage
 		let coverageRunId: Id<"testRuns"> | undefined;
+		let currentRun: Doc<"testRuns"> | undefined;
 		for (const run of testRuns) {
 			const coverage = await ctx.db
 				.query("fileCoverage")
@@ -373,12 +379,98 @@ export const getCoverageTree = query({
 				.first();
 			if (coverage) {
 				coverageRunId = run._id;
+				currentRun = run;
 				break;
 			}
 		}
 
-		if (!coverageRunId) {
+		if (!coverageRunId || !currentRun) {
 			return [];
+		}
+
+		// Get historical coverage if requested
+		let historicalCoverageMap: Map<string, { coverage: number }> | undefined;
+		if (historicalPeriod) {
+			const now = currentRun.startedAt;
+			let targetTime: number;
+			if (historicalPeriod === "1w") {
+				targetTime = now - 7 * 24 * 60 * 60 * 1000; // 1 week ago
+			} else if (historicalPeriod === "1m") {
+				targetTime = now - 30 * 24 * 60 * 60 * 1000; // 1 month ago
+			} else {
+				targetTime = now - 365 * 24 * 60 * 60 * 1000; // 1 year ago
+			}
+
+			// Find test runs before the target time (going backwards)
+			// We'll look for runs in a window around the target time
+			const windowStart =
+				targetTime -
+				(historicalPeriod === "1y" ? 30 : historicalPeriod === "1m" ? 7 : 3) * 24 * 60 * 60 * 1000;
+			const windowEnd =
+				targetTime +
+				(historicalPeriod === "1y" ? 30 : historicalPeriod === "1m" ? 7 : 3) * 24 * 60 * 60 * 1000;
+
+			let historicalRuns: Doc<"testRuns">[];
+			if (args.projectId) {
+				historicalRuns = await ctx.db
+					.query("testRuns")
+					.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+					.filter((q) =>
+						q.and(q.gte(q.field("startedAt"), windowStart), q.lte(q.field("startedAt"), windowEnd))
+					)
+					.order("desc")
+					.take(100);
+			} else {
+				historicalRuns = await ctx.db
+					.query("testRuns")
+					.withIndex("by_started_at")
+					.filter((q) =>
+						q.and(q.gte(q.field("startedAt"), windowStart), q.lte(q.field("startedAt"), windowEnd))
+					)
+					.order("desc")
+					.take(100);
+			}
+
+			// Find the closest run to target time (prefer before, but allow after if needed) with coverage
+			let historicalRunId: Id<"testRuns"> | undefined;
+			let closestRun: Doc<"testRuns"> | undefined;
+			let closestDistance = Number.POSITIVE_INFINITY;
+
+			for (const run of historicalRuns) {
+				const coverage = await ctx.db
+					.query("fileCoverage")
+					.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+					.first();
+				if (coverage) {
+					const distance = Math.abs(run.startedAt - targetTime);
+					if (distance < closestDistance) {
+						closestDistance = distance;
+						closestRun = run;
+						historicalRunId = run._id;
+					}
+				}
+			}
+
+			if (historicalRunId) {
+				const historicalCoverage = await ctx.db
+					.query("fileCoverage")
+					.withIndex("by_test_run", (q) => q.eq("testRunId", historicalRunId))
+					.take(COVERAGE_PER_RUN_LIMIT);
+				historicalCoverageMap = new Map();
+				for (const fc of historicalCoverage) {
+					if (isTestFilePattern(fc.file)) continue;
+					const coverage = useStatementCoverage
+						? fc.statementsTotal && fc.statementsTotal > 0
+							? ((fc.statementsCovered ?? 0) / fc.statementsTotal) * 100
+							: fc.linesTotal > 0
+								? (fc.linesCovered / fc.linesTotal) * 100
+								: 0
+						: fc.linesTotal > 0
+							? (fc.linesCovered / fc.linesTotal) * 100
+							: 0;
+					historicalCoverageMap.set(fc.file, { coverage });
+				}
+			}
 		}
 
 		// Get all coverage for this run
@@ -398,7 +490,10 @@ export const getCoverageTree = query({
 				type: "file" | "directory";
 				linesCovered?: number;
 				linesTotal?: number;
+				statementsCovered?: number;
+				statementsTotal?: number;
 				coverage?: number;
+				historicalCoverage?: { coverage: number; change: number };
 				children?: unknown[];
 			};
 			children: Map<string, TreeNodeEntry>;
@@ -420,6 +515,27 @@ export const getCoverageTree = query({
 				if (isLast) {
 					// This is a file
 					if (!current.has(segment)) {
+						const currentCoverage = useStatementCoverage
+							? fileData.statementsTotal && fileData.statementsTotal > 0
+								? ((fileData.statementsCovered ?? 0) / fileData.statementsTotal) * 100
+								: fileData.linesTotal > 0
+									? (fileData.linesCovered / fileData.linesTotal) * 100
+									: undefined
+							: fileData.linesTotal > 0
+								? (fileData.linesCovered / fileData.linesTotal) * 100
+								: undefined;
+
+						const historicalCoverage = historicalCoverageMap?.get(fileData.file);
+						const historicalData = historicalCoverage
+							? {
+									coverage: historicalCoverage.coverage,
+									change:
+										currentCoverage !== undefined
+											? currentCoverage - historicalCoverage.coverage
+											: 0,
+								}
+							: undefined;
+
 						current.set(segment, {
 							node: {
 								name: segment,
@@ -427,10 +543,10 @@ export const getCoverageTree = query({
 								type: "file" as const,
 								linesCovered: fileData.linesCovered,
 								linesTotal: fileData.linesTotal,
-								coverage:
-									fileData.linesTotal > 0
-										? (fileData.linesCovered / fileData.linesTotal) * 100
-										: undefined,
+								statementsCovered: fileData.statementsCovered,
+								statementsTotal: fileData.statementsTotal,
+								coverage: currentCoverage,
+								historicalCoverage: historicalData,
 							},
 							children: new Map(),
 						});
@@ -463,6 +579,12 @@ export const getCoverageTree = query({
 			if (node.type === "directory") {
 				let totalLinesCovered = 0;
 				let totalLinesTotal = 0;
+				let totalStatementsCovered = 0;
+				let totalStatementsTotal = 0;
+				let totalCoverage = 0;
+				let totalHistoricalCoverage = 0;
+				let coverageCount = 0;
+				let historicalCount = 0;
 				const processedChildren: TreeNodeEntry["node"][] = [];
 
 				for (const childEntry of entry.children.values()) {
@@ -474,6 +596,20 @@ export const getCoverageTree = query({
 					if (processed.linesTotal !== undefined) {
 						totalLinesTotal += processed.linesTotal;
 					}
+					if (processed.statementsCovered !== undefined) {
+						totalStatementsCovered += processed.statementsCovered;
+					}
+					if (processed.statementsTotal !== undefined) {
+						totalStatementsTotal += processed.statementsTotal;
+					}
+					if (processed.coverage !== undefined) {
+						totalCoverage += processed.coverage;
+						coverageCount++;
+					}
+					if (processed.historicalCoverage) {
+						totalHistoricalCoverage += processed.historicalCoverage.coverage;
+						historicalCount++;
+					}
 				}
 
 				// Sort children: directories first, then files, both alphabetically
@@ -484,12 +620,35 @@ export const getCoverageTree = query({
 					return a.name.localeCompare(b.name);
 				});
 
+				const currentCoverage = useStatementCoverage
+					? totalStatementsTotal > 0
+						? (totalStatementsCovered / totalStatementsTotal) * 100
+						: totalLinesTotal > 0
+							? (totalLinesCovered / totalLinesTotal) * 100
+							: undefined
+					: totalLinesTotal > 0
+						? (totalLinesCovered / totalLinesTotal) * 100
+						: undefined;
+
+				const avgHistoricalCoverage =
+					historicalCount > 0 ? totalHistoricalCoverage / historicalCount : undefined;
+				const historicalData =
+					currentCoverage !== undefined && avgHistoricalCoverage !== undefined
+						? {
+								coverage: avgHistoricalCoverage,
+								change: currentCoverage - avgHistoricalCoverage,
+							}
+						: undefined;
+
 				return {
 					...node,
 					children: processedChildren,
 					linesCovered: totalLinesCovered,
 					linesTotal: totalLinesTotal,
-					coverage: totalLinesTotal > 0 ? (totalLinesCovered / totalLinesTotal) * 100 : undefined,
+					statementsCovered: totalStatementsCovered,
+					statementsTotal: totalStatementsTotal,
+					coverage: currentCoverage,
+					historicalCoverage: historicalData,
 				};
 			}
 			return node;
