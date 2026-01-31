@@ -149,13 +149,56 @@ export const ingestTestRun = mutation({
 			}
 		}
 
+		// Count tests by status from the actual test data
+		const runningTests = args.tests.filter((t) => t.status === "running").length;
+		const actualFailedTests = args.tests.filter((t) => t.status === "failed").length;
+		const actualSkippedTests = args.tests.filter((t) => t.status === "skipped").length;
+
+		// If test run is complete (has completedAt), ensure no tests are "running"
+		// and determine status based on completed tests only
+		const isComplete = args.completedAt !== undefined;
+		if (isComplete && runningTests > 0) {
+			// If run is complete but has running tests, treat them as failed
+			// This handles edge cases where tests were reported as running but the run completed
+			console.warn(
+				`[ingestTestRun] Test run marked as complete but has ${runningTests} tests with "running" status. Treating as failed.`
+			);
+		}
+
+		// Determine if run is actually complete - either has completedAt OR all tests have final status
+		const hasFinalStatusTests = args.tests.filter(
+			(t) => t.status !== "running"
+		).length;
+		const allTestsHaveFinalStatus = hasFinalStatusTests === args.tests.length;
+		const runIsActuallyComplete = isComplete || allTestsHaveFinalStatus;
+
 		// Determine status based on test results
-		const status =
-			args.failedTests > 0
-				? "failed"
-				: args.skippedTests === args.totalTests
-					? "skipped"
-					: "passed";
+		// If run is complete, it should never be "running"
+		// If run is not complete and has running tests, status should be "running"
+		let status: "passed" | "failed" | "skipped" | "running";
+		if (runIsActuallyComplete) {
+			// Run is complete - determine final status from completed tests
+			// Note: runningTests count is before conversion, but we'll treat them as failed
+			status =
+				actualFailedTests > 0 || runningTests > 0
+					? "failed"
+					: actualSkippedTests === args.totalTests
+						? "skipped"
+						: "passed";
+		} else {
+			// Run is not complete - check if there are running tests
+			if (runningTests > 0) {
+				status = "running";
+			} else {
+				// No running tests but run not marked complete - determine from current results
+				status =
+					actualFailedTests > 0
+						? "failed"
+						: actualSkippedTests === args.totalTests
+							? "skipped"
+							: "passed";
+			}
+		}
 
 		// Create test run
 		const testRunId = await ctx.db.insert("testRuns", {
@@ -206,7 +249,36 @@ export const ingestTestRun = mutation({
 
 		// Insert individual tests
 		const now = Date.now();
+		// Use runIsActuallyComplete calculated above to convert any "running" tests to "failed"
+
 		for (const test of args.tests) {
+			// If test run is complete but test has "running" status, convert to "failed"
+			// This ensures tests don't stay in "running" state forever
+			// ALWAYS convert "running" to "failed" if completedAt is set (most reliable indicator)
+			let finalStatus = test.status;
+			if (test.status === "running") {
+				// If completedAt is set (and not null/0), the run is definitely complete - convert to failed
+				// Check both undefined and null/0 to be safe
+				const hasCompletedAt = args.completedAt !== undefined && args.completedAt !== null && args.completedAt > 0;
+				if (hasCompletedAt) {
+					finalStatus = "failed";
+					console.warn(
+						`[ingestTestRun] Test "${test.name}" has "running" status but completedAt is set (${args.completedAt}). Converting to "failed".`
+					);
+				} else if (runIsActuallyComplete) {
+					// Fallback: if all tests have final status, also convert
+					finalStatus = "failed";
+					console.warn(
+						`[ingestTestRun] Test "${test.name}" has "running" status but run is complete (allFinal=${allTestsHaveFinalStatus}). Converting to "failed".`
+					);
+				} else {
+					// Log when we're NOT converting to help debug
+					console.warn(
+						`[ingestTestRun] Test "${test.name}" has "running" status. completedAt=${args.completedAt}, runIsActuallyComplete=${runIsActuallyComplete}, allTestsHaveFinalStatus=${allTestsHaveFinalStatus}`
+					);
+				}
+			}
+
 			const testId = await ctx.db.insert("tests", {
 				testRunId,
 				projectId,
@@ -214,9 +286,13 @@ export const ingestTestRun = mutation({
 				file: test.file,
 				line: test.line,
 				column: test.column,
-				status: test.status,
+				status: finalStatus,
 				duration: test.duration,
-				error: test.error,
+				error:
+					test.error ||
+					(finalStatus === "failed" && test.status === "running"
+						? "Test did not complete before run finished"
+						: undefined),
 				errorDetails: test.errorDetails,
 				retries: test.retries,
 				suite: test.suite,
@@ -1750,5 +1826,87 @@ export const getTestSuggestions = query({
 			.withIndex("by_file_commit", (q) => q.eq("file", args.file).eq("commitSha", commitSha))
 			.first();
 		return cached;
+	},
+});
+
+/**
+ * Fix test runs that have tests stuck in "running" status.
+ * Converts all "running" tests to "failed" for runs that have completedAt set.
+ */
+export const fixRunningTests = mutation({
+	args: {
+		testRunId: v.optional(v.id("testRuns")),
+	},
+	handler: async (ctx, args) => {
+		let testRuns: Doc<"testRuns">[];
+		
+		if (args.testRunId) {
+			const run = await ctx.db.get(args.testRunId);
+			if (!run) {
+				return { fixed: 0, message: "Test run not found" };
+			}
+			testRuns = [run];
+		} else {
+			// Find all test runs with completedAt set that might have running tests
+			testRuns = await ctx.db
+				.query("testRuns")
+				.filter((q) => q.neq(q.field("completedAt"), undefined))
+				.take(100);
+		}
+
+		let totalFixed = 0;
+		const fixedRuns: string[] = [];
+
+		for (const run of testRuns) {
+			if (!run.completedAt) continue; // Skip if no completedAt
+
+			// Find all tests with "running" status for this run
+			const runningTests = await ctx.db
+				.query("tests")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+				.filter((q) => q.eq(q.field("status"), "running"))
+				.collect();
+
+			if (runningTests.length === 0) continue;
+
+			// Convert all running tests to failed
+			for (const test of runningTests) {
+				await ctx.db.patch(test._id, {
+					status: "failed",
+					error: test.error || "Test did not complete before run finished",
+				});
+			}
+
+			// Update test run status if it's still "running"
+			if (run.status === "running") {
+				const allTests = await ctx.db
+					.query("tests")
+					.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+					.collect();
+				
+				const failedCount = allTests.filter((t) => t.status === "failed").length;
+				const passedCount = allTests.filter((t) => t.status === "passed").length;
+				const skippedCount = allTests.filter((t) => t.status === "skipped").length;
+
+				const newStatus: "passed" | "failed" | "skipped" =
+					failedCount > 0 ? "failed" : skippedCount === allTests.length ? "skipped" : "passed";
+
+				await ctx.db.patch(run._id, {
+					status: newStatus,
+					failedTests: failedCount,
+					passedTests: passedCount,
+					skippedTests: skippedCount,
+				});
+			}
+
+			totalFixed += runningTests.length;
+			fixedRuns.push(run._id);
+		}
+
+		return {
+			fixed: totalFixed,
+			runsFixed: fixedRuns.length,
+			message: `Fixed ${totalFixed} tests across ${fixedRuns.length} test runs`,
+		};
 	},
 });
