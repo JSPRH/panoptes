@@ -103,8 +103,16 @@ export default function TestExecutionDetail() {
 		executionId ? { testId: executionId as Id<"tests"> } : "skip"
 	);
 	const analyzeTestFailure = useAction(api.testFailureAnalysisActions.analyzeTestFailure);
+	const triggerCloudAgentForTest = useAction(
+		api.testFailureAnalysisActions.triggerCloudAgentForTest
+	);
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
+	const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
+	const [selectedActionType, setSelectedActionType] = useState<"fix_test" | "fix_bug">("fix_bug");
 	const [analysisError, setAnalysisError] = useState<string | null>(null);
+	const [agentResult, setAgentResult] = useState<{ agentUrl?: string; prUrl?: string } | null>(
+		null
+	);
 
 	useEffect(() => {
 		if (!executionId) {
@@ -355,23 +363,107 @@ export default function TestExecutionDetail() {
 											</Badge>
 										</CardDescription>
 									</div>
-									{analysis.summary && analysis.rootCause && analysis.suggestedFix && (
-										<Button
-											onClick={() => {
-												// Generate deeplink dynamically from analysis data
-												const deeplink = generateCursorDeeplinkFromAnalysis(
-													analysis,
-													selectedExecution.name,
-													selectedExecution.file,
-													selectedExecution.line
-												);
-												window.open(deeplink, "_blank");
-											}}
-											size="sm"
-											variant="outline"
-										>
-											💬 Open Prompt in Cursor
-										</Button>
+									<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+										{analysis.summary && analysis.rootCause && analysis.suggestedFix && (
+											<Button
+												onClick={() => {
+													// Generate deeplink dynamically from analysis data
+													const deeplink = generateCursorDeeplinkFromAnalysis(
+														analysis,
+														selectedExecution.name,
+														selectedExecution.file,
+														selectedExecution.line
+													);
+													window.open(deeplink, "_blank");
+												}}
+												size="sm"
+												variant="outline"
+												className="flex-1"
+											>
+												💬 Open Prompt in Cursor
+											</Button>
+										)}
+										{project?.repository && selectedExecution.status === "failed" && (
+											<div className="flex gap-2 flex-1">
+												<select
+													value={selectedActionType}
+													onChange={(e) =>
+														setSelectedActionType(e.target.value as "fix_test" | "fix_bug")
+													}
+													className="px-3 py-1.5 text-sm border rounded-md bg-background"
+													disabled={isTriggeringAgent}
+												>
+													<option value="fix_bug">Fix Bug</option>
+													<option value="fix_test">Fix Test</option>
+												</select>
+												<Button
+													onClick={async () => {
+														if (isTriggeringAgent || !executionId) return;
+														setIsTriggeringAgent(true);
+														setAnalysisError(null);
+														setAgentResult(null);
+														try {
+															const result = await triggerCloudAgentForTest({
+																testId: executionId as Id<"tests">,
+																actionType: selectedActionType,
+															});
+															setAgentResult(result);
+															if (result.prUrl) {
+																window.open(result.prUrl, "_blank");
+															} else if (result.agentUrl) {
+																window.open(result.agentUrl, "_blank");
+															}
+														} catch (e) {
+															setAnalysisError(
+																e instanceof Error ? e.message : "Failed to trigger cloud agent"
+															);
+														} finally {
+															setIsTriggeringAgent(false);
+														}
+													}}
+													disabled={isTriggeringAgent}
+													size="sm"
+													variant="default"
+													className="flex-1"
+												>
+													{isTriggeringAgent ? "Launching..." : "🚀 Launch Agent"}
+												</Button>
+											</div>
+										)}
+									</div>
+									{agentResult && (
+										<div className="mt-2 p-2 bg-muted rounded text-sm">
+											{agentResult.prUrl ? (
+												<div>
+													✅ Cloud agent launched!{" "}
+													<a
+														href={agentResult.prUrl}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-primary hover:underline"
+													>
+														View Pull Request →
+													</a>
+												</div>
+											) : agentResult.agentUrl ? (
+												<div>
+													✅ Cloud agent launched!{" "}
+													<a
+														href={agentResult.agentUrl}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-primary hover:underline"
+													>
+														View Agent →
+													</a>
+												</div>
+											) : (
+												<div>✅ Cloud agent launched!</div>
+											)}
+										</div>
+									)}
+									{analysisError && (
+										<div className="mt-2 text-sm text-destructive">{analysisError}</div>
 									)}
 								</div>
 							</CardHeader>

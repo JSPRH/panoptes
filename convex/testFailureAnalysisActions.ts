@@ -1,10 +1,15 @@
 "use node";
 
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action } from "./_generated/server";
-import { TestFailureAnalysisSchema, analyzeFailure, formatCodeSnippet } from "./aiAnalysisUtils";
+import {
+	TestFailureAnalysisSchema,
+	analyzeFailure,
+	formatCodeSnippet,
+	getCursorApiKey,
+} from "./aiAnalysisUtils";
 
 export const analyzeTestFailure = action({
 	args: {
@@ -170,5 +175,160 @@ Be specific and actionable. Focus on helping the developer understand and fix th
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			throw new Error(`Failed to analyze test failure: ${errorMessage}`);
 		}
+	},
+});
+
+/**
+ * Trigger a Cursor Cloud Agent to fix a test failure.
+ * This calls the Cursor Cloud Agents API to launch an agent.
+ * See: https://cursor.com/docs/cloud-agent/api/endpoints
+ */
+export const triggerCloudAgentForTest = action({
+	args: {
+		testId: v.id("tests"),
+		actionType: v.union(v.literal("fix_test"), v.literal("fix_bug")),
+	},
+	handler: async (ctx, args) => {
+		// Get test execution details
+		const test = await ctx.runQuery(api.tests.getTestExecution, {
+			testId: args.testId,
+		});
+
+		if (!test) {
+			throw new Error("Test execution not found");
+		}
+
+		if (test.status !== "failed") {
+			throw new Error("Can only trigger cloud agent for failed tests");
+		}
+
+		// Get project for repository info
+		const project = await ctx
+			.runQuery(api.tests.getProjects)
+			.then((projects) => projects.find((p: Doc<"projects">) => p._id === test.projectId));
+
+		if (!project || !project.repository) {
+			throw new Error("Project repository not configured");
+		}
+
+		// Get test run for branch/commit info
+		const testRun = await ctx.runQuery(api.tests.getTestRun, {
+			runId: test.testRunId,
+		});
+
+		// Get test failure analysis if available
+		const analysis = await ctx.runQuery(api.testFailureAnalysis.getTestFailureAnalysis, {
+			testId: args.testId,
+		});
+
+		// Build prompt based on action type
+		let prompt = "";
+		const testContext = `${test.file}${test.line ? `:${test.line}` : ""}`;
+
+		if (args.actionType === "fix_test") {
+			// Focus on test code, assertions, mocking
+			prompt = `Fix the failing test "${test.name}" in file ${testContext}.
+
+${test.error ? `Error: ${test.error}` : "Test failed"}
+
+${test.errorDetails ? `Error Details:\n${test.errorDetails}` : ""}
+
+${analysis?.summary ? `Analysis Summary: ${analysis.summary}` : ""}
+${analysis?.rootCause ? `Root Cause: ${analysis.rootCause}` : ""}
+${analysis?.suggestedFix ? `Suggested Fix: ${analysis.suggestedFix}` : ""}
+
+Focus on:
+- Fixing test code, assertions, and expectations
+- Updating mocks and test fixtures
+- Correcting test setup/teardown
+- Ensuring tests accurately reflect expected behavior
+
+Please fix the test and ensure it passes.`;
+		} else {
+			// Focus on production code, logic errors
+			prompt = `Fix the bug causing the test "${test.name}" to fail in file ${testContext}.
+
+${test.error ? `Test Error: ${test.error}` : "Test failed"}
+
+${test.errorDetails ? `Error Details:\n${test.errorDetails}` : ""}
+
+${analysis?.summary ? `Analysis Summary: ${analysis.summary}` : ""}
+${analysis?.rootCause ? `Root Cause: ${analysis.rootCause}` : ""}
+${analysis?.suggestedFix ? `Suggested Fix: ${analysis.suggestedFix}` : ""}
+${analysis?.codeLocation ? `Code Location: ${analysis.codeLocation}` : ""}
+
+Focus on:
+- Fixing production code logic errors
+- Correcting business logic issues
+- Fixing API/function implementations
+- Ensuring code correctness and edge case handling
+
+Please fix the bug and ensure the test passes.`;
+		}
+
+		const apiKey = getCursorApiKey();
+
+		// Determine branch/ref to use
+		let ref = "main";
+		if (testRun?.ciRunId) {
+			const ciRun = await ctx.runQuery(internal.github._getCIRunById, {
+				ciRunId: testRun.ciRunId,
+			});
+			if (ciRun?.branch) {
+				ref = ciRun.branch;
+			}
+		} else if (testRun?.commitSha) {
+			// Use commit SHA if available
+			ref = testRun.commitSha;
+		}
+
+		// Call Cursor Cloud Agents API
+		// See: https://cursor.com/docs/cloud-agent/api/endpoints#launch-an-agent
+		const response = await fetch("https://api.cursor.com/v0/agents", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`,
+			},
+			body: JSON.stringify({
+				prompt: {
+					text: prompt,
+				},
+				source: {
+					repository: project.repository,
+					ref,
+				},
+				target: {
+					autoCreatePr: true,
+					openAsCursorGithubApp: false,
+					skipReviewerRequest: false,
+				},
+			}),
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`Cursor Cloud Agents API error: ${response.status} - ${errorText}`);
+		}
+
+		const result = (await response.json()) as {
+			id: string;
+			name: string;
+			status: string;
+			target?: {
+				url?: string;
+				prUrl?: string;
+			};
+		};
+
+		// Construct agent URL with agent ID
+		const agentUrl = result.target?.url || `https://cursor.com/agents?id=${result.id}`;
+
+		return {
+			agentId: result.id,
+			agentUrl,
+			prUrl: result.target?.prUrl,
+			action: args.actionType,
+		};
 	},
 });

@@ -43,10 +43,17 @@ export default function TestExplorer() {
 	const getCodeSnippet = useAction(api.github.getCodeSnippet);
 	const storeCodeSnippet = useMutation(api.github.storeCodeSnippet);
 	const getTestAttachmentsWithUrls = useAction(api.tests.getTestAttachmentsWithUrls);
+	const triggerCloudAgentForTest = useAction(
+		api.testFailureAnalysisActions.triggerCloudAgentForTest
+	);
 	const projects = useQuery(api.tests.getProjects);
 	const [attachmentsWithUrls, setAttachmentsWithUrls] = useState<
 		Array<{ _id: Id<"testAttachments">; name: string; contentType: string; url: string | null }>
 	>([]);
+	const [triggeringAgentForTest, setTriggeringAgentForTest] = useState<Id<"tests"> | null>(null);
+	const [selectedActionType, setSelectedActionType] = useState<
+		Record<Id<"tests">, "fix_test" | "fix_bug">
+	>({} as Record<Id<"tests">, "fix_test" | "fix_bug">);
 
 	// Get project for the test to find repository
 	const getProjectForTest = (test: Test): Project | undefined => {
@@ -78,23 +85,36 @@ export default function TestExplorer() {
 		setExpandedTestId(test._id as Id<"tests">);
 	};
 
-	const handleTriggerCloudAgent = (test: Test) => {
+	const handleTriggerCloudAgent = async (test: Test) => {
 		const project = getProjectForTest(test);
 		if (!project?.repository) {
 			alert("Project repository not configured. Cannot trigger cloud agent.");
 			return;
 		}
 
-		// For now, show instructions. In the future, this could call an API
-		const prompt = `Investigate and fix the failing test "${test.name}" in file ${test.file}${test.line ? ` at line ${test.line}` : ""}. Error: ${test.error || "Test failed"}.`;
-		const instructions = `To trigger a Cursor Cloud Agent for this test:
+		if (triggeringAgentForTest === test._id) return;
 
-1. Go to your repository: ${project.repository}
-2. Use the GitHub Action workflow (if configured) or
-3. Use Cursor CLI: agent -p "${prompt}"
+		setTriggeringAgentForTest(test._id);
+		const actionType = selectedActionType[test._id] || "fix_bug";
 
-Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
-		alert(instructions);
+		try {
+			const result = await triggerCloudAgentForTest({
+				testId: test._id,
+				actionType,
+			});
+
+			if (result.prUrl) {
+				window.open(result.prUrl, "_blank");
+			} else if (result.agentUrl) {
+				window.open(result.agentUrl, "_blank");
+			}
+		} catch (error) {
+			alert(
+				`Failed to trigger cloud agent: ${error instanceof Error ? error.message : "Unknown error"}`
+			);
+		} finally {
+			setTriggeringAgentForTest(null);
+		}
 	};
 
 	// Tests are already filtered server-side, so use them directly
@@ -336,14 +356,38 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 																Debug in Cursor
 															</a>
 															{project?.repository && (
-																<Button
-																	variant="outline"
-																	size="sm"
-																	onClick={() => handleTriggerCloudAgent(test)}
-																	className="text-xs"
-																>
-																	Trigger Cloud Agent
-																</Button>
+																<div className="flex gap-1 items-center">
+																	<select
+																		value={selectedActionType[test._id] || "fix_bug"}
+																		onChange={(e) =>
+																			setSelectedActionType({
+																				...selectedActionType,
+																				[test._id]: e.target.value as "fix_test" | "fix_bug",
+																			})
+																		}
+																		className="px-2 py-1 text-xs border rounded bg-background"
+																		disabled={triggeringAgentForTest === test._id}
+																		onKeyDown={(e) => {
+																			if (e.key === "Enter" || e.key === " ") {
+																				e.stopPropagation();
+																			}
+																		}}
+																	>
+																		<option value="fix_bug">Fix Bug</option>
+																		<option value="fix_test">Fix Test</option>
+																	</select>
+																	<Button
+																		variant="outline"
+																		size="sm"
+																		onClick={() => handleTriggerCloudAgent(test)}
+																		disabled={triggeringAgentForTest === test._id}
+																		className="text-xs"
+																	>
+																		{triggeringAgentForTest === test._id
+																			? "Launching..."
+																			: "🚀 Agent"}
+																	</Button>
+																</div>
 															)}
 														</>
 													)}
