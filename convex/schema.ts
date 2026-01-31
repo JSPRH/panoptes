@@ -218,10 +218,30 @@ export default defineSchema({
 			confidence: v.number(),
 			cursorDeeplink: v.optional(v.string()),
 			cursorPrompt: v.optional(v.string()),
+			cursorBackgroundAgentData: v.optional(
+				v.object({
+					repository: v.string(),
+					ref: v.string(),
+					prompt: v.string(),
+				})
+			),
 		}),
 		analyzedAt: v.number(),
 		model: v.string(),
 	}).index("by_ciRun", ["ciRunId"]),
+
+	testFailureAnalysis: defineTable({
+		testId: v.id("tests"),
+		status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
+		summary: v.optional(v.string()),
+		rootCause: v.optional(v.string()),
+		suggestedFix: v.optional(v.string()),
+		codeLocation: v.optional(v.string()),
+		confidence: v.optional(v.union(v.literal("high"), v.literal("medium"), v.literal("low"))),
+		relatedFiles: v.optional(v.array(v.string())),
+		createdAt: v.number(),
+		updatedAt: v.optional(v.number()),
+	}).index("by_test", ["testId"]),
 
 	ciRunParsedTests: defineTable({
 		ciRunId: v.id("ciRuns"),

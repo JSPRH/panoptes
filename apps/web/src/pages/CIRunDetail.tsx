@@ -272,8 +272,13 @@ function CIRunJobStep({
 function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclusion?: string }) {
 	const analysis = useQuery(api.ciAnalysis.getCIRunAnalysis, { ciRunId });
 	const analyzeFailure = useAction(api.ciAnalysisActions.analyzeCIRunFailure);
+	const triggerCloudAgent = useAction(api.ciAnalysisActions.triggerCursorCloudAgent);
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
+	const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [agentResult, setAgentResult] = useState<{ agentUrl?: string; prUrl?: string } | null>(
+		null
+	);
 
 	const handleAnalyze = async () => {
 		if (isAnalyzing) return;
@@ -288,9 +293,31 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 		}
 	};
 
-	const handleStartCursorAgent = () => {
+	const handleOpenCursorDeeplink = () => {
 		if (analysis?.analysis?.cursorDeeplink) {
 			window.location.href = analysis.analysis.cursorDeeplink;
+		}
+	};
+
+	const handleTriggerCloudAgent = async () => {
+		if (isTriggeringAgent) return;
+		setIsTriggeringAgent(true);
+		setError(null);
+		setAgentResult(null);
+		try {
+			const result = await triggerCloudAgent({ ciRunId });
+			setAgentResult(result);
+			if (result.prUrl) {
+				// Open PR in new tab
+				window.open(result.prUrl, "_blank");
+			} else if (result.agentUrl) {
+				// Open agent page in new tab
+				window.open(result.agentUrl, "_blank");
+			}
+		} catch (e) {
+			setError(e instanceof Error ? e.message : "Failed to trigger cloud agent");
+		} finally {
+			setIsTriggeringAgent(false);
 		}
 	};
 
@@ -309,8 +336,18 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 					<CardTitle>AI Failure Analysis</CardTitle>
 					<div className="flex items-center gap-2">
 						{analysis?.analysis?.cursorDeeplink && (
-							<Button onClick={handleStartCursorAgent} size="sm" variant="default">
-								🚀 Start Cursor Agent
+							<Button onClick={handleOpenCursorDeeplink} size="sm" variant="outline">
+								💬 Open in Cursor
+							</Button>
+						)}
+						{analysis?.analysis?.cursorBackgroundAgentData && (
+							<Button
+								onClick={handleTriggerCloudAgent}
+								disabled={isTriggeringAgent}
+								size="sm"
+								variant="default"
+							>
+								{isTriggeringAgent ? "Launching..." : "🚀 Launch Cloud Agent"}
 							</Button>
 						)}
 						{(!analysis || analysis?.status === "failed") && (
@@ -360,21 +397,65 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 								{analysis.analysis.proposedTest}
 							</div>
 						</div>
-						{analysis.analysis.cursorDeeplink && (
+						{(analysis.analysis.cursorDeeplink || analysis.analysis.cursorBackgroundAgentData) && (
 							<div>
-								<div className="text-sm font-medium mb-1">Cursor Background Agent</div>
-								<div className="text-sm text-muted-foreground mb-2">
-									Click the button above to start a Cursor background agent that will fix this issue
-									automatically.
+								<div className="text-sm font-medium mb-2">Cursor Integration</div>
+								<div className="space-y-2 text-sm text-muted-foreground">
+									{analysis.analysis.cursorDeeplink && (
+										<div>
+											<strong>Open in Cursor:</strong> Click "Open in Cursor" above to open this
+											prompt in Cursor for manual review and editing.
+										</div>
+									)}
+									{analysis.analysis.cursorBackgroundAgentData && (
+										<div>
+											<strong>Launch Cloud Agent:</strong> Click "Launch Cloud Agent" above to
+											automatically create a pull request with fixes. The agent will work in the
+											background.
+										</div>
+									)}
 								</div>
-								<details className="mt-2">
-									<summary className="text-xs text-muted-foreground cursor-pointer">
-										Show agent prompt
-									</summary>
-									<pre className="text-xs bg-muted p-2 rounded mt-1 overflow-x-auto whitespace-pre-wrap">
-										{analysis.analysis.cursorPrompt}
-									</pre>
-								</details>
+								{agentResult && (
+									<div className="mt-2 p-2 bg-muted rounded text-sm">
+										{agentResult.prUrl ? (
+											<div>
+												✅ Cloud agent launched!{" "}
+												<a
+													href={agentResult.prUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-primary hover:underline"
+												>
+													View Pull Request →
+												</a>
+											</div>
+										) : agentResult.agentUrl ? (
+											<div>
+												✅ Cloud agent launched!{" "}
+												<a
+													href={agentResult.agentUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-primary hover:underline"
+												>
+													View Agent →
+												</a>
+											</div>
+										) : (
+											<div>✅ Cloud agent launched!</div>
+										)}
+									</div>
+								)}
+								{analysis.analysis.cursorPrompt && (
+									<details className="mt-2">
+										<summary className="text-xs text-muted-foreground cursor-pointer">
+											Show agent prompt
+										</summary>
+										<pre className="text-xs bg-muted p-2 rounded mt-1 overflow-x-auto whitespace-pre-wrap">
+											{analysis.analysis.cursorPrompt}
+										</pre>
+									</details>
+								)}
 							</div>
 						)}
 						<div className="flex items-center gap-2">

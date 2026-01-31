@@ -57,6 +57,7 @@ export const _createCIRunAnalysis = internalMutation({
 				confidence: 0,
 				cursorDeeplink: undefined,
 				cursorPrompt: undefined,
+				cursorBackgroundAgentData: undefined,
 			},
 			analyzedAt: Date.now(),
 			model: "",
@@ -78,6 +79,13 @@ export const _updateCIRunAnalysis = internalMutation({
 				confidence: v.number(),
 				cursorDeeplink: v.optional(v.string()),
 				cursorPrompt: v.optional(v.string()),
+				cursorBackgroundAgentData: v.optional(
+					v.object({
+						repository: v.string(),
+						ref: v.string(),
+						prompt: v.string(),
+					})
+				),
 			})
 		),
 		model: v.optional(v.string()),
@@ -95,6 +103,11 @@ export const _updateCIRunAnalysis = internalMutation({
 				confidence: number;
 				cursorDeeplink?: string;
 				cursorPrompt?: string;
+				cursorBackgroundAgentData?: {
+					repository: string;
+					ref: string;
+					prompt: string;
+				};
 			};
 			model?: string;
 		} = {

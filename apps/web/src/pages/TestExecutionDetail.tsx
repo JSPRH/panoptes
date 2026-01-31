@@ -8,6 +8,7 @@ import CodeSnippet from "../components/CodeSnippet";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 type TestExecution = Doc<"tests">;
 
@@ -52,6 +53,15 @@ export default function TestExecutionDetail() {
 	const [attachmentsWithUrls, setAttachmentsWithUrls] = useState<
 		Array<{ _id: Id<"testAttachments">; name: string; contentType: string; url: string | null }>
 	>([]);
+
+	// AI Analysis
+	const analysis = useQuery(
+		api.testFailureAnalysis.getTestFailureAnalysis,
+		executionId ? { testId: executionId as Id<"tests"> } : "skip"
+	);
+	const analyzeTestFailure = useAction(api.testFailureAnalysis.analyzeTestFailure);
+	const [isAnalyzing, setIsAnalyzing] = useState(false);
+	const [analysisError, setAnalysisError] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (!executionId) {
@@ -199,23 +209,166 @@ export default function TestExecutionDetail() {
 			</Card>
 
 			{selectedExecution.error && (
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-destructive">Error</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="space-y-2">
-							<pre className="text-sm bg-muted p-3 rounded-md overflow-x-auto whitespace-pre-wrap">
-								{selectedExecution.error}
-							</pre>
-							{selectedExecution.errorDetails && (
-								<pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto whitespace-pre-wrap">
-									{selectedExecution.errorDetails}
+				<>
+					<Card>
+						<CardHeader>
+							<div className="flex items-center justify-between">
+								<CardTitle className="text-destructive">Error</CardTitle>
+								{selectedExecution.status === "failed" && (
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={async () => {
+											if (!executionId) return;
+											setIsAnalyzing(true);
+											setAnalysisError(null);
+											try {
+												await analyzeTestFailure({ testId: executionId as Id<"tests"> });
+											} catch (e) {
+												setAnalysisError(e instanceof Error ? e.message : "Failed to analyze");
+											} finally {
+												setIsAnalyzing(false);
+											}
+										}}
+										disabled={isAnalyzing || analysis?.status === "pending"}
+									>
+										{isAnalyzing || analysis?.status === "pending"
+											? "Analyzing..."
+											: analysis?.status === "completed"
+												? "Re-analyze with AI"
+												: "Explain with AI"}
+									</Button>
+								)}
+							</div>
+						</CardHeader>
+						<CardContent>
+							<div className="space-y-2">
+								<pre className="text-sm bg-muted p-3 rounded-md overflow-x-auto whitespace-pre-wrap">
+									{selectedExecution.error}
 								</pre>
-							)}
-						</div>
-					</CardContent>
-				</Card>
+								{selectedExecution.errorDetails && (
+									<pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto whitespace-pre-wrap">
+										{selectedExecution.errorDetails}
+									</pre>
+								)}
+							</div>
+						</CardContent>
+					</Card>
+
+					{analysisError && (
+						<Card>
+							<CardContent className="pt-6">
+								<p className="text-sm text-destructive">{analysisError}</p>
+							</CardContent>
+						</Card>
+					)}
+
+					{analysis && analysis.status === "completed" && (
+						<Card>
+							<CardHeader>
+								<CardTitle>AI Analysis</CardTitle>
+								<CardDescription>
+									Confidence:{" "}
+									<Badge
+										variant={
+											analysis.confidence === "high"
+												? "success"
+												: analysis.confidence === "medium"
+													? "info"
+													: "neutral"
+										}
+									>
+										{analysis.confidence}
+									</Badge>
+								</CardDescription>
+							</CardHeader>
+							<CardContent className="space-y-4">
+								{analysis.summary && (
+									<div>
+										<h4 className="text-sm font-semibold mb-2">Summary</h4>
+										<p className="text-sm text-muted-foreground">{analysis.summary}</p>
+									</div>
+								)}
+
+								{analysis.rootCause && (
+									<div>
+										<h4 className="text-sm font-semibold mb-2">Root Cause</h4>
+										<p className="text-sm text-muted-foreground">{analysis.rootCause}</p>
+									</div>
+								)}
+
+								{analysis.suggestedFix && (
+									<div>
+										<h4 className="text-sm font-semibold mb-2">Suggested Fix</h4>
+										<pre className="text-sm bg-muted p-3 rounded-md overflow-x-auto whitespace-pre-wrap">
+											{analysis.suggestedFix}
+										</pre>
+									</div>
+								)}
+
+								{analysis.codeLocation && (
+									<div>
+										<h4 className="text-sm font-semibold mb-2">Code Location</h4>
+										<p className="text-sm text-muted-foreground font-mono">
+											{analysis.codeLocation}
+										</p>
+									</div>
+								)}
+
+								{analysis.relatedFiles && analysis.relatedFiles.length > 0 && (
+									<div>
+										<h4 className="text-sm font-semibold mb-2">Related Files</h4>
+										<ul className="list-disc list-inside space-y-1">
+											{analysis.relatedFiles.map((file: string) => (
+												<li key={file} className="text-sm text-muted-foreground font-mono">
+													{file}
+												</li>
+											))}
+										</ul>
+									</div>
+								)}
+
+								<div className="flex gap-2 pt-2 border-t">
+									{project?.repository && selectedExecution.file && selectedExecution.line && (
+										<>
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => {
+													// Deep link to Cursor
+													const cursorUrl = `cursor://file?file=${encodeURIComponent(
+														selectedExecution.file
+													)}&line=${selectedExecution.line}`;
+													window.open(cursorUrl, "_blank");
+												}}
+											>
+												Open in Cursor
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => {
+													// Create a GitHub link to the file
+													const repoInfo = project.repository?.match(
+														/(?:https:\/\/github\.com\/|git@github\.com:)([^\/]+)\/([^\/]+?)(?:\.git)?/
+													);
+													if (repoInfo) {
+														const [, owner, repo] = repoInfo;
+														const ref = testRun?.commitSha || "main";
+														const githubUrl = `https://github.com/${owner}/${repo}/blob/${ref}/${selectedExecution.file}#L${selectedExecution.line}`;
+														window.open(githubUrl, "_blank");
+													}
+												}}
+											>
+												View on GitHub
+											</Button>
+										</>
+									)}
+								</div>
+							</CardContent>
+						</Card>
+					)}
+				</>
 			)}
 
 			{selectedExecution.stdout && (

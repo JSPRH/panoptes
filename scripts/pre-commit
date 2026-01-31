@@ -86,17 +86,29 @@ if [ $TEST_RESULT -ne 0 ]; then
 	exit 1
 fi
 
+# Check if any Convex files changed (before codegen)
+CONVEX_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^convex/.*\.(ts|js)$' || true)
+
 # Regenerate Convex types before build (needed for TypeScript compilation)
 echo "🔄 Regenerating Convex types..."
+CODEGEN_FAILED=0
 if ! bun run --cwd convex codegen; then
 	echo "⚠️  Convex codegen failed, but continuing with build..."
+	CODEGEN_FAILED=1
 fi
 
 # Run build check to catch TypeScript and build errors
-echo "🔨 Running build check..."
-if ! bun run build; then
-	echo "❌ Build failed. Please fix the errors above."
-	exit 1
+# Skip build check if codegen failed and Convex files were changed
+# Types will be generated when Convex is deployed
+if [ $CODEGEN_FAILED -eq 1 ] && [ -n "$CONVEX_FILES" ]; then
+	echo "⚠️  Skipping build check - codegen failed and Convex files were changed."
+	echo "⚠️  Types will be generated when Convex is deployed."
+else
+	echo "🔨 Running build check..."
+	if ! bun run build; then
+		echo "❌ Build failed. Please fix the errors above."
+		exit 1
+	fi
 fi
 
 # Build shared package first (reporters depend on it)

@@ -16,6 +16,14 @@ function getOpenAIApiKey(): string {
 	return key;
 }
 
+function getCursorApiKey(): string {
+	const key = process.env.CURSOR_API_KEY;
+	if (!key) {
+		throw new Error("CURSOR_API_KEY not configured in Convex secrets");
+	}
+	return key;
+}
+
 /**
  * Internal action that processes a failed CI run by fetching logs and analyzing.
  * This chains the two operations: fetch logs → analyze.
@@ -132,6 +140,15 @@ export const analyzeCIRunFailure = action({
 		// Only analyze failed runs
 		if (ciRun.conclusion !== "failure") {
 			throw new Error("Can only analyze failed CI runs");
+		}
+
+		// Get project to access repository URL
+		const project = await ctx.runQuery(internal.github._getProject, {
+			projectId: ciRun.projectId,
+		});
+
+		if (!project || !project.repository) {
+			throw new Error("Project repository not configured");
 		}
 
 		// Check if analysis already exists
@@ -278,7 +295,7 @@ ${failedTests.length > 0 ? `Failed Tests (${failedTests.length}):\n` : ""}`;
 				temperature: 0.3,
 			});
 
-			// Generate Cursor background agent prompt and deeplink
+			// Generate Cursor prompt for both deeplink and background agent
 			const cursorPrompt = `Fix the CI failure in ${ciRun.workflowName} on branch ${ciRun.branch} (commit ${ciRun.commitSha.substring(0, 7)}).
 
 ${analysisData.summary}
@@ -301,10 +318,19 @@ Proposed Fix: ${analysisData.proposedFix}
 
 Please fix the issue and ensure all tests pass.`;
 
-			// Generate Cursor deeplink
-			// Format: cursor://anysphere.cursor-deeplink/background-agent/start?prompt=<encoded>
+			// Generate Cursor deeplink (prompt format)
+			// Format: cursor://anysphere.cursor-deeplink/prompt?text=<encoded>
+			// See: https://cursor.com/docs/integrations/deeplinks
 			const encodedPrompt = encodeURIComponent(cursorPrompt);
-			const cursorDeeplink = `cursor://anysphere.cursor-deeplink/background-agent/start?prompt=${encodedPrompt}`;
+			const cursorDeeplink = `cursor://anysphere.cursor-deeplink/prompt?text=${encodedPrompt}`;
+
+			// Generate background agent data for Cloud Agents API
+			// See: https://cursor.com/docs/cloud-agent/api/endpoints
+			const cursorBackgroundAgentData = {
+				repository: project.repository,
+				ref: ciRun.branch,
+				prompt: cursorPrompt,
+			};
 
 			// Store analysis result
 			await ctx.runMutation(internal.ciAnalysis._updateCIRunAnalysis, {
@@ -319,6 +345,7 @@ Please fix the issue and ensure all tests pass.`;
 					confidence: Math.max(0, Math.min(1, analysisData.confidence)),
 					cursorDeeplink,
 					cursorPrompt,
+					cursorBackgroundAgentData,
 				},
 				model: "gpt-5-mini",
 			});
@@ -335,5 +362,73 @@ Please fix the issue and ensure all tests pass.`;
 			});
 			throw error;
 		}
+	},
+});
+
+/**
+ * Trigger a Cursor Cloud Agent to fix a CI failure.
+ * This calls the Cursor Cloud Agents API to launch an agent.
+ * See: https://cursor.com/docs/cloud-agent/api/endpoints
+ */
+export const triggerCursorCloudAgent = action({
+	args: {
+		ciRunId: v.id("ciRuns"),
+	},
+	handler: async (ctx, args) => {
+		const analysis = await ctx.runQuery(api.ciAnalysis.getCIRunAnalysis, {
+			ciRunId: args.ciRunId,
+		});
+
+		if (!analysis || !analysis.analysis?.cursorBackgroundAgentData) {
+			throw new Error("Analysis not found or background agent data not available");
+		}
+
+		const { repository, ref, prompt } = analysis.analysis.cursorBackgroundAgentData;
+		const apiKey = getCursorApiKey();
+
+		// Call Cursor Cloud Agents API
+		// See: https://cursor.com/docs/cloud-agent/api/endpoints#launch-an-agent
+		const response = await fetch("https://api.cursor.com/v0/agents", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`,
+			},
+			body: JSON.stringify({
+				prompt: {
+					text: prompt,
+				},
+				source: {
+					repository,
+					ref,
+				},
+				target: {
+					autoCreatePr: true,
+					openAsCursorGithubApp: false,
+					skipReviewerRequest: false,
+				},
+			}),
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`Cursor Cloud Agents API error: ${response.status} - ${errorText}`);
+		}
+
+		const result = (await response.json()) as {
+			id: string;
+			name: string;
+			status: string;
+			target?: {
+				url?: string;
+				prUrl?: string;
+			};
+		};
+
+		return {
+			agentId: result.id,
+			agentUrl: result.target?.url,
+			prUrl: result.target?.prUrl,
+		};
 	},
 });
