@@ -83,6 +83,21 @@ if [ -n "$CONVEX_FILES" ]; then
 		echo "❌ Convex deployment validation failed. Please fix the errors above."
 		exit 1
 	fi
+	
+	# Stage any newly generated Convex API files
+	echo "📦 Staging generated Convex files..."
+	GENERATED_FILES=$(git diff --name-only | grep -E '^convex/_generated/.*\.(ts|js|d\.ts)$' || true)
+	if [ -n "$GENERATED_FILES" ]; then
+		git add $GENERATED_FILES
+		echo "✅ Staged generated files: $GENERATED_FILES"
+	else
+		# Also check for untracked files in case they're brand new
+		UNTRACKED_FILES=$(git ls-files --others --exclude-standard | grep -E '^convex/_generated/.*\.(ts|js|d\.ts)$' || true)
+		if [ -n "$UNTRACKED_FILES" ]; then
+			git add $UNTRACKED_FILES
+			echo "✅ Staged new generated files: $UNTRACKED_FILES"
+		fi
+	fi
 else
 	echo "ℹ️  No Convex files changed, skipping Convex validation"
 fi
