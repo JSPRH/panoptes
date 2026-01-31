@@ -489,7 +489,8 @@ export const getCodeSnippet = action({
 		const ref = args.commitSha || "main";
 
 		// Fetch file content
-		const fileResponse = await fetch(
+		// If a specific ref (commit SHA) is provided and doesn't exist, fall back to "main"
+		let fileResponse = await fetch(
 			`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${encodeURIComponent(args.file)}?ref=${ref}`,
 			{
 				headers: {
@@ -498,6 +499,24 @@ export const getCodeSnippet = action({
 				},
 			}
 		);
+
+		// If we got a 404 and we were using a specific ref (not "main"), try falling back to "main"
+		if (
+			!fileResponse.ok &&
+			fileResponse.status === 404 &&
+			args.commitSha &&
+			args.commitSha !== "main"
+		) {
+			fileResponse = await fetch(
+				`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${encodeURIComponent(args.file)}?ref=main`,
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+						Accept: "application/vnd.github.v3+json",
+					},
+				}
+			);
+		}
 
 		if (!fileResponse.ok) {
 			const error = await fileResponse.text();
@@ -572,7 +591,8 @@ export const getFileContent = action({
 		const ref = args.ref || "main";
 
 		// Fetch full file content
-		const fileResponse = await fetch(
+		// If a specific ref (commit SHA) is provided and doesn't exist, fall back to "main"
+		let fileResponse = await fetch(
 			`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${encodeURIComponent(args.file)}?ref=${ref}`,
 			{
 				headers: {
@@ -581,6 +601,19 @@ export const getFileContent = action({
 				},
 			}
 		);
+
+		// If we got a 404 and we were using a specific ref (not "main"), try falling back to "main"
+		if (!fileResponse.ok && fileResponse.status === 404 && args.ref && args.ref !== "main") {
+			fileResponse = await fetch(
+				`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${encodeURIComponent(args.file)}?ref=main`,
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+						Accept: "application/vnd.github.v3+json",
+					},
+				}
+			);
+		}
 
 		if (!fileResponse.ok) {
 			const error = await fileResponse.text();
