@@ -12,7 +12,7 @@ import type {
 	TestCase,
 } from "@playwright/test/reporter";
 
-const MAX_ATTACHMENT_BYTES = 1024 * 1024; // 1 MB
+const DEFAULT_MAX_ATTACHMENT_BYTES = 1024 * 1024; // 1 MB
 const CODE_SNIPPET_CONTEXT_LINES = 10;
 
 interface PanoptesReporterOptions {
@@ -20,6 +20,8 @@ interface PanoptesReporterOptions {
 	projectName?: string;
 	environment?: string;
 	ci?: boolean;
+	maxAttachmentSize?: number; // Maximum attachment size in bytes (default: 1MB)
+	debug?: boolean; // Enable debug logging for attachments
 }
 
 function getCommitSha(): string | undefined {
@@ -89,7 +91,10 @@ function getReporterVersion(): string | undefined {
 }
 
 export default class PanoptesReporter implements Reporter {
-	private options: Required<PanoptesReporterOptions>;
+	private options: Required<PanoptesReporterOptions> & {
+		maxAttachmentSize: number;
+		debug: boolean;
+	};
 	private startTime = 0;
 	private tests: TestResult[] = [];
 	private suites: Map<string, { name: string; file: string; tests: TestResult[] }> = new Map();
@@ -100,6 +105,8 @@ export default class PanoptesReporter implements Reporter {
 			projectName: options.projectName || process.env.PANOPTES_PROJECT_NAME || "default-project",
 			environment: options.environment || process.env.NODE_ENV || "development",
 			ci: options.ci ?? process.env.CI === "true",
+			maxAttachmentSize: options.maxAttachmentSize ?? DEFAULT_MAX_ATTACHMENT_BYTES,
+			debug: options.debug ?? false,
 		};
 	}
 
@@ -283,25 +290,122 @@ export default class PanoptesReporter implements Reporter {
 	private collectAttachments(
 		attachments: PlaywrightTestResult["attachments"] | undefined
 	): Array<{ name: string; contentType: string; bodyBase64: string }> {
-		if (!attachments?.length) return [];
+		if (!attachments?.length) {
+			if (this.options.debug) {
+				console.log("[Panoptes] No attachments found for this test");
+			}
+			return [];
+		}
+
 		const result: Array<{ name: string; contentType: string; bodyBase64: string }> = [];
 		const imageTypes = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
+
+		if (this.options.debug) {
+			console.log(
+				`[Panoptes] Processing ${attachments.length} attachment(s) (max size: ${this.options.maxAttachmentSize} bytes)`
+			);
+		}
+
 		for (const att of attachments) {
-			if (!imageTypes.has(att.contentType)) continue;
-			let base64: string | undefined;
-			if (att.body) {
-				const buf = Buffer.isBuffer(att.body) ? att.body : Buffer.from(att.body);
-				if (buf.length > MAX_ATTACHMENT_BYTES) continue;
-				base64 = buf.toString("base64");
-			} else if (att.path) {
-				try {
-					const buf = fs.readFileSync(att.path);
-					if (buf.length > MAX_ATTACHMENT_BYTES) continue;
-					base64 = buf.toString("base64");
-				} catch {
-					// skip
+			if (!imageTypes.has(att.contentType)) {
+				if (this.options.debug) {
+					console.log(
+						`[Panoptes] Skipping attachment "${att.name}" - unsupported content type: ${att.contentType}`
+					);
 				}
+				continue;
 			}
+
+			let base64: string | undefined;
+
+			// Handle in-memory attachment body
+			if (att.body) {
+				try {
+					const buf = Buffer.isBuffer(att.body) ? att.body : Buffer.from(att.body);
+					if (buf.length > this.options.maxAttachmentSize) {
+						if (this.options.debug) {
+							console.warn(
+								`[Panoptes] Skipping attachment "${att.name}" - size ${buf.length} bytes exceeds limit of ${this.options.maxAttachmentSize} bytes`
+							);
+						}
+						continue;
+					}
+					base64 = buf.toString("base64");
+					if (this.options.debug) {
+						console.log(
+							`[Panoptes] Successfully processed attachment "${att.name}" from body (${buf.length} bytes)`
+						);
+					}
+				} catch (error) {
+					console.warn(`[Panoptes] Failed to process attachment "${att.name}" from body:`, error);
+					continue;
+				}
+			} else if (att.path) {
+				// Handle file path attachment - need to resolve path correctly
+				try {
+					let resolvedPath: string;
+
+					// Check if path is already absolute
+					if (path.isAbsolute(att.path)) {
+						resolvedPath = att.path;
+					} else {
+						// Try resolving relative to test-results directory first (Playwright's default output)
+						const testResultsDir = path.resolve(process.cwd(), "test-results");
+						const testResultsPath = path.resolve(testResultsDir, att.path);
+
+						// Also try resolving relative to current working directory
+						const cwdPath = path.resolve(process.cwd(), att.path);
+
+						// Check which path exists
+						if (fs.existsSync(testResultsPath)) {
+							resolvedPath = testResultsPath;
+						} else if (fs.existsSync(cwdPath)) {
+							resolvedPath = cwdPath;
+						} else {
+							// Try the path as-is (might be relative to attachment directory)
+							resolvedPath = att.path;
+						}
+					}
+
+					// Verify the file exists
+					if (!fs.existsSync(resolvedPath)) {
+						if (this.options.debug) {
+							console.warn(
+								`[Panoptes] Attachment file not found: "${att.path}" (resolved: "${resolvedPath}")`
+							);
+						}
+						continue;
+					}
+
+					const buf = fs.readFileSync(resolvedPath);
+					if (buf.length > this.options.maxAttachmentSize) {
+						if (this.options.debug) {
+							console.warn(
+								`[Panoptes] Skipping attachment "${att.name}" - size ${buf.length} bytes exceeds limit of ${this.options.maxAttachmentSize} bytes`
+							);
+						}
+						continue;
+					}
+					base64 = buf.toString("base64");
+					if (this.options.debug) {
+						console.log(
+							`[Panoptes] Successfully processed attachment "${att.name}" from path "${resolvedPath}" (${buf.length} bytes)`
+						);
+					}
+				} catch (error) {
+					console.warn(
+						`[Panoptes] Failed to read attachment "${att.name}" from path "${att.path}":`,
+						error
+					);
+					continue;
+				}
+			} else {
+				if (this.options.debug) {
+					console.warn(`[Panoptes] Attachment "${att.name}" has neither body nor path`);
+				}
+				continue;
+			}
+
 			if (base64) {
 				result.push({
 					name: att.name,
@@ -310,6 +414,13 @@ export default class PanoptesReporter implements Reporter {
 				});
 			}
 		}
+
+		if (this.options.debug) {
+			console.log(
+				`[Panoptes] Successfully collected ${result.length} attachment(s) out of ${attachments.length} total`
+			);
+		}
+
 		return result;
 	}
 
