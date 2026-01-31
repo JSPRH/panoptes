@@ -151,9 +151,9 @@ Be specific and actionable. Focus on helping the developer understand and fix th
 				summary: analysis.summary,
 				rootCause: analysis.rootCause,
 				suggestedFix: analysis.suggestedFix,
-				codeLocation: analysis.codeLocation,
+				codeLocation: analysis.codeLocation || undefined,
 				confidence: confidenceValue,
-				relatedFiles: analysis.relatedFiles,
+				relatedFiles: analysis.relatedFiles || undefined,
 			});
 
 			// Return the completed analysis

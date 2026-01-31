@@ -52,17 +52,22 @@ export const BaseFailureAnalysisSchema = z.object({
 
 /**
  * Extended schema for test failure analysis with code location and related files.
+ * Note: Using .merge() instead of .extend() to ensure proper JSON schema generation.
  */
-export const TestFailureAnalysisSchema = BaseFailureAnalysisSchema.extend({
-	codeLocation: z
-		.string()
-		.optional()
-		.describe("The specific code location (file:line) where the issue likely occurs"),
-	relatedFiles: z
-		.array(z.string())
-		.optional()
-		.describe("Other files that might be related to this failure"),
-});
+export const TestFailureAnalysisSchema = BaseFailureAnalysisSchema.merge(
+	z.object({
+		codeLocation: z
+			.string()
+			.nullable()
+			.describe(
+				"The specific code location (file:line) where the issue likely occurs, or null if not applicable"
+			),
+		relatedFiles: z
+			.array(z.string())
+			.nullable()
+			.describe("Other files that might be related to this failure, or null if none"),
+	})
+);
 
 /**
  * Extended schema for CI run failure analysis with additional fields.
