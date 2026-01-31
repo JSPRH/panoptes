@@ -57,8 +57,9 @@ export function ConvexConfigError() {
 							<ol className="list-decimal list-inside space-y-2 text-sm">
 								<li>
 									Make sure you've run{" "}
-									<code className="bg-muted px-1 py-0.5 rounded">bunx convex dev</code> in the{" "}
-									<code className="bg-muted px-1 py-0.5 rounded">convex/</code> directory
+									<code className="bg-muted px-1 py-0.5 rounded">bun run dev:convex</code> (or{" "}
+									<code className="bg-muted px-1 py-0.5 rounded">bun run dev</code> from the{" "}
+									<code className="bg-muted px-1 py-0.5 rounded">convex/</code> directory)
 								</li>
 								<li>
 									Copy the <code className="bg-muted px-1 py-0.5 rounded">CONVEX_URL</code> from{" "}
