@@ -149,13 +149,48 @@ export const ingestTestRun = mutation({
 			}
 		}
 
+		// Count tests by status from the actual test data
+		const runningTests = args.tests.filter((t) => t.status === "running").length;
+		const actualFailedTests = args.tests.filter((t) => t.status === "failed").length;
+		const actualSkippedTests = args.tests.filter((t) => t.status === "skipped").length;
+
+		// If test run is complete (has completedAt), ensure no tests are "running"
+		// and determine status based on completed tests only
+		const isComplete = args.completedAt !== undefined;
+		if (isComplete && runningTests > 0) {
+			// If run is complete but has running tests, treat them as failed
+			// This handles edge cases where tests were reported as running but the run completed
+			console.warn(
+				`[ingestTestRun] Test run marked as complete but has ${runningTests} tests with "running" status. Treating as failed.`
+			);
+		}
+
 		// Determine status based on test results
-		const status =
-			args.failedTests > 0
-				? "failed"
-				: args.skippedTests === args.totalTests
-					? "skipped"
-					: "passed";
+		// If run is complete, it should never be "running"
+		// If run is not complete and has running tests, status should be "running"
+		let status: "passed" | "failed" | "skipped" | "running";
+		if (isComplete) {
+			// Run is complete - determine final status from completed tests
+			status =
+				actualFailedTests > 0 || runningTests > 0
+					? "failed"
+					: actualSkippedTests === args.totalTests
+						? "skipped"
+						: "passed";
+		} else {
+			// Run is not complete - check if there are running tests
+			if (runningTests > 0) {
+				status = "running";
+			} else {
+				// No running tests but run not marked complete - determine from current results
+				status =
+					actualFailedTests > 0
+						? "failed"
+						: actualSkippedTests === args.totalTests
+							? "skipped"
+							: "passed";
+			}
+		}
 
 		// Create test run
 		const testRunId = await ctx.db.insert("testRuns", {
@@ -207,6 +242,16 @@ export const ingestTestRun = mutation({
 		// Insert individual tests
 		const now = Date.now();
 		for (const test of args.tests) {
+			// If test run is complete but test has "running" status, convert to "failed"
+			// This ensures tests don't stay in "running" state forever
+			let finalStatus = test.status;
+			if (isComplete && test.status === "running") {
+				finalStatus = "failed";
+				console.warn(
+					`[ingestTestRun] Test "${test.name}" has "running" status but run is complete. Converting to "failed".`
+				);
+			}
+
 			const testId = await ctx.db.insert("tests", {
 				testRunId,
 				projectId,
@@ -214,9 +259,13 @@ export const ingestTestRun = mutation({
 				file: test.file,
 				line: test.line,
 				column: test.column,
-				status: test.status,
+				status: finalStatus,
 				duration: test.duration,
-				error: test.error,
+				error:
+					test.error ||
+					(finalStatus === "failed" && test.status === "running"
+						? "Test did not complete before run finished"
+						: undefined),
 				errorDetails: test.errorDetails,
 				retries: test.retries,
 				suite: test.suite,
