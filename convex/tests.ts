@@ -207,26 +207,25 @@ export const getTests = query({
 	handler: async (ctx, args) => {
 		if (args.testRunId !== undefined) {
 			const testRunId = args.testRunId;
-			return await ctx.db
+			const query = ctx.db
 				.query("tests")
-				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunId))
-				.take(args.limit || 100);
+				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunId));
+			return args.limit ? await query.take(args.limit) : await query.collect();
 		}
 		if (args.projectId !== undefined) {
 			const projectId = args.projectId;
-			return await ctx.db
+			const query = ctx.db
 				.query("tests")
-				.withIndex("by_project", (q) => q.eq("projectId", projectId))
-				.take(args.limit || 100);
+				.withIndex("by_project", (q) => q.eq("projectId", projectId));
+			return args.limit ? await query.take(args.limit) : await query.collect();
 		}
 		if (args.status !== undefined) {
 			const status = args.status;
-			return await ctx.db
-				.query("tests")
-				.withIndex("by_status", (q) => q.eq("status", status))
-				.take(args.limit || 100);
+			const query = ctx.db.query("tests").withIndex("by_status", (q) => q.eq("status", status));
+			return args.limit ? await query.take(args.limit) : await query.collect();
 		}
-		return await ctx.db.query("tests").take(args.limit || 100);
+		const query = ctx.db.query("tests");
+		return args.limit ? await query.take(args.limit) : await query.collect();
 	},
 });
 

@@ -15,7 +15,7 @@ export default function TestExplorer() {
 	const [statusFilter, setStatusFilter] = useState<string>("all");
 	const [currentPage, setCurrentPage] = useState(1);
 
-	const tests = useQuery(api.tests.getTests, { limit: 1000 });
+	const tests = useQuery(api.tests.getTests, {});
 	const seedFailingTest = useMutation(api.tests.seedFailingTest);
 
 	const filteredTests = useMemo(() => {
