@@ -524,7 +524,7 @@ export const getCodeSnippet = action({
 		}
 
 		const fileData = (await fileResponse.json()) as GitHubFileContent;
-		const content = Buffer.from(fileData.content, "base64").toString("utf-8");
+		const content = atob(fileData.content);
 		const lines = content.split("\n");
 
 		// Extract lines around the target line
@@ -621,7 +621,7 @@ export const getFileContent = action({
 		}
 
 		const fileData = (await fileResponse.json()) as GitHubFileContent;
-		const content = Buffer.from(fileData.content, "base64").toString("utf-8");
+		const content = atob(fileData.content);
 
 		// Detect language from file extension
 		const extension = args.file.split(".").pop()?.toLowerCase() || "";
