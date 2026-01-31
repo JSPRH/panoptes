@@ -249,47 +249,116 @@ export const getTestsPaginated = query({
 		searchQuery: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		// Get all tests matching filters (status, projectId, testRunId)
 		// Use type inference from the query results
 		// biome-ignore lint/suspicious/noImplicitAnyLet: Type inferred from query results
 		let allTests;
 
-		if (args.testRunId !== undefined) {
+		const hasSearchQuery = args.searchQuery && args.searchQuery.trim() !== "";
+		const effectiveStatus = args.status === "all" ? undefined : args.status;
+
+		// Priority 1: If search query is provided, use search indexes
+		if (hasSearchQuery && args.searchQuery) {
+			const searchTerm = args.searchQuery.trim();
+
+			// Search by name
+			const nameResults = await ctx.db
+				.query("tests")
+				.withSearchIndex("search_name", (q) => {
+					const baseQuery = q.search("name", searchTerm);
+					if (args.projectId && effectiveStatus) {
+						return baseQuery.eq("projectId", args.projectId).eq("status", effectiveStatus);
+					}
+					if (args.projectId) {
+						return baseQuery.eq("projectId", args.projectId);
+					}
+					if (effectiveStatus) {
+						return baseQuery.eq("status", effectiveStatus);
+					}
+					return baseQuery;
+				})
+				.collect();
+
+			// Search by file
+			const fileResults = await ctx.db
+				.query("tests")
+				.withSearchIndex("search_file", (q) => {
+					const baseQuery = q.search("file", searchTerm);
+					if (args.projectId && effectiveStatus) {
+						return baseQuery.eq("projectId", args.projectId).eq("status", effectiveStatus);
+					}
+					if (args.projectId) {
+						return baseQuery.eq("projectId", args.projectId);
+					}
+					if (effectiveStatus) {
+						return baseQuery.eq("status", effectiveStatus);
+					}
+					return baseQuery;
+				})
+				.collect();
+
+			// Combine results (union of both searches) - deduplicate by _id
+			const seenIds = new Set<Id<"tests">>();
+			allTests = [];
+			for (const test of nameResults) {
+				if (!seenIds.has(test._id)) {
+					seenIds.add(test._id);
+					allTests.push(test);
+				}
+			}
+			for (const test of fileResults) {
+				if (!seenIds.has(test._id)) {
+					seenIds.add(test._id);
+					allTests.push(test);
+				}
+			}
+
+			// Apply additional filters that weren't handled by search index
+			if (args.testRunId) {
+				allTests = allTests.filter((test) => test.testRunId === args.testRunId);
+			}
+		} else if (args.testRunId !== undefined) {
+			// Priority 2: Filter by testRunId (most specific)
 			const testRunId = args.testRunId;
+			const query = ctx.db
+				.query("tests")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunId));
+
+			allTests = await query.collect();
+
+			// Apply status filter if needed
+			if (effectiveStatus) {
+				allTests = allTests.filter((test) => test.status === effectiveStatus);
+			}
+		} else if (args.projectId !== undefined && effectiveStatus) {
+			// Priority 3: Use composite index for project + status
+			const projectId = args.projectId;
 			allTests = await ctx.db
 				.query("tests")
-				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunId))
+				.withIndex("by_project_and_status", (q) =>
+					q.eq("projectId", projectId).eq("status", effectiveStatus)
+				)
 				.collect();
 		} else if (args.projectId !== undefined) {
+			// Priority 4: Filter by projectId
 			const projectId = args.projectId;
 			allTests = await ctx.db
 				.query("tests")
 				.withIndex("by_project", (q) => q.eq("projectId", projectId))
 				.collect();
-		} else if (args.status !== undefined && args.status !== "all") {
-			const status = args.status;
+
+			// Apply status filter if needed
+			if (effectiveStatus) {
+				allTests = allTests.filter((test) => test.status === effectiveStatus);
+			}
+		} else if (effectiveStatus) {
+			// Priority 5: Filter by status only
 			allTests = await ctx.db
 				.query("tests")
-				.withIndex("by_status", (q) => q.eq("status", status))
+				.withIndex("by_status", (q) => q.eq("status", effectiveStatus))
 				.collect();
 		} else {
-			// Get all tests
+			// Priority 6: Get all tests
 			allTests = await ctx.db.query("tests").collect();
-		}
-
-		// Apply status filter if needed (for cases where we got all tests)
-		if (args.status !== undefined && args.status !== "all") {
-			allTests = allTests.filter((test) => test.status === args.status);
-		}
-
-		// Apply search query filter if provided
-		if (args.searchQuery && args.searchQuery.trim() !== "") {
-			const searchLower = args.searchQuery.toLowerCase();
-			allTests = allTests.filter(
-				(test) =>
-					test.name.toLowerCase().includes(searchLower) ||
-					test.file.toLowerCase().includes(searchLower)
-			);
 		}
 
 		// Sort by _id descending for consistent ordering

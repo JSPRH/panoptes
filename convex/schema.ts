@@ -71,7 +71,16 @@ export default defineSchema({
 		.index("by_test_run", ["testRunId"])
 		.index("by_project", ["projectId"])
 		.index("by_file", ["file"])
-		.index("by_status", ["status"]),
+		.index("by_status", ["status"])
+		.index("by_project_and_status", ["projectId", "status"])
+		.searchIndex("search_name", {
+			searchField: "name",
+			filterFields: ["projectId", "status"],
+		})
+		.searchIndex("search_file", {
+			searchField: "file",
+			filterFields: ["projectId", "status"],
+		}),
 
 	testSuites: defineTable({
 		testRunId: v.id("testRuns"),
