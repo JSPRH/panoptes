@@ -92,3 +92,37 @@ function handleButtonPress() {
 Use the Convex CLI to push your functions to a deployment. See everything
 the Convex CLI can do by running `npx convex -h` in your project root
 directory. To learn more, launch the docs with `npx convex docs`.
+
+## Functions
+
+- `ingestTestRun` - Main mutation to ingest test run data from reporters
+- `getTestRuns` - Query to get test runs with filters
+- `getTestsByTestFile` - Query to get tests grouped by test file
+- `getFileCoverage` - Query to get coverage data for a specific file
+- `getCoverageTree` - Query to get hierarchical coverage tree with optional statement coverage and historical comparison
+- `seedHistoricalCoverage` - Mutation to seed historical coverage data for testing (1W/1M/1Y comparison)
+
+## Seeding Historical Coverage Data
+
+To test the historical coverage comparison feature (1 week / 1 month / 1 year ago), you can use the `seedHistoricalCoverage` mutation:
+
+**Via Convex Dashboard:**
+1. Go to your Convex dashboard
+2. Navigate to Functions
+3. Find `seedHistoricalCoverage` mutation
+4. Click "Run" with optional parameters:
+   - `projectId` (optional): Existing project ID
+   - `projectName` (optional): Project name (defaults to "Panoptes")
+
+**Via API/Code:**
+```typescript
+await convex.mutation(api.tests.seedHistoricalCoverage, {
+  projectName: "MyProject" // optional
+});
+```
+
+This will create:
+- 3 test runs (1 week ago, 1 month ago, 1 year ago)
+- Coverage data for 8 sample files
+- Coverage percentages that show improvement over time (60% → 80% → 95%)
+- Both LOC and statement coverage data

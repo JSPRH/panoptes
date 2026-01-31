@@ -1461,3 +1461,210 @@ export const seedFailingTest = mutation({
 		}
 	},
 });
+
+/**
+ * Seed historical coverage data for testing the 1W/1M/1Y comparison feature.
+ * Creates test runs at 1 week, 1 month, and 1 year ago with coverage data.
+ */
+export const seedHistoricalCoverage = mutation({
+	args: {
+		projectId: v.optional(v.id("projects")),
+		projectName: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		// Get or create project
+		let projectId = args.projectId;
+		if (!projectId) {
+			const projectName = args.projectName || "Panoptes";
+			const existingProject = await ctx.db
+				.query("projects")
+				.filter((q) => q.eq(q.field("name"), projectName))
+				.first();
+
+			if (existingProject) {
+				projectId = existingProject._id;
+			} else {
+				projectId = await ctx.db.insert("projects", {
+					name: projectName,
+					createdAt: Date.now(),
+					updatedAt: Date.now(),
+				});
+			}
+		}
+
+		const now = Date.now();
+		const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
+		const oneMonthAgo = now - 30 * 24 * 60 * 60 * 1000;
+		const oneYearAgo = now - 365 * 24 * 60 * 60 * 1000;
+
+		// Sample files with different coverage scenarios
+		const sampleFiles = [
+			{
+				file: "src/utils.ts",
+				linesTotal: 100,
+				linesCovered: 60,
+				statementsTotal: 85,
+				statementsCovered: 55,
+			},
+			{
+				file: "src/api/client.ts",
+				linesTotal: 150,
+				linesCovered: 120,
+				statementsTotal: 130,
+				statementsCovered: 110,
+			},
+			{
+				file: "src/components/Button.tsx",
+				linesTotal: 50,
+				linesCovered: 45,
+				statementsTotal: 40,
+				statementsCovered: 38,
+			},
+			{
+				file: "src/components/Card.tsx",
+				linesTotal: 80,
+				linesCovered: 70,
+				statementsTotal: 65,
+				statementsCovered: 60,
+			},
+			{
+				file: "src/pages/Dashboard.tsx",
+				linesTotal: 200,
+				linesCovered: 150,
+				statementsTotal: 180,
+				statementsCovered: 140,
+			},
+			{
+				file: "src/lib/helpers.ts",
+				linesTotal: 120,
+				linesCovered: 90,
+				statementsTotal: 100,
+				statementsCovered: 80,
+			},
+			{
+				file: "packages/shared/src/types.ts",
+				linesTotal: 300,
+				linesCovered: 280,
+				statementsTotal: 250,
+				statementsCovered: 240,
+			},
+			{
+				file: "packages/shared/src/utils.ts",
+				linesTotal: 75,
+				linesCovered: 60,
+				statementsTotal: 65,
+				statementsCovered: 55,
+			},
+		];
+
+		// Historical periods with different coverage percentages (showing improvement over time)
+		const periods = [
+			{
+				name: "1 year ago",
+				startedAt: oneYearAgo,
+				multiplier: 0.6, // Lower coverage (60% of current)
+			},
+			{
+				name: "1 month ago",
+				startedAt: oneMonthAgo,
+				multiplier: 0.8, // Medium coverage (80% of current)
+			},
+			{
+				name: "1 week ago",
+				startedAt: oneWeekAgo,
+				multiplier: 0.95, // High coverage (95% of current)
+			},
+		];
+
+		const createdRuns: Id<"testRuns">[] = [];
+
+		for (const period of periods) {
+			// Create test run
+			const testRunId = await ctx.db.insert("testRuns", {
+				projectId,
+				framework: "vitest",
+				testType: "unit",
+				status: "passed",
+				startedAt: period.startedAt,
+				completedAt: period.startedAt + 5000,
+				duration: 5000,
+				totalTests: 50,
+				passedTests: 48,
+				failedTests: 0,
+				skippedTests: 2,
+				ci: true,
+				commitSha: `seed-${period.startedAt}`,
+			});
+
+			createdRuns.push(testRunId);
+
+			// Create coverage data for each file
+			for (const fileData of sampleFiles) {
+				const linesCovered = Math.round(fileData.linesCovered * period.multiplier);
+				const statementsCovered = Math.round(fileData.statementsCovered * period.multiplier);
+
+				// Generate line details
+				const coveredLines: number[] = [];
+				const uncoveredLines: number[] = [];
+				for (let i = 1; i <= fileData.linesTotal; i++) {
+					if (i <= linesCovered) {
+						coveredLines.push(i);
+					} else {
+						uncoveredLines.push(i);
+					}
+				}
+
+				// Generate statement details
+				const statements: Array<{
+					id: string;
+					startLine: number;
+					endLine: number;
+					covered: boolean;
+				}> = [];
+				const statementsPerLine = Math.ceil(fileData.statementsTotal / fileData.linesTotal);
+				let statementId = 0;
+				for (let line = 1; line <= fileData.linesTotal; line++) {
+					const statementsOnLine =
+						line === fileData.linesTotal
+							? fileData.statementsTotal - statementId
+							: statementsPerLine;
+					for (let s = 0; s < statementsOnLine && statementId < fileData.statementsTotal; s++) {
+						statements.push({
+							id: String(statementId),
+							startLine: line,
+							endLine: line,
+							covered: statementId < statementsCovered,
+						});
+						statementId++;
+					}
+				}
+
+				await ctx.db.insert("fileCoverage", {
+					testRunId,
+					projectId,
+					file: fileData.file,
+					linesCovered,
+					linesTotal: fileData.linesTotal,
+					lineDetails: JSON.stringify({
+						covered: coveredLines,
+						uncovered: uncoveredLines,
+					}),
+					statementDetails: JSON.stringify(statements),
+					statementsCovered,
+					statementsTotal: fileData.statementsTotal,
+					branchesCovered: Math.round(fileData.statementsCovered * 0.7 * period.multiplier),
+					branchesTotal: Math.round(fileData.statementsTotal * 0.8),
+					functionsCovered: Math.round(fileData.statementsCovered * 0.9 * period.multiplier),
+					functionsTotal: Math.round(fileData.statementsTotal * 0.9),
+				});
+			}
+		}
+
+		return {
+			success: true,
+			projectId,
+			createdRuns: createdRuns.length,
+			message: `Created ${createdRuns.length} historical test runs with coverage data`,
+		};
+	},
+});
