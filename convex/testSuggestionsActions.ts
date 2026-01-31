@@ -183,7 +183,7 @@ Generate 3-7 test suggestions, prioritizing high-value tests that cover critical
 		});
 
 		const { object: suggestionData } = await generateObject({
-			model: openai("gpt-4"),
+			model: openai("gpt-5-mini"),
 			system:
 				"You are an expert software engineer specializing in test strategy and code coverage. Provide clear, actionable test suggestions that balance value, effort, and maintainability.",
 			prompt,
@@ -203,7 +203,7 @@ Generate 3-7 test suggestions, prioritizing high-value tests that cover critical
 			file: args.file,
 			commitSha,
 			suggestions: suggestionsWithDeeplinks,
-			model: "gpt-4",
+			model: "gpt-5-mini",
 		});
 
 		// Return the created document

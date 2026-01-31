@@ -270,7 +270,7 @@ ${failedTests.length > 0 ? `Failed Tests (${failedTests.length}):\n` : ""}`;
 			});
 
 			const { object: analysisData } = await generateObject({
-				model: openai("gpt-4"),
+				model: openai("gpt-5-mini"),
 				system:
 					"You are an expert software engineer analyzing CI/CD failures. Provide clear, actionable insights.",
 				prompt,
@@ -320,7 +320,7 @@ Please fix the issue and ensure all tests pass.`;
 					cursorDeeplink,
 					cursorPrompt,
 				},
-				model: "gpt-4",
+				model: "gpt-5-mini",
 			});
 
 			// Return the analysis

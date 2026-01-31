@@ -140,7 +140,7 @@ Test Statistics:
 Focus on practical, actionable advice that helps developers understand and fix the issue.`;
 
 				const { object: insight } = await generateObject({
-					model: openai("gpt-4"),
+					model: openai("gpt-5-mini"),
 					system:
 						"You are an expert software engineer specializing in test quality and debugging. Provide clear, actionable insights that help developers understand and fix test anomalies.",
 					prompt,
@@ -205,7 +205,7 @@ Please provide:
 Focus on actionable, high-level insights that help teams improve their testing practices.`;
 
 				const result = await generateObject({
-					model: openai("gpt-4"),
+					model: openai("gpt-5-mini"),
 					system:
 						"You are an expert software engineer specializing in test strategy and quality. Provide clear, actionable insights at the test suite level.",
 					prompt,
