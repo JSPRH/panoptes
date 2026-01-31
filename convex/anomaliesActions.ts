@@ -1,20 +1,12 @@
 "use node";
 
-import { createOpenAI } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
-
-function getOpenAIApiKey(): string {
-	const key = process.env.OPENAI_API_KEY;
-	if (!key) {
-		throw new Error("OPENAI_API_KEY not configured in Convex secrets");
-	}
-	return key;
-}
+import { createOpenAIClient } from "./aiAnalysisUtils";
 
 const anomalyInsightSchema = z.object({
 	insights: z.string(), // Actionable recommendations
@@ -53,9 +45,7 @@ export const analyzeAnomalies = action({
 			};
 		}
 
-		const openai = createOpenAI({
-			apiKey: getOpenAIApiKey(),
-		});
+		const openai = createOpenAIClient();
 
 		// Analyze each anomaly
 		const analyzedAnomalies: Array<{

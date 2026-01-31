@@ -1,25 +1,12 @@
 "use node";
 
-import { createOpenAI } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action } from "./_generated/server";
-
-function getOpenAIApiKey(): string {
-	const key = process.env.OPENAI_API_KEY;
-	if (!key) {
-		throw new Error("OPENAI_API_KEY not configured in Convex secrets");
-	}
-	return key;
-}
-
-function generateCursorDeeplink(prompt: string): string {
-	const encodedPrompt = encodeURIComponent(prompt);
-	return `cursor://anysphere.cursor-deeplink/prompt?text=${encodedPrompt}`;
-}
+import { createOpenAIClient, generateCursorDeeplink } from "./aiAnalysisUtils";
 
 export const generateTestSuggestions = action({
 	args: {
@@ -163,9 +150,7 @@ Consider:
 Generate 3-7 test suggestions, prioritizing high-value tests that cover critical paths and edge cases.`;
 
 		// Call OpenAI API using Vercel AI SDK
-		const openai = createOpenAI({
-			apiKey: getOpenAIApiKey(),
-		});
+		const openai = createOpenAIClient();
 
 		const suggestionSchema = z.object({
 			suggestions: z.array(
@@ -192,10 +177,21 @@ Generate 3-7 test suggestions, prioritizing high-value tests that cover critical
 		});
 
 		// Generate Cursor deeplinks for each suggestion
-		const suggestionsWithDeeplinks = suggestionData.suggestions.map((suggestion) => ({
-			...suggestion,
-			cursorDeeplink: generateCursorDeeplink(suggestion.prompt),
-		}));
+		const suggestionsWithDeeplinks = suggestionData.suggestions.map(
+			(suggestion: {
+				title: string;
+				description: string;
+				value: number;
+				difficulty: "low" | "medium" | "high";
+				estimatedRuntime?: number;
+				testType: "unit" | "integration" | "e2e";
+				uncoveredLines: number[];
+				prompt: string;
+			}) => ({
+				...suggestion,
+				cursorDeeplink: generateCursorDeeplink(suggestion.prompt),
+			})
+		);
 
 		// Store in database
 		await ctx.runMutation(internal.testSuggestions._createTestSuggestions, {

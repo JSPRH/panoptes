@@ -1,35 +1,10 @@
 "use node";
 
-import { createOpenAI } from "@ai-sdk/openai";
-import { generateObject } from "ai";
 import { v } from "convex/values";
-import { z } from "zod";
 import { api } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action } from "./_generated/server";
-
-function getOpenAIApiKey(): string {
-	const key = process.env.OPENAI_API_KEY;
-	if (!key) {
-		throw new Error("OPENAI_API_KEY not configured in Convex secrets");
-	}
-	return key;
-}
-
-const TestFailureAnalysisSchema = z.object({
-	summary: z.string().describe("A brief summary of what went wrong"),
-	rootCause: z.string().describe("The root cause of the test failure"),
-	suggestedFix: z.string().describe("A suggested fix for the issue"),
-	codeLocation: z
-		.string()
-		.optional()
-		.describe("The specific code location (file:line) where the issue likely occurs"),
-	confidence: z.enum(["high", "medium", "low"]).describe("Confidence level in the analysis"),
-	relatedFiles: z
-		.array(z.string())
-		.optional()
-		.describe("Other files that might be related to this failure"),
-});
+import { TestFailureAnalysisSchema, analyzeFailure, formatCodeSnippet } from "./aiAnalysisUtils";
 
 export const analyzeTestFailure = action({
 	args: {
@@ -122,16 +97,14 @@ ${test.stderr ? `Stderr:\n${test.stderr}` : ""}
 `;
 
 			if (codeSnippet) {
-				prompt += `\n\nCode Context (${codeSnippet.language}):
-File: ${test.file}
-Lines ${codeSnippet.startLine}-${codeSnippet.endLine}:
-
-\`\`\`${codeSnippet.language}
-${codeSnippet.content}
-\`\`\`
-
-The test failure is at line ${test.line}.
-`;
+				prompt += formatCodeSnippet({
+					content: codeSnippet.content,
+					language: codeSnippet.language,
+					file: test.file,
+					startLine: codeSnippet.startLine,
+					endLine: codeSnippet.endLine,
+					targetLine: test.line,
+				});
 			}
 
 			if (testRun) {
@@ -153,18 +126,25 @@ ${testRun.ci ? "- CI Run" : "- Local Run"}
 
 Be specific and actionable. Focus on helping the developer understand and fix the issue quickly.`;
 
-			// Call OpenAI API
-			const openai = createOpenAI({
-				apiKey: getOpenAIApiKey(),
-			});
-
-			const { object: analysis } = await generateObject({
-				model: openai("gpt-5-mini"),
+			// Call OpenAI API using shared utility
+			const analysis = await analyzeFailure({
 				schema: TestFailureAnalysisSchema,
 				prompt,
+				system:
+					"You are an expert software engineer analyzing test failures. Provide clear, actionable insights that help developers understand and fix issues quickly.",
 			});
 
 			// Update analysis record with results
+			// Normalize confidence to enum if it's a number
+			const confidenceValue =
+				typeof analysis.confidence === "number"
+					? analysis.confidence >= 0.7
+						? "high"
+						: analysis.confidence >= 0.4
+							? "medium"
+							: "low"
+					: analysis.confidence;
+
 			await ctx.runMutation(api.testFailureAnalysis._updateTestFailureAnalysis, {
 				analysisId,
 				status: "completed",
@@ -172,7 +152,7 @@ Be specific and actionable. Focus on helping the developer understand and fix th
 				rootCause: analysis.rootCause,
 				suggestedFix: analysis.suggestedFix,
 				codeLocation: analysis.codeLocation,
-				confidence: analysis.confidence,
+				confidence: confidenceValue,
 				relatedFiles: analysis.relatedFiles,
 			});
 

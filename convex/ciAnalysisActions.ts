@@ -1,28 +1,16 @@
 "use node";
 
-import { createOpenAI } from "@ai-sdk/openai";
-import { generateObject } from "ai";
 import { v } from "convex/values";
-import { z } from "zod";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
-
-function getOpenAIApiKey(): string {
-	const key = process.env.OPENAI_API_KEY;
-	if (!key) {
-		throw new Error("OPENAI_API_KEY not configured in Convex secrets");
-	}
-	return key;
-}
-
-function getCursorApiKey(): string {
-	const key = process.env.CURSOR_API_KEY;
-	if (!key) {
-		throw new Error("CURSOR_API_KEY not configured in Convex secrets");
-	}
-	return key;
-}
+import {
+	CIRunFailureAnalysisSchema,
+	analyzeFailure,
+	generateCursorDeeplink,
+	generateFixPrompt,
+	getCursorApiKey,
+} from "./aiAnalysisUtils";
 
 /**
  * Internal action that processes a failed CI run by fetching logs and analyzing.
@@ -273,27 +261,12 @@ ${failedTests.length > 0 ? `Failed Tests (${failedTests.length}):\n` : ""}`;
   "confidence": number between 0 and 1 indicating confidence in the analysis
 }`;
 
-			// Call OpenAI API using Vercel AI SDK
-			const openai = createOpenAI({
-				apiKey: getOpenAIApiKey(),
-			});
-
-			const analysisSchema = z.object({
-				title: z.string(),
-				summary: z.string(),
-				rootCause: z.string(),
-				proposedFix: z.string(),
-				proposedTest: z.string(),
-				isFlaky: z.boolean(),
-				confidence: z.number().min(0).max(1),
-			});
-
-			const { object: analysisData } = await generateObject({
-				model: openai("gpt-5-mini"),
+			// Call OpenAI API using shared utility
+			const analysisData = await analyzeFailure({
+				schema: CIRunFailureAnalysisSchema,
+				prompt,
 				system:
 					"You are an expert software engineer analyzing CI/CD failures. Provide clear, actionable insights.",
-				prompt,
-				schema: analysisSchema,
 				temperature: 0.3,
 			});
 
@@ -359,7 +332,14 @@ Please fix the issue and ensure all tests pass.`;
 					proposedFix: analysisData.proposedFix,
 					proposedTest: analysisData.proposedTest,
 					isFlaky: analysisData.isFlaky,
-					confidence: Math.max(0, Math.min(1, analysisData.confidence)),
+					confidence:
+						typeof analysisData.confidence === "number"
+							? Math.max(0, Math.min(1, analysisData.confidence))
+							: analysisData.confidence === "high"
+								? 0.8
+								: analysisData.confidence === "medium"
+									? 0.5
+									: 0.2,
 					cursorDeeplink,
 					cursorPrompt,
 					cursorBackgroundAgentData,

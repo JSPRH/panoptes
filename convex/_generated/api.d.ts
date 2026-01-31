@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as aiAnalysisUtils from "../aiAnalysisUtils.js";
 import type * as anomalies from "../anomalies.js";
 import type * as anomaliesActions from "../anomaliesActions.js";
 import type * as ciAnalysis from "../ciAnalysis.js";
@@ -28,6 +29,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiAnalysisUtils: typeof aiAnalysisUtils;
   anomalies: typeof anomalies;
   anomaliesActions: typeof anomaliesActions;
   ciAnalysis: typeof ciAnalysis;
