@@ -1,3 +1,6 @@
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import type { TestResult, TestRunIngest } from "@justinmiehle/shared";
 import type {
 	FullConfig,
@@ -7,6 +10,9 @@ import type {
 	Suite,
 	TestCase,
 } from "@playwright/test/reporter";
+
+const MAX_ATTACHMENT_BYTES = 1024 * 1024; // 1 MB
+const CODE_SNIPPET_CONTEXT_LINES = 10;
 
 interface PanoptesReporterOptions {
 	convexUrl?: string;
@@ -33,6 +39,20 @@ function getCommitSha(): string | undefined {
 		return execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
 	} catch {
 		// Git not available or not in a git repo
+		return undefined;
+	}
+}
+
+function getTriggeredBy(): string | undefined {
+	// CI: use provider's actor/username
+	if (process.env.GITHUB_ACTOR) return process.env.GITHUB_ACTOR;
+	if (process.env.CIRCLE_USERNAME) return process.env.CIRCLE_USERNAME;
+	if (process.env.GITLAB_USER_LOGIN) return process.env.GITLAB_USER_LOGIN;
+	// Local: machine username
+	if (process.env.USER) return process.env.USER;
+	try {
+		return os.userInfo().username;
+	} catch {
 		return undefined;
 	}
 }
@@ -71,6 +91,16 @@ export default class PanoptesReporter implements Reporter {
 		// Get project name from test's parent suite
 		const project = test.parent?.project();
 		const projectName = project?.name;
+
+		const stdout = this.chunksToString(result.stdout);
+		const stderr = this.chunksToString(result.stderr);
+		const attachments = this.collectAttachments(result.attachments);
+		const steps =
+			result.steps?.length > 0
+				? result.steps.map((s) => ({ title: s.title, duration: s.duration }))
+				: undefined;
+		const codeSnippet = this.readCodeSnippet(filePath, test.location?.line);
+
 		const testResult: TestResult = {
 			name: test.title,
 			file: filePath,
@@ -83,10 +113,15 @@ export default class PanoptesReporter implements Reporter {
 			retries: result.retry,
 			suite: test.parent?.title,
 			tags: test.tags,
+			stdout: stdout || undefined,
+			stderr: stderr || undefined,
+			codeSnippet,
+			attachments: attachments.length > 0 ? attachments : undefined,
 			metadata: {
 				workerIndex: result.workerIndex,
 				retry: result.retry,
 				projectName: projectName,
+				...(steps && { steps }),
 			},
 		};
 
@@ -154,6 +189,7 @@ export default class PanoptesReporter implements Reporter {
 			environment: this.options.environment,
 			ci: this.options.ci,
 			commitSha: getCommitSha(),
+			triggeredBy: getTriggeredBy(),
 			tests: this.tests,
 			suites: suiteData,
 		};
@@ -202,6 +238,79 @@ export default class PanoptesReporter implements Reporter {
 				return "skipped";
 			default:
 				return "running";
+		}
+	}
+
+	private chunksToString(chunks: Array<string | Buffer> | undefined): string | undefined {
+		if (!chunks?.length) return undefined;
+		const parts = chunks.map((c) => (typeof c === "string" ? c : c.toString("utf-8")));
+		const out = parts.join("");
+		return out.trim() || undefined;
+	}
+
+	private collectAttachments(
+		attachments: PlaywrightTestResult["attachments"] | undefined
+	): Array<{ name: string; contentType: string; bodyBase64: string }> {
+		if (!attachments?.length) return [];
+		const result: Array<{ name: string; contentType: string; bodyBase64: string }> = [];
+		const imageTypes = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
+		for (const att of attachments) {
+			if (!imageTypes.has(att.contentType)) continue;
+			let base64: string | undefined;
+			if (att.body) {
+				const buf = Buffer.isBuffer(att.body) ? att.body : Buffer.from(att.body);
+				if (buf.length > MAX_ATTACHMENT_BYTES) continue;
+				base64 = buf.toString("base64");
+			} else if (att.path) {
+				try {
+					const buf = fs.readFileSync(att.path);
+					if (buf.length > MAX_ATTACHMENT_BYTES) continue;
+					base64 = buf.toString("base64");
+				} catch {
+					// skip
+				}
+			}
+			if (base64) {
+				result.push({
+					name: att.name,
+					contentType: att.contentType,
+					bodyBase64: base64,
+				});
+			}
+		}
+		return result;
+	}
+
+	private readCodeSnippet(filePath: string, line: number | undefined): TestResult["codeSnippet"] {
+		if (line == null) return undefined;
+		let absPath: string;
+		try {
+			absPath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+			if (!fs.existsSync(absPath)) return undefined;
+		} catch {
+			return undefined;
+		}
+		try {
+			const content = fs.readFileSync(absPath, "utf-8");
+			const lines = content.split("\n");
+			const start = Math.max(0, line - 1 - CODE_SNIPPET_CONTEXT_LINES);
+			const end = Math.min(lines.length, line + CODE_SNIPPET_CONTEXT_LINES);
+			const slice = lines.slice(start, end).join("\n");
+			const ext = path.extname(filePath).toLowerCase();
+			const language =
+				ext === ".ts" || ext === ".tsx"
+					? "typescript"
+					: ext === ".js" || ext === ".jsx"
+						? "javascript"
+						: undefined;
+			return {
+				startLine: start + 1,
+				endLine: end,
+				content: slice,
+				language,
+			};
+		} catch {
+			return undefined;
 		}
 	}
 }
