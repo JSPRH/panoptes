@@ -16,7 +16,10 @@ export default function CodeLens() {
 			if (!testsByFile.has(test.file)) {
 				testsByFile.set(test.file, []);
 			}
-			testsByFile.get(test.file)!.push(test);
+			const fileTests = testsByFile.get(test.file);
+			if (fileTests) {
+				fileTests.push(test);
+			}
 		}
 	}
 

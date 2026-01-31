@@ -36,6 +36,7 @@ export class ErrorBoundary extends Component<Props, State> {
 							{this.state.error?.stack}
 						</pre>
 						<button
+							type="button"
 							onClick={() => window.location.reload()}
 							className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded"
 						>

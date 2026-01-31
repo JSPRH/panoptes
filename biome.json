@@ -47,7 +47,8 @@
 			"*.lock",
 			"coverage",
 			".next",
-			"out"
+			"out",
+			"convex/_generated"
 		]
 	}
 }

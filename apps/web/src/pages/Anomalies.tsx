@@ -121,6 +121,7 @@ export default function Anomalies() {
 											)}
 										</div>
 										<button
+											type="button"
 											onClick={() => handleResolve(anomaly._id)}
 											className="px-4 py-2 bg-white rounded-md text-sm font-medium hover:bg-gray-50"
 										>

@@ -86,12 +86,109 @@ This document outlines best practices for AI agents working on this codebase. Fo
 
 ## Git Practices
 
+### Atomic Commits
+
+**Always make atomic commits** - each commit should represent a single, complete change.
+
+- **One logical change per commit** - Don't mix unrelated changes
+- **Complete and working** - Each commit should leave the codebase in a working state
+- **Focused scope** - If a change touches multiple areas, consider splitting into multiple commits
+- **Testable** - Each commit should be independently testable
+
+Examples of good atomic commits:
+- `feat: add ConvexConfigError component for production deployment`
+- `fix: prevent localhost fallback in production builds`
+- `docs: add Vercel deployment instructions to README`
+- `refactor: improve error handling in App.tsx`
+
+Examples of bad commits (too broad):
+- `fix: various bugs and add new features` ❌
+- `update: changed stuff` ❌
+
+### Pre-commit Hooks
+
+**Pre-commit hooks are automatically installed** when you run `bun install` (via the `prepare` script).
+
+The pre-commit hook runs automatically before each commit and performs:
+1. **Formatting** - Automatically formats code using Biome
+2. **Linting** - Checks code for linting issues using Biome
+3. **Testing** - Runs all tests to ensure nothing is broken
+
+**IMPORTANT: Always ensure the pre-commit hook passes before committing.**
+
+- The hook runs automatically - if it fails, the commit will be aborted
+- Fix any issues (linting errors, test failures) before committing
+- Run `bun run lint` and `bun test` manually if you want to check before committing
+- Never use `--no-verify` to skip hooks unless absolutely necessary (and document why)
+
+To manually install the hook: `bun run install-git-hooks`
+
+To skip the hook (not recommended): `git commit --no-verify`
+
 ### Commit Messages
 
-- Use clear, descriptive commit messages
-- Reference issues/PRs when applicable
-- Group related changes in commits
-- Don't commit generated files (check .gitignore)
+**Write clear, descriptive commit messages** that explain what and why.
+
+Format:
+```
+<type>: <subject>
+
+<optional body>
+
+<optional footer>
+```
+
+Types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks
+
+Guidelines:
+- Use imperative mood ("add" not "added" or "adds")
+- Keep the subject line under 72 characters
+- Capitalize the first letter of the subject
+- Don't end the subject with a period
+- Reference issues/PRs when applicable: `fix: resolve Vercel deployment issue (#123)`
+- Use the body to explain the "why" if needed
+- Group related changes in the same commit
+
+Good examples:
+- `feat: add error boundary for Convex configuration errors`
+- `fix: prevent localhost URL usage in production builds`
+- `docs: add Vercel deployment guide to README`
+
+Bad examples:
+- `update` ❌
+- `fix stuff` ❌
+- `WIP` ❌
+- `asdf` ❌
+
+### Making Commits
+
+**When making commits as an agent:**
+
+1. **Stage changes**: Use `git add` to stage only the files related to the current change
+2. **Verify pre-commit hook**: The hook will run automatically, but you can verify with:
+   - `bun run lint` - Check for linting issues
+   - `bun test` - Run tests
+   - `bun run typecheck` - Check TypeScript types
+3. **Write commit message**: Use clear, descriptive messages following the format above
+4. **Commit**: Run `git commit -m "your message"` - the pre-commit hook will run automatically
+5. **If hook fails**: Fix the issues and try again. Never skip the hook.
+
+Example workflow:
+```bash
+# Make your changes
+# Stage related files
+git add apps/web/src/App.tsx apps/web/src/components/ConvexConfigError.tsx
+
+# Commit with a good message (pre-commit hook runs automatically)
+git commit -m "feat: add Convex configuration error component for production"
+```
 
 ### Branching
 
@@ -226,6 +323,7 @@ Before committing changes:
 - [ ] Does `bun run lint` pass?
 - [ ] Does `bun run typecheck` pass?
 - [ ] Do tests pass?
+- [ ] Will the pre-commit hook pass? (runs automatically, but good to check)
 
 ## Getting Help
 
