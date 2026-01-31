@@ -2,6 +2,8 @@
 import { api } from "@convex/_generated/api.js";
 import type { Doc } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
+import { EmptyState } from "../components/EmptyState";
+import { PageHeader } from "../components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 
 type Test = Doc<"tests">;
@@ -41,11 +43,8 @@ export default function CodeLens() {
 		.sort((a, b) => b.total - a.total);
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h1 className="text-3xl font-bold">Code Lens</h1>
-				<p className="text-muted-foreground">Test coverage mapped to source files</p>
-			</div>
+		<div className="space-y-8">
+			<PageHeader title="Code Lens" description="Test coverage mapped to source files" />
 
 			<Card>
 				<CardHeader>
@@ -87,10 +86,10 @@ export default function CodeLens() {
 							))}
 						</div>
 					) : (
-						<p className="text-muted-foreground">
-							No test data available. Run your tests with a Panoptes reporter to see code coverage
-							here.
-						</p>
+						<EmptyState
+							title="No test data available"
+							description="Run your tests with a Panoptes reporter to see code coverage mapped to source files here."
+						/>
 					)}
 				</CardContent>
 			</Card>

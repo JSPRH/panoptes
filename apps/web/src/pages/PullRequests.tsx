@@ -3,6 +3,9 @@ import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
+import { EmptyState } from "../components/EmptyState";
+import { PageHeader } from "../components/PageHeader";
+import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 
@@ -100,19 +103,16 @@ export default function PullRequests() {
 			repo.description?.toLowerCase().includes(repoSearch.toLowerCase())
 	);
 
-	const getStateColor = (state: string) => {
-		if (state === "open") return "text-green-600 bg-green-100";
-		if (state === "merged") return "text-purple-600 bg-purple-100";
-		return "text-gray-600 bg-gray-100";
+	const getStateVariant = (state: string): "success" | "neutral" | "info" => {
+		if (state === "open") return "success";
+		if (state === "merged") return "info";
+		return "neutral";
 	};
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-8">
 			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-3xl font-bold">Pull Requests</h1>
-					<p className="text-muted-foreground">Open pull requests from GitHub</p>
-				</div>
+				<PageHeader title="Pull Requests" description="Open pull requests from GitHub" />
 				{selectedProjectId && (
 					<Button onClick={handleSync} variant="outline" size="sm">
 						Sync GitHub Data
@@ -137,7 +137,7 @@ export default function PullRequests() {
 								>
 									{project.name}
 									{!project.repository && (
-										<span className="ml-2 text-xs text-yellow-600">(no repo)</span>
+										<span className="ml-2 text-xs text-warning">(no repo)</span>
 									)}
 								</Button>
 							))}
@@ -266,18 +266,14 @@ export default function PullRequests() {
 								{prs.map((pr: PullRequest) => (
 									<div
 										key={pr._id}
-										className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
+										className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
 									>
 										<div className="flex-1">
 											<div className="flex items-center gap-2">
 												<div className="font-medium">
 													#{pr.prNumber}: {pr.title}
 												</div>
-												<span
-													className={`px-2 py-1 rounded text-xs font-medium ${getStateColor(pr.state)}`}
-												>
-													{pr.state}
-												</span>
+												<Badge variant={getStateVariant(pr.state)}>{pr.state}</Badge>
 											</div>
 											<div className="text-sm text-muted-foreground mt-1">
 												Author: {pr.author} • {pr.branch} → {pr.baseBranch}
@@ -293,7 +289,7 @@ export default function PullRequests() {
 												href={pr.htmlUrl}
 												target="_blank"
 												rel="noopener noreferrer"
-												className="text-sm text-blue-600 hover:text-blue-800 underline"
+												className="text-sm text-primary hover:underline"
 											>
 												View on GitHub
 											</a>
@@ -302,9 +298,15 @@ export default function PullRequests() {
 								))}
 							</div>
 						) : (
-							<p className="text-muted-foreground">
-								No open pull requests found. Click "Sync GitHub Data" to fetch PRs from GitHub.
-							</p>
+							<EmptyState
+								title="No open pull requests"
+								description="Click Sync GitHub Data to fetch pull requests from GitHub for this project."
+								action={
+									<Button onClick={handleSync} variant="default" size="sm">
+										Sync GitHub Data
+									</Button>
+								}
+							/>
 						)}
 					</CardContent>
 				</Card>

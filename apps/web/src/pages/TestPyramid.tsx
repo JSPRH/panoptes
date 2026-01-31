@@ -1,6 +1,7 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
 import { useQuery } from "convex/react";
+import { PageHeader } from "../components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 
 export default function TestPyramid() {
@@ -28,11 +29,11 @@ export default function TestPyramid() {
 	};
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h1 className="text-3xl font-bold">Test Pyramid</h1>
-				<p className="text-muted-foreground">Visual representation of your testing pyramid</p>
-			</div>
+		<div className="space-y-8">
+			<PageHeader
+				title="Test Pyramid"
+				description="Visual representation of your testing pyramid"
+			/>
 
 			<Card>
 				<CardHeader>
@@ -46,7 +47,7 @@ export default function TestPyramid() {
 							{/* E2E Tests - Top, smallest */}
 							<div className="flex flex-col items-center">
 								<div
-									className="bg-blue-500 text-white px-4 py-2 rounded-t-lg flex items-center justify-center min-w-[120px]"
+									className="bg-info text-primary-foreground px-4 py-2 rounded-t-lg flex items-center justify-center min-w-[120px]"
 									style={{
 										width: `${getWidth(pyramidData.e2e.total)}%`,
 										height: `${getHeight(pyramidData.e2e.total)}px`,
@@ -65,7 +66,7 @@ export default function TestPyramid() {
 							{/* Integration Tests - Middle */}
 							<div className="flex flex-col items-center">
 								<div
-									className="bg-green-500 text-white px-4 py-2 rounded-t-lg flex items-center justify-center min-w-[180px]"
+									className="bg-success text-primary-foreground px-4 py-2 rounded-t-lg flex items-center justify-center min-w-[180px]"
 									style={{
 										width: `${getWidth(pyramidData.integration.total)}%`,
 										height: `${getHeight(pyramidData.integration.total)}px`,
@@ -84,7 +85,7 @@ export default function TestPyramid() {
 							{/* Unit Tests - Base, largest */}
 							<div className="flex flex-col items-center">
 								<div
-									className="bg-purple-500 text-white px-4 py-2 rounded-lg flex items-center justify-center min-w-[240px]"
+									className="bg-primary text-primary-foreground px-4 py-2 rounded-lg flex items-center justify-center min-w-[240px]"
 									style={{
 										width: `${getWidth(pyramidData.unit.total)}%`,
 										height: `${getHeight(pyramidData.unit.total)}px`,

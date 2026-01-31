@@ -4,6 +4,9 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 import CodeSnippet from "../components/CodeSnippet";
+import { EmptyState } from "../components/EmptyState";
+import { PageHeader } from "../components/PageHeader";
+import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 
@@ -132,12 +135,9 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 	}, [searchQuery, statusFilter]);
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-8">
 			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-3xl font-bold">Test Explorer</h1>
-					<p className="text-muted-foreground">Browse and search your tests</p>
-				</div>
+				<PageHeader title="Test Explorer" description="Browse and search your tests" />
 				<Button
 					onClick={async () => {
 						try {
@@ -226,7 +226,7 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 
 									return (
 										<div key={test._id}>
-											<div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors">
+											<div className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors">
 												<div className="flex-1">
 													<div className="font-medium">{test.name}</div>
 													<div className="text-sm text-muted-foreground">
@@ -243,7 +243,7 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 															href={`${project.repository}/blob/main/${test.file}${test.line ? `#L${test.line}` : ""}`}
 															target="_blank"
 															rel="noopener noreferrer"
-															className="text-xs text-blue-600 hover:text-blue-800 underline mt-1"
+															className="text-xs text-primary hover:underline mt-1"
 														>
 															View in GitHub
 														</a>
@@ -251,17 +251,17 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 												</div>
 												<div className="flex items-center gap-2">
 													<div className="text-sm text-muted-foreground">{test.duration}ms</div>
-													<div
-														className={`px-2 py-1 rounded text-xs font-medium ${
+													<Badge
+														variant={
 															test.status === "passed"
-																? "bg-green-100 text-green-800"
+																? "success"
 																: test.status === "failed"
-																	? "bg-red-100 text-red-800"
-																	: "bg-gray-100 text-gray-800"
-														}`}
+																	? "error"
+																	: "neutral"
+														}
 													>
 														{test.status}
-													</div>
+													</Badge>
 													{test.line && project?.repository && (
 														<Button
 															variant="outline"
@@ -278,7 +278,7 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 																href={`cursor://anysphere.cursor-deeplink/prompt?file=${encodeURIComponent(test.file)}&text=${encodeURIComponent(
 																	`Investigate and fix the failing test "${test.name}" in file ${test.file}${test.line ? ` at line ${test.line}` : ""}. Error: ${test.error || "Test failed"}.`
 																)}`}
-																className="text-xs text-blue-600 hover:text-blue-800 underline"
+																className="text-xs text-primary hover:underline"
 															>
 																Debug in Cursor
 															</a>
@@ -386,9 +386,10 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 							</div>
 						</>
 					) : (
-						<p className="text-muted-foreground">
-							No tests found. Run your tests with a Panoptes reporter to see results here.
-						</p>
+						<EmptyState
+							title="No tests found"
+							description="Run your tests with a Panoptes reporter to see results here, or adjust your search and filters."
+						/>
 					)}
 				</CardContent>
 			</Card>

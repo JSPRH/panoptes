@@ -3,6 +3,7 @@ import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
+import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -342,9 +343,15 @@ export default function CIRuns() {
 									))}
 								</div>
 							) : (
-								<p className="text-muted-foreground">
-									No CI runs found. Click "Sync GitHub Data" to fetch runs from GitHub.
-								</p>
+								<EmptyState
+									title="No CI runs found"
+									description="Click Sync GitHub Data to fetch workflow runs from GitHub for this project."
+									action={
+										<Button onClick={handleSync} variant="default" size="sm">
+											Sync GitHub Data
+										</Button>
+									}
+								/>
 							)}
 						</CardContent>
 					</Card>

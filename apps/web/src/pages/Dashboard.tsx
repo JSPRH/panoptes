@@ -3,7 +3,11 @@ import { api } from "@convex/_generated/api.js";
 import type { Doc } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { Link } from "react-router-dom";
+import { EmptyState } from "../components/EmptyState";
+import { PageHeader } from "../components/PageHeader";
+import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Skeleton } from "../components/ui/skeleton";
 
 type TestRun = Doc<"testRuns">;
 type Project = Doc<"projects">;
@@ -26,23 +30,42 @@ export default function Dashboard() {
 
 	if (projects === undefined || testRuns === undefined) {
 		return (
-			<div className="space-y-6">
-				<div>
-					<h1 className="text-3xl font-bold">Dashboard</h1>
-					<p className="text-muted-foreground">Loading...</p>
+			<div className="space-y-8">
+				<PageHeader title="Dashboard" description="Overview of your testing pyramid" />
+				<div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+					{[1, 2, 3, 4].map((i) => (
+						<Card key={i}>
+							<CardHeader className="pb-2">
+								<Skeleton className="h-4 w-24" />
+							</CardHeader>
+							<CardContent>
+								<Skeleton className="h-8 w-12" />
+							</CardContent>
+						</Card>
+					))}
 				</div>
+				<Card>
+					<CardHeader>
+						<Skeleton className="h-6 w-40" />
+						<Skeleton className="h-4 w-56" />
+					</CardHeader>
+					<CardContent>
+						<div className="space-y-2">
+							{[1, 2, 3].map((i) => (
+								<Skeleton key={i} className="h-14 w-full rounded-lg" />
+							))}
+						</div>
+					</CardContent>
+				</Card>
 			</div>
 		);
 	}
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h1 className="text-3xl font-bold">Dashboard</h1>
-				<p className="text-muted-foreground">Overview of your testing pyramid</p>
-			</div>
+		<div className="space-y-8">
+			<PageHeader title="Dashboard" description="Overview of your testing pyramid" />
 
-			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+			<div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
 				<Card>
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 						<CardTitle className="text-sm font-medium">Total Projects</CardTitle>
@@ -127,7 +150,10 @@ export default function Dashboard() {
 					{testRuns && testRuns.length > 0 ? (
 						<div className="space-y-2">
 							{testRuns.map((run: TestRun) => (
-								<div key={run._id} className="flex items-center justify-between p-2 border rounded">
+								<div
+									key={run._id}
+									className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
+								>
 									<div>
 										<div className="font-medium">
 											{run.framework} - {run.testType}
@@ -136,35 +162,46 @@ export default function Dashboard() {
 											{new Date(run.startedAt).toLocaleString()}
 										</div>
 									</div>
-									<div className="text-right">
-										<div
-											className={`font-medium ${
+									<div className="text-right flex items-center gap-2">
+										<Badge
+											variant={
 												run.status === "passed"
-													? "text-success"
+													? "success"
 													: run.status === "failed"
-														? "text-error"
-														: "text-muted-foreground"
-											}`}
+														? "error"
+														: "neutral"
+											}
 										>
 											{run.status}
-										</div>
-										<div className="text-sm text-muted-foreground">
+										</Badge>
+										<span className="text-sm text-muted-foreground">
 											{run.passedTests}/{run.totalTests} passed
-										</div>
+										</span>
 									</div>
 								</div>
 							))}
 						</div>
 					) : (
-						<p className="text-muted-foreground">
-							No test runs yet. Run your tests with a Panoptes reporter to see results here.
-						</p>
+						<EmptyState
+							title="No test runs yet"
+							description="Run your tests with a Panoptes reporter to see results here."
+							action={
+								<a
+									href="https://github.com/your-org/panoptes#reporters"
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-sm font-medium text-primary hover:underline"
+								>
+									View reporter docs →
+								</a>
+							}
+						/>
 					)}
 				</CardContent>
 			</Card>
 
 			{projectWithRepo && (
-				<div className="grid gap-4 md:grid-cols-2">
+				<div className="grid gap-5 md:grid-cols-2">
 					<Card>
 						<CardHeader>
 							<CardTitle>Recent CI Runs</CardTitle>
@@ -176,7 +213,7 @@ export default function Dashboard() {
 									{ciRuns.slice(0, 5).map((run) => (
 										<div
 											key={run._id}
-											className="flex items-center justify-between p-2 border rounded"
+											className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
 										>
 											<div>
 												<div className="font-medium text-sm">{run.workflowName}</div>
@@ -184,19 +221,17 @@ export default function Dashboard() {
 													{run.branch} • {run.commitSha.substring(0, 7)}
 												</div>
 											</div>
-											<div className="text-right">
-												<span
-													className={`text-xs px-2 py-1 rounded ${
-														run.conclusion === "success"
-															? "bg-success-muted text-success"
-															: run.conclusion === "failure"
-																? "bg-error-muted text-error"
-																: "bg-muted text-muted-foreground"
-													}`}
-												>
-													{run.conclusion || run.status}
-												</span>
-											</div>
+											<Badge
+												variant={
+													run.conclusion === "success"
+														? "success"
+														: run.conclusion === "failure"
+															? "error"
+															: "neutral"
+												}
+											>
+												{run.conclusion || run.status}
+											</Badge>
 										</div>
 									))}
 									<Link
@@ -207,12 +242,18 @@ export default function Dashboard() {
 									</Link>
 								</div>
 							) : (
-								<p className="text-muted-foreground text-sm">
-									No CI runs found.{" "}
-									<Link to="/ci-runs" className="text-primary hover:underline">
-										Sync GitHub data
-									</Link>
-								</p>
+								<EmptyState
+									title="No CI runs found"
+									description="Sync GitHub data to fetch workflow runs for this project."
+									action={
+										<Link
+											to="/ci-runs"
+											className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2"
+										>
+											Sync GitHub data
+										</Link>
+									}
+								/>
 							)}
 						</CardContent>
 					</Card>
@@ -228,7 +269,7 @@ export default function Dashboard() {
 									{prs.slice(0, 5).map((pr) => (
 										<div
 											key={pr._id}
-											className="flex items-center justify-between p-2 border rounded"
+											className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
 										>
 											<div>
 												<div className="font-medium text-sm">
@@ -238,9 +279,9 @@ export default function Dashboard() {
 													{pr.author} • {pr.branch} → {pr.baseBranch}
 												</div>
 											</div>
-											<span className="text-xs px-2 py-1 rounded bg-success-muted text-success">
+											<Badge variant={pr.state === "open" ? "success" : "neutral"}>
 												{pr.state}
-											</span>
+											</Badge>
 										</div>
 									))}
 									<Link
@@ -251,12 +292,18 @@ export default function Dashboard() {
 									</Link>
 								</div>
 							) : (
-								<p className="text-muted-foreground text-sm">
-									No open PRs found.{" "}
-									<Link to="/pull-requests" className="text-primary hover:underline">
-										Sync GitHub data
-									</Link>
-								</p>
+								<EmptyState
+									title="No open PRs found"
+									description="Sync GitHub data to fetch pull requests for this project."
+									action={
+										<Link
+											to="/pull-requests"
+											className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2"
+										>
+											Sync GitHub data
+										</Link>
+									}
+								/>
 							)}
 						</CardContent>
 					</Card>
