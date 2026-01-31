@@ -51,7 +51,7 @@ export class TestServiceImpl extends TestService {
 				};
 			}
 
-			const result = await response.json();
+			const result = (await response.json()) as { testRunId?: string };
 			return {
 				success: true,
 				testRunId: result.testRunId,
