@@ -86,6 +86,7 @@ export default class PanoptesReporter implements Reporter {
 	private startTime = 0;
 	private tests: TestResult[] = [];
 	private suites: Map<string, { name: string; file: string; tests: TestResult[] }> = new Map();
+	private coverageData: CoverageIngest | undefined;
 
 	constructor(options: PanoptesReporterOptions = {}) {
 		this.options = {
@@ -103,6 +104,19 @@ export default class PanoptesReporter implements Reporter {
 	onTestRunStart() {
 		this.tests = [];
 		this.suites.clear();
+		this.coverageData = undefined;
+	}
+
+	onCoverage(_coverageMap: unknown) {
+		// onCoverage is called before onTestRunEnd, but coverage file might not be written yet
+		// Try reading it, but we'll also retry in onTestRunEnd
+		this.coverageData = this.readCoverage();
+		if (this.coverageData) {
+			const fileCount = Object.keys(this.coverageData.files || {}).length;
+			console.log(
+				`[Panoptes] Coverage data found via onCoverage: ${fileCount} files, ${this.coverageData.summary?.lines?.covered || 0}/${this.coverageData.summary?.lines?.total || 0} lines covered`
+			);
+		}
 	}
 
 	// biome-ignore lint/suspicious/noExplicitAny: Vitest reporter interface doesn't provide strict types
@@ -193,7 +207,27 @@ export default class PanoptesReporter implements Reporter {
 			};
 		});
 
-		const coverage = this.readCoverage();
+		// Use coverage data captured in onCoverage hook, or try reading with retry as fallback
+		let coverage = this.coverageData;
+		if (!coverage) {
+			// Fallback: retry reading coverage file with small delays (file might be written asynchronously)
+			for (let attempt = 0; attempt < 5; attempt++) {
+				coverage = this.readCoverage();
+				if (coverage) break;
+				// Wait a bit before retrying (coverage file might still be writing)
+				if (attempt < 4) {
+					await new Promise((resolve) => setTimeout(resolve, 100));
+				}
+			}
+			if (coverage) {
+				const fileCount = Object.keys(coverage.files || {}).length;
+				console.log(
+					`[Panoptes] Coverage data found (retry read): ${fileCount} files, ${coverage.summary?.lines?.covered || 0}/${coverage.summary?.lines?.total || 0} lines covered`
+				);
+			} else {
+				console.log("[Panoptes] No coverage data found after retries");
+			}
+		}
 
 		const testRun: TestRunIngest = {
 			projectName: this.options.projectName,
@@ -331,7 +365,9 @@ export default class PanoptesReporter implements Reporter {
 		const coveragePath =
 			process.env.PANOPTES_COVERAGE_PATH ?? path.resolve(process.cwd(), DEFAULT_COVERAGE_PATH);
 		try {
-			if (!fs.existsSync(coveragePath)) return undefined;
+			if (!fs.existsSync(coveragePath)) {
+				return undefined;
+			}
 			const raw = fs.readFileSync(coveragePath, "utf-8");
 			const data = JSON.parse(raw) as Record<
 				string,
