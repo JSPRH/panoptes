@@ -8,6 +8,8 @@ import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Switch } from "../components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 
 function getCoverageVariant(coverage: number): "success" | "warning" | "error" | "neutral" {
 	if (coverage >= 80) return "success";
@@ -51,6 +53,9 @@ export default function FileCoverageDetail() {
 	const [fileLines, setFileLines] = useState<string[]>([]);
 	const [loadingContent, setLoadingContent] = useState(false);
 	const [contentError, setContentError] = useState<string | null>(null);
+	const [activeTab, setActiveTab] = useState("coverage");
+	const [useStatementCoverage, setUseStatementCoverage] = useState(false);
+	const [showInfo, setShowInfo] = useState(false);
 
 	const fileCoverage = fileCoverageData
 		? {
@@ -82,7 +87,31 @@ export default function FileCoverageDetail() {
 		}
 	}, [fileCoverage?.lineDetails]);
 
-	const coverage = fileCoverage ? (fileCoverage.linesCovered / fileCoverage.linesTotal) * 100 : 0;
+	const coverage = useMemo(() => {
+		if (!fileCoverage) return 0;
+		if (
+			useStatementCoverage &&
+			fileCoverage.statementsTotal != null &&
+			fileCoverage.statementsTotal > 0
+		) {
+			return ((fileCoverage.statementsCovered ?? 0) / fileCoverage.statementsTotal) * 100;
+		}
+		return (fileCoverage.linesCovered / fileCoverage.linesTotal) * 100;
+	}, [fileCoverage, useStatementCoverage]);
+
+	const coverageLabel =
+		useStatementCoverage &&
+		fileCoverage?.statementsTotal != null &&
+		fileCoverage.statementsTotal > 0
+			? "Statement Coverage"
+			: "LOC Coverage";
+
+	const coverageValue =
+		useStatementCoverage &&
+		fileCoverage?.statementsTotal != null &&
+		fileCoverage.statementsTotal > 0
+			? `${fileCoverage.statementsCovered ?? 0}/${fileCoverage.statementsTotal}`
+			: `${fileCoverage?.linesCovered ?? 0}/${fileCoverage?.linesTotal ?? 0}`;
 
 	const cursorLink = useMemo(() => {
 		if (!filePath) return null;
@@ -161,207 +190,403 @@ export default function FileCoverageDetail() {
 		<div className="space-y-8">
 			<PageHeader title="File Coverage" description={`Coverage details for ${decodedFilePath}`} />
 
-			{/* Summary Card */}
-			<Card>
-				<CardHeader>
-					<div className="flex items-center justify-between">
-						<div>
-							<CardTitle className="font-mono text-sm text-muted-foreground mb-2">
-								{decodedFilePath}
-							</CardTitle>
-							<CardDescription>Coverage statistics</CardDescription>
-						</div>
-						<div className="flex items-center gap-4">
-							<Badge variant={getCoverageVariant(coverage)} className="text-lg px-4 py-2">
-								{coverage.toFixed(1)}%
-							</Badge>
-							{cursorLink && (
-								<Button
-									onClick={() => {
-										window.location.href = cursorLink;
-									}}
-									variant="default"
-									size="sm"
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="16"
-										height="16"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										className="mr-2"
-										aria-hidden="true"
-									>
-										<title>Cursor</title>
-										<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-										<polyline points="10 17 15 12 10 7" />
-										<line x1="15" y1="12" x2="3" y2="12" />
-									</svg>
-									Open in Cursor
-									{lineDetails && lineDetails.uncovered.length > 0 && (
-										<span className="ml-2 text-xs opacity-80">
-											({lineDetails.uncovered.length} uncovered)
-										</span>
-									)}
-								</Button>
-							)}
-						</div>
-					</div>
-				</CardHeader>
-				<CardContent>
-					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-						<div>
-							<div className="text-sm text-muted-foreground">Lines Covered</div>
-							<div className="text-2xl font-bold">
-								{fileCoverage.linesCovered}/{fileCoverage.linesTotal}
-							</div>
-						</div>
-						{fileCoverage.statementsTotal != null && (
-							<div>
-								<div className="text-sm text-muted-foreground">Statements</div>
-								<div className="text-2xl font-bold">
-									{fileCoverage.statementsCovered ?? 0}/{fileCoverage.statementsTotal}
-								</div>
-							</div>
-						)}
-						{fileCoverage.branchesTotal != null && (
-							<div>
-								<div className="text-sm text-muted-foreground">Branches</div>
-								<div className="text-2xl font-bold">
-									{fileCoverage.branchesCovered ?? 0}/{fileCoverage.branchesTotal}
-								</div>
-							</div>
-						)}
-						{fileCoverage.functionsTotal != null && (
-							<div>
-								<div className="text-sm text-muted-foreground">Functions</div>
-								<div className="text-2xl font-bold">
-									{fileCoverage.functionsCovered ?? 0}/{fileCoverage.functionsTotal}
-								</div>
-							</div>
-						)}
-					</div>
-				</CardContent>
-			</Card>
+			<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+				<TabsList className="grid w-full max-w-md grid-cols-2">
+					<TabsTrigger value="coverage">Coverage</TabsTrigger>
+					<TabsTrigger value="about">About Coverage</TabsTrigger>
+				</TabsList>
 
-			{/* Line-by-line Coverage */}
-			{lineDetails && (
-				<Card>
-					<CardHeader>
-						<CardTitle>Line-by-line Coverage</CardTitle>
-						<CardDescription>
-							{lineDetails.covered.length} covered, {lineDetails.uncovered.length} uncovered
-							{lineDetails.uncovered.length > 0 && " lines"}
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{loadingContent ? (
-							<div className="text-center text-muted-foreground py-8">
-								Loading file content from GitHub...
-							</div>
-						) : contentError ? (
-							<div className="space-y-4">
-								<div className="text-sm text-error bg-error-muted/20 p-4 rounded-lg">
-									{contentError}
+				<TabsContent value="coverage" className="space-y-8 mt-6">
+					{/* Summary Card */}
+					<Card>
+						<CardHeader>
+							<div className="flex items-center justify-between">
+								<div>
+									<CardTitle className="font-mono text-sm text-muted-foreground mb-2">
+										{decodedFilePath}
+									</CardTitle>
+									<CardDescription>Coverage statistics</CardDescription>
 								</div>
-								<div className="text-sm text-muted-foreground">Uncovered lines:</div>
-								<div className="flex flex-wrap gap-2">
-									{lineDetails?.uncovered.map((line) => (
-										<Badge
-											key={line}
-											variant="error"
-											className="font-mono cursor-pointer hover:bg-error/20"
-											onClick={() => {
-												const link = generateCursorDeeplink(decodedFilePath, [line]);
-												window.location.href = link;
-											}}
-										>
-											Line {line}
-										</Badge>
-									))}
-								</div>
-							</div>
-						) : fileLines.length > 0 ? (
-							<div className="font-mono text-sm bg-muted/30 rounded-lg overflow-hidden border border-border">
-								<div className="max-h-[600px] overflow-y-auto">
-									{fileLines.map((line, index) => {
-										const lineNum = index + 1;
-										const isCovered = lineDetails?.covered.includes(lineNum) ?? false;
-										const isUncovered = lineDetails?.uncovered.includes(lineNum) ?? false;
-										return (
-											<div
-												key={lineNum}
-												className={`flex gap-4 py-1 px-3 hover:bg-muted/50 transition-colors ${
-													isUncovered
-														? "bg-error-muted/40 border-l-3 border-error"
-														: isCovered
-															? "bg-success-muted/20 border-l-3 border-success/50"
-															: ""
-												}`}
-											>
-												<div className="text-muted-foreground w-12 text-right flex-shrink-0 select-none">
-													{lineNum}
-												</div>
-												<div className="flex-1 break-all whitespace-pre-wrap">{line || " "}</div>
-												{isUncovered && (
-													<div className="text-error text-xs flex items-center flex-shrink-0">
-														<Badge variant="error" className="text-xs">
-															Uncovered
-														</Badge>
-													</div>
-												)}
-											</div>
-										);
-									})}
-								</div>
-							</div>
-						) : (
-							<div className="space-y-2">
-								<div className="text-sm text-muted-foreground mb-4">
-									File content not available. Uncovered lines:
-								</div>
-								<div className="flex flex-wrap gap-2">
-									{lineDetails.uncovered.map((line) => (
-										<Badge
-											key={line}
-											variant="error"
-											className="font-mono cursor-pointer hover:bg-error/20"
-											onClick={() => {
-												const link = generateCursorDeeplink(decodedFilePath, [line]);
-												window.location.href = link;
-											}}
-										>
-											Line {line}
-										</Badge>
-									))}
-								</div>
-								{cursorLink && (
-									<div className="mt-4 p-4 bg-muted rounded-lg">
-										<div className="text-sm font-medium mb-2">💡 Add test coverage with Cursor</div>
-										<div className="text-sm text-muted-foreground mb-3">
-											Click "Open in Cursor" above to open this file with instructions to add test
-											coverage for the uncovered lines.
-										</div>
+								<div className="flex items-center gap-4">
+									<Badge variant={getCoverageVariant(coverage)} className="text-lg px-4 py-2">
+										{coverage.toFixed(1)}%
+									</Badge>
+									{cursorLink && (
 										<Button
 											onClick={() => {
 												window.location.href = cursorLink;
 											}}
-											variant="outline"
+											variant="default"
 											size="sm"
 										>
-											Open in Cursor with Instructions
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												strokeWidth="2"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												className="mr-2"
+												aria-hidden="true"
+											>
+												<title>Cursor</title>
+												<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+												<polyline points="10 17 15 12 10 7" />
+												<line x1="15" y1="12" x2="3" y2="12" />
+											</svg>
+											Open in Cursor
+											{lineDetails && lineDetails.uncovered.length > 0 && (
+												<span className="ml-2 text-xs opacity-80">
+													({lineDetails.uncovered.length} uncovered)
+												</span>
+											)}
 										</Button>
+									)}
+								</div>
+							</div>
+						</CardHeader>
+						<CardContent>
+							{/* Coverage Type Switch */}
+							{fileCoverage.statementsTotal != null && fileCoverage.statementsTotal > 0 && (
+								<div className="mb-6 p-4 bg-muted/50 rounded-lg border border-border">
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-3">
+											<label htmlFor="coverage-type" className="text-sm font-medium cursor-pointer">
+												{coverageLabel}
+											</label>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-5 w-5"
+												onClick={() => setShowInfo(!showInfo)}
+												title="What is statement coverage?"
+											>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="14"
+													height="14"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													strokeWidth="2"
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													className="text-muted-foreground"
+													aria-label="Info"
+												>
+													<title>Info icon</title>
+													<circle cx="12" cy="12" r="10" />
+													<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+													<line x1="12" y1="17" x2="12.01" y2="17" />
+												</svg>
+											</Button>
+										</div>
+										<Switch
+											id="coverage-type"
+											checked={useStatementCoverage}
+											onCheckedChange={setUseStatementCoverage}
+										/>
+									</div>
+									{showInfo && (
+										<div className="mt-3 p-3 bg-background rounded border border-border text-sm text-muted-foreground">
+											<p className="font-medium mb-1">Statement Coverage vs LOC Coverage</p>
+											<p>
+												<strong>LOC Coverage</strong> measures which physical lines of code were
+												executed. <strong>Statement Coverage</strong> measures which executable
+												statements were executed. Statement coverage is more precise because
+												multiple statements can be on one line, or one statement can span multiple
+												lines.
+											</p>
+										</div>
+									)}
+								</div>
+							)}
+
+							<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+								<div>
+									<div className="text-sm text-muted-foreground flex items-center gap-1">
+										{coverageLabel}
+										{fileCoverage.statementsTotal != null && fileCoverage.statementsTotal > 0 && (
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-4 w-4"
+												onClick={() => setShowInfo(!showInfo)}
+												title="What is statement coverage?"
+											>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="12"
+													height="12"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													strokeWidth="2"
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													className="text-muted-foreground"
+													aria-label="Info"
+												>
+													<title>Info icon</title>
+													<circle cx="12" cy="12" r="10" />
+													<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+													<line x1="12" y1="17" x2="12.01" y2="17" />
+												</svg>
+											</Button>
+										)}
+									</div>
+									<div className="text-2xl font-bold">{coverageValue}</div>
+								</div>
+								{fileCoverage.statementsTotal != null && (
+									<div>
+										<div className="text-sm text-muted-foreground">Statements</div>
+										<div className="text-2xl font-bold">
+											{fileCoverage.statementsCovered ?? 0}/{fileCoverage.statementsTotal}
+										</div>
+									</div>
+								)}
+								{fileCoverage.branchesTotal != null && (
+									<div>
+										<div className="text-sm text-muted-foreground">Branches</div>
+										<div className="text-2xl font-bold">
+											{fileCoverage.branchesCovered ?? 0}/{fileCoverage.branchesTotal}
+										</div>
+									</div>
+								)}
+								{fileCoverage.functionsTotal != null && (
+									<div>
+										<div className="text-sm text-muted-foreground">Functions</div>
+										<div className="text-2xl font-bold">
+											{fileCoverage.functionsCovered ?? 0}/{fileCoverage.functionsTotal}
+										</div>
 									</div>
 								)}
 							</div>
-						)}
-					</CardContent>
-				</Card>
-			)}
+						</CardContent>
+					</Card>
+
+					{/* Line-by-line Coverage */}
+					{lineDetails && (
+						<Card>
+							<CardHeader>
+								<CardTitle>Line-by-line Coverage</CardTitle>
+								<CardDescription>
+									{lineDetails.covered.length} covered, {lineDetails.uncovered.length} uncovered
+									{lineDetails.uncovered.length > 0 && " lines"}
+								</CardDescription>
+							</CardHeader>
+							<CardContent>
+								{loadingContent ? (
+									<div className="text-center text-muted-foreground py-8">
+										Loading file content from GitHub...
+									</div>
+								) : contentError ? (
+									<div className="space-y-4">
+										<div className="text-sm text-error bg-error-muted/20 p-4 rounded-lg">
+											{contentError}
+										</div>
+										<div className="text-sm text-muted-foreground">Uncovered lines:</div>
+										<div className="flex flex-wrap gap-2">
+											{lineDetails?.uncovered.map((line) => (
+												<Badge
+													key={line}
+													variant="error"
+													className="font-mono cursor-pointer hover:bg-error/20"
+													onClick={() => {
+														const link = generateCursorDeeplink(decodedFilePath, [line]);
+														window.location.href = link;
+													}}
+												>
+													Line {line}
+												</Badge>
+											))}
+										</div>
+									</div>
+								) : fileLines.length > 0 ? (
+									<div className="font-mono text-sm bg-muted/30 rounded-lg overflow-hidden border border-border">
+										<div className="max-h-[600px] overflow-y-auto">
+											{fileLines.map((line, index) => {
+												const lineNum = index + 1;
+												const isCovered = lineDetails?.covered.includes(lineNum) ?? false;
+												const isUncovered = lineDetails?.uncovered.includes(lineNum) ?? false;
+												return (
+													<div
+														key={lineNum}
+														className={`flex gap-4 py-1 px-3 hover:bg-muted/50 transition-colors ${
+															isUncovered
+																? "bg-error-muted/40 border-l-3 border-error"
+																: isCovered
+																	? "bg-success-muted/20 border-l-3 border-success/50"
+																	: ""
+														}`}
+													>
+														<div className="text-muted-foreground w-12 text-right flex-shrink-0 select-none">
+															{lineNum}
+														</div>
+														<div className="flex-1 break-all whitespace-pre-wrap">
+															{line || " "}
+														</div>
+														{isUncovered && (
+															<div className="text-error text-xs flex items-center flex-shrink-0">
+																<Badge variant="error" className="text-xs">
+																	Uncovered
+																</Badge>
+															</div>
+														)}
+													</div>
+												);
+											})}
+										</div>
+									</div>
+								) : (
+									<div className="space-y-2">
+										<div className="text-sm text-muted-foreground mb-4">
+											File content not available. Uncovered lines:
+										</div>
+										<div className="flex flex-wrap gap-2">
+											{lineDetails.uncovered.map((line) => (
+												<Badge
+													key={line}
+													variant="error"
+													className="font-mono cursor-pointer hover:bg-error/20"
+													onClick={() => {
+														const link = generateCursorDeeplink(decodedFilePath, [line]);
+														window.location.href = link;
+													}}
+												>
+													Line {line}
+												</Badge>
+											))}
+										</div>
+										{cursorLink && (
+											<div className="mt-4 p-4 bg-muted rounded-lg">
+												<div className="text-sm font-medium mb-2">
+													💡 Add test coverage with Cursor
+												</div>
+												<div className="text-sm text-muted-foreground mb-3">
+													Click "Open in Cursor" above to open this file with instructions to add
+													test coverage for the uncovered lines.
+												</div>
+												<Button
+													onClick={() => {
+														window.location.href = cursorLink;
+													}}
+													variant="outline"
+													size="sm"
+												>
+													Open in Cursor with Instructions
+												</Button>
+											</div>
+										)}
+									</div>
+								)}
+							</CardContent>
+						</Card>
+					)}
+				</TabsContent>
+
+				<TabsContent value="about" className="space-y-6 mt-6">
+					<Card>
+						<CardHeader>
+							<CardTitle>Understanding Code Coverage</CardTitle>
+							<CardDescription>Learn about different types of coverage metrics</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-6">
+							<div>
+								<h3 className="text-lg font-semibold mb-2">
+									LOC Coverage (Lines of Code Coverage)
+								</h3>
+								<p className="text-muted-foreground mb-3">
+									LOC Coverage measures which physical lines of code were executed during your
+									tests. It's the simplest form of coverage and answers: "Did this line run at least
+									once?"
+								</p>
+								<div className="bg-muted/50 p-4 rounded-lg border border-border">
+									<p className="text-sm font-medium mb-2">Example:</p>
+									<pre className="text-xs font-mono bg-background p-3 rounded overflow-x-auto">
+										{`function calculate(a, b) {
+  const sum = a + b;     // Line 2 - covered
+  return sum;            // Line 3 - covered
+}
+
+// LOC Coverage: 2/2 = 100%`}
+									</pre>
+								</div>
+							</div>
+
+							<div>
+								<h3 className="text-lg font-semibold mb-2">Statement Coverage</h3>
+								<p className="text-muted-foreground mb-3">
+									Statement Coverage measures which executable statements were executed. A statement
+									is the smallest unit of executable code. This is more precise than LOC coverage
+									because:
+								</p>
+								<ul className="list-disc list-inside text-muted-foreground mb-3 space-y-1">
+									<li>Multiple statements can exist on one line</li>
+									<li>One statement can span multiple lines</li>
+									<li>It focuses on actual executable code, not formatting</li>
+								</ul>
+								<div className="bg-muted/50 p-4 rounded-lg border border-border">
+									<p className="text-sm font-medium mb-2">Example:</p>
+									<pre className="text-xs font-mono bg-background p-3 rounded overflow-x-auto">
+										{`function calculate(a, b) {
+  const sum = a + b; return sum;  // 2 statements on 1 line
+}
+
+// Statement Coverage: 2/2 = 100%
+// LOC Coverage: 1/1 = 100%`}
+									</pre>
+								</div>
+							</div>
+
+							<div>
+								<h3 className="text-lg font-semibold mb-2">Branch Coverage</h3>
+								<p className="text-muted-foreground mb-3">
+									Branch Coverage measures whether both the true and false branches of conditional
+									statements (if/else, ternary operators, etc.) were executed. This is more rigorous
+									than statement coverage because it ensures all decision paths are tested.
+								</p>
+								<div className="bg-muted/50 p-4 rounded-lg border border-border">
+									<p className="text-sm font-medium mb-2">Example:</p>
+									<pre className="text-xs font-mono bg-background p-3 rounded overflow-x-auto">
+										{`function check(value) {
+  if (value > 0) {      // Branch 1: true path
+    return "positive";  // Covered
+  } else {              // Branch 2: false path
+    return "non-positive"; // Not covered
+  }
+}
+
+// Statement Coverage: 3/4 = 75%
+// Branch Coverage: 1/2 = 50%`}
+									</pre>
+								</div>
+							</div>
+
+							<div>
+								<h3 className="text-lg font-semibold mb-2">Function Coverage</h3>
+								<p className="text-muted-foreground mb-3">
+									Function Coverage measures which functions were called at least once during
+									testing. It helps identify completely untested functions.
+								</p>
+							</div>
+
+							<div className="bg-warning-muted/20 border border-warning/30 p-4 rounded-lg">
+								<p className="text-sm font-medium mb-2">⚠️ Important Limitations</p>
+								<p className="text-sm text-muted-foreground">
+									Even 100% coverage doesn't guarantee your code is bug-free. Coverage only tells
+									you that code was executed, not that it was tested correctly. Always combine
+									coverage metrics with good test practices like testing edge cases, error
+									conditions, and expected behavior.
+								</p>
+							</div>
+						</CardContent>
+					</Card>
+				</TabsContent>
+			</Tabs>
 		</div>
 	);
 }
