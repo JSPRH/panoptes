@@ -412,10 +412,14 @@ export default class PanoptesReporter implements Reporter {
 				if (statementMap && typeof statementMap === "object") {
 					const lineHits = new Map<number, number>();
 					for (const [id, loc] of Object.entries(statementMap)) {
-						if (!loc?.start?.line) continue;
+						if (!loc?.start?.line || !loc?.end?.line) continue;
 						const count = statementCounts[id] ?? 0;
-						const line = loc.start.line;
-						lineHits.set(line, (lineHits.get(line) ?? 0) + count);
+						const startLine = loc.start.line;
+						const endLine = loc.end.line;
+						// Mark all lines from start to end (inclusive) as covered/uncovered
+						for (let line = startLine; line <= endLine; line++) {
+							lineHits.set(line, (lineHits.get(line) ?? 0) + count);
+						}
 					}
 					linesTotal = lineHits.size;
 					for (const [line, hits] of Array.from(lineHits.entries())) {
