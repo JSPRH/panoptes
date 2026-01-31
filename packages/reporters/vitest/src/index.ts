@@ -107,8 +107,8 @@ export default class PanoptesReporter implements Reporter {
 
 	// biome-ignore lint/suspicious/noExplicitAny: Vitest reporter interface doesn't provide strict types
 	onTestCaseResult(test: any) {
-		const filePath = test.file?.name || test.filepath || "unknown";
-		const line = test.file?.line ?? test.location?.line;
+		const filePath = test.file?.name || test.filepath || test.task?.file?.filepath || "unknown";
+		const line = test.file?.line ?? test.location?.line ?? test.task?.location?.line;
 		const codeSnippet = this.readCodeSnippet(filePath, line);
 		const diagnostic = this.getDiagnostic(test);
 		const artifactsList = this.getArtifacts(test);
@@ -119,31 +119,44 @@ export default class PanoptesReporter implements Reporter {
 			...(artifactsList && artifactsList.length > 0 && { artifacts: artifactsList }),
 		};
 
+		// Vitest provides status in test.task.result.state for completed tests
+		// For skipped/todo tests, test.task.mode is 'skip' or 'todo' and result is undefined
+		const task = test.task;
+		let rawStatus: string;
+		if (task?.mode === "skip" || task?.mode === "todo") {
+			rawStatus = "skipped";
+		} else if (task?.result?.state) {
+			rawStatus = task.result.state; // 'pass', 'fail', etc.
+		} else {
+			rawStatus = test.status || test.state || "unknown";
+		}
+
 		const testResult: TestResult = {
-			name: test.name || test.title || "Unknown test",
+			name: test.name || test.title || task?.name || "Unknown test",
 			file: filePath,
 			line,
-			column: test.file?.column ?? test.location?.column,
-			status: this.mapStatus(test.status),
-			duration: test.duration || 0,
-			error: test.error?.message,
-			errorDetails: test.error?.stack,
-			retries: test.retryCount,
-			suite: test.suite?.name,
-			tags: test.meta?.tags,
+			column: test.file?.column ?? test.location?.column ?? task?.location?.column,
+			status: this.mapStatus(rawStatus),
+			duration: task?.result?.duration ?? test.duration ?? 0,
+			error: task?.result?.errors?.[0]?.message ?? test.error?.message,
+			errorDetails: task?.result?.errors?.[0]?.stack ?? test.error?.stack,
+			retries: task?.result?.retryCount ?? test.retryCount,
+			suite: task?.suite?.name ?? test.suite?.name,
+			tags: task?.meta?.tags ?? test.meta?.tags,
 			codeSnippet,
 			metadata,
 		};
 
 		this.tests.push(testResult);
 
-		// Track suites
-		if (test.suite) {
-			const suiteKey = test.suite.name || test.file?.name || "unknown";
+		// Track suites - use task.suite if available, otherwise fall back to test.suite
+		const suite = task?.suite ?? test.suite;
+		if (suite) {
+			const suiteKey = suite.name || filePath;
 			if (!this.suites.has(suiteKey)) {
 				this.suites.set(suiteKey, {
-					name: test.suite.name || suiteKey,
-					file: test.file?.name || test.filepath || "unknown",
+					name: suite.name || suiteKey,
+					file: filePath,
 					tests: [],
 				});
 			}
@@ -229,7 +242,7 @@ export default class PanoptesReporter implements Reporter {
 	}
 
 	private mapStatus(status: string): "passed" | "failed" | "skipped" | "running" {
-		switch (status) {
+		switch (status?.toLowerCase()) {
 			case "passed":
 			case "pass":
 				return "passed";
@@ -238,6 +251,7 @@ export default class PanoptesReporter implements Reporter {
 				return "failed";
 			case "skipped":
 			case "skip":
+			case "todo": // Vitest uses 'todo' mode for todo tests, treat as skipped
 				return "skipped";
 			default:
 				return "running";
