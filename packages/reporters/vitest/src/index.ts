@@ -207,72 +207,84 @@ export default class PanoptesReporter implements Reporter {
 			};
 		});
 
-		// Use coverage data captured in onCoverage hook, or try reading with retry as fallback
-		let coverage = this.coverageData;
-		if (!coverage) {
-			// Fallback: retry reading coverage file with small delays (file might be written asynchronously)
-			for (let attempt = 0; attempt < 5; attempt++) {
-				coverage = this.readCoverage();
-				if (coverage) break;
-				// Wait a bit before retrying (coverage file might still be writing)
-				if (attempt < 4) {
-					await new Promise((resolve) => setTimeout(resolve, 100));
+		// Defer coverage reading and API call - Vitest writes coverage files asynchronously after reporters finish
+		// Use setImmediate to wait until after the current event loop, then retry reading coverage
+		setImmediate(async () => {
+			// Use coverage data captured in onCoverage hook, or try reading with retry as fallback
+			let coverage = this.coverageData;
+			if (!coverage) {
+				// Retry reading coverage file with delays (Vitest writes coverage asynchronously after reporters)
+				for (let attempt = 0; attempt < 10; attempt++) {
+					coverage = this.readCoverage();
+					if (coverage) break;
+					// Wait progressively longer (coverage file might still be writing)
+					if (attempt < 9) {
+						const delay = Math.min(100 * (attempt + 1), 500); // 100ms, 200ms, ..., up to 500ms
+						await new Promise((resolve) => setTimeout(resolve, delay));
+					}
+				}
+				if (coverage) {
+					const fileCount = Object.keys(coverage.files || {}).length;
+					console.log(
+						`[Panoptes] Coverage data found (deferred read): ${fileCount} files, ${coverage.summary?.lines?.covered || 0}/${coverage.summary?.lines?.total || 0} lines covered`
+					);
+				} else {
+					const coveragePath =
+						process.env.PANOPTES_COVERAGE_PATH ??
+						path.resolve(process.cwd(), DEFAULT_COVERAGE_PATH);
+					console.log(
+						`[Panoptes] No coverage data found after retries. Expected file: ${coveragePath}`
+					);
 				}
 			}
-			if (coverage) {
-				const fileCount = Object.keys(coverage.files || {}).length;
-				console.log(
-					`[Panoptes] Coverage data found (retry read): ${fileCount} files, ${coverage.summary?.lines?.covered || 0}/${coverage.summary?.lines?.total || 0} lines covered`
-				);
-			} else {
-				console.log("[Panoptes] No coverage data found after retries");
+
+			const testRun: TestRunIngest = {
+				projectName: this.options.projectName,
+				framework: "vitest",
+				testType: "unit", // Vitest is typically unit tests, but could be configured
+				startedAt: this.startTime,
+				completedAt: endTime,
+				duration,
+				totalTests: this.tests.length,
+				passedTests,
+				failedTests,
+				skippedTests,
+				environment: this.options.environment,
+				ci: this.options.ci,
+				commitSha: getCommitSha(),
+				reporterVersion: getReporterVersion(),
+				tests: this.tests,
+				suites: suiteData,
+				...(coverage && { coverage }),
+			};
+
+			if (!this.options.convexUrl) {
+				console.warn("[Panoptes] CONVEX_URL not set. Test results will not be sent.");
+				return;
 			}
-		}
 
-		const testRun: TestRunIngest = {
-			projectName: this.options.projectName,
-			framework: "vitest",
-			testType: "unit", // Vitest is typically unit tests, but could be configured
-			startedAt: this.startTime,
-			completedAt: endTime,
-			duration,
-			totalTests: this.tests.length,
-			passedTests,
-			failedTests,
-			skippedTests,
-			environment: this.options.environment,
-			ci: this.options.ci,
-			commitSha: getCommitSha(),
-			reporterVersion: getReporterVersion(),
-			tests: this.tests,
-			suites: suiteData,
-			...(coverage && { coverage }),
-		};
+			try {
+				const response = await fetch(`${this.options.convexUrl}/http/ingestTestRunHttp`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify(testRun),
+				});
 
-		if (!this.options.convexUrl) {
-			console.warn("[Panoptes] CONVEX_URL not set. Test results will not be sent.");
-			return;
-		}
-
-		try {
-			const response = await fetch(`${this.options.convexUrl}/http/ingestTestRunHttp`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(testRun),
-			});
-
-			if (!response.ok) {
-				const error = await response.text();
-				console.error(`[Panoptes] Failed to send test results: ${error}`);
-			} else {
-				const result = (await response.json()) as { testRunId?: string };
-				console.log(`[Panoptes] Test results sent successfully. Test Run ID: ${result.testRunId}`);
+				if (!response.ok) {
+					const error = await response.text();
+					console.error(`[Panoptes] Failed to send test results: ${error}`);
+				} else {
+					const result = (await response.json()) as { testRunId?: string };
+					console.log(
+						`[Panoptes] Test results sent successfully. Test Run ID: ${result.testRunId}`
+					);
+				}
+			} catch (error) {
+				console.error("[Panoptes] Error sending test results:", error);
 			}
-		} catch (error) {
-			console.error("[Panoptes] Error sending test results:", error);
-		}
+		});
 	}
 
 	private mapStatus(status: string): "passed" | "failed" | "skipped" | "running" {
