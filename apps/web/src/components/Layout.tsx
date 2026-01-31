@@ -5,48 +5,87 @@ interface LayoutProps {
 	children: ReactNode;
 }
 
+const navItems = [
+	{ path: "/", label: "Dashboard" },
+	{ path: "/pyramid", label: "Test Pyramid" },
+	{ path: "/explorer", label: "Test Explorer" },
+	{ path: "/code-lens", label: "Code Lens" },
+	{ path: "/anomalies", label: "Anomalies" },
+	{ path: "/ci-runs", label: "CI Runs" },
+	{ path: "/pull-requests", label: "Pull Requests" },
+];
+
+function NavLinks({
+	currentPath,
+	variant = "sidebar",
+}: {
+	currentPath: string;
+	variant?: "sidebar" | "top";
+}) {
+	const isTop = variant === "top";
+	return (
+		<>
+			{navItems.map((item) => {
+				const isActive = currentPath === item.path;
+				const activeClass = isActive
+					? isTop
+						? "bg-primary/10 text-primary"
+						: "bg-primary/10 text-primary border-l-2 border-primary -ml-px pl-[11px]"
+					: "text-muted-foreground hover:text-foreground hover:bg-muted/60";
+				return (
+					<Link
+						key={item.path}
+						to={item.path}
+						className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isTop ? "inline-block" : "block"} ${activeClass}`}
+					>
+						{item.label}
+					</Link>
+				);
+			})}
+		</>
+	);
+}
+
 export default function Layout({ children }: LayoutProps) {
 	const location = useLocation();
 
-	const navItems = [
-		{ path: "/", label: "Dashboard" },
-		{ path: "/pyramid", label: "Test Pyramid" },
-		{ path: "/explorer", label: "Test Explorer" },
-		{ path: "/code-lens", label: "Code Lens" },
-		{ path: "/anomalies", label: "Anomalies" },
-		{ path: "/ci-runs", label: "CI Runs" },
-		{ path: "/pull-requests", label: "Pull Requests" },
-	];
-
 	return (
-		<div className="min-h-screen bg-background">
-			<nav className="border-b border-border">
-				<div className="container mx-auto px-4 py-4">
-					<div className="flex items-center justify-between">
-						<div className="flex items-center space-x-8">
-							<Link to="/" className="text-xl font-bold">
-								Panoptes
-							</Link>
-							<div className="flex space-x-4">
-								{navItems.map((item) => (
-									<Link
-										key={item.path}
-										to={item.path}
-										className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-											location.pathname === item.path
-												? "bg-primary text-primary-foreground"
-												: "text-muted-foreground hover:text-foreground hover:bg-accent"
-										}`}
-									>
-										{item.label}
-									</Link>
-								))}
-							</div>
-						</div>
-					</div>
+		<div className="min-h-screen bg-background flex flex-col lg:flex-row">
+			{/* Top bar on small screens */}
+			<header className="lg:hidden border-b border-border bg-card flex-shrink-0">
+				<div className="px-4 py-4">
+					<Link
+						to="/"
+						className="font-heading font-semibold text-lg text-foreground hover:text-primary transition-colors"
+					>
+						Panoptes
+					</Link>
+					<nav className="mt-3 flex flex-wrap gap-1">
+						<NavLinks currentPath={location.pathname} variant="top" />
+					</nav>
 				</div>
-			</nav>
-			<main className="container mx-auto px-4 py-8">{children}</main>
+			</header>
+
+			{/* Sidebar on lg+ */}
+			<aside className="hidden lg:flex lg:w-56 lg:min-w-[14rem] border-r border-border bg-card flex-shrink-0">
+				<div className="sticky top-0 flex flex-col w-full min-h-screen">
+					<Link
+						to="/"
+						className="px-4 py-5 border-b border-border font-heading font-semibold text-lg text-foreground hover:text-primary transition-colors"
+					>
+						Panoptes
+					</Link>
+					<nav className="flex-1 overflow-y-auto py-3">
+						<div className="space-y-0.5 px-3">
+							<NavLinks currentPath={location.pathname} variant="sidebar" />
+						</div>
+					</nav>
+				</div>
+			</aside>
+
+			<main className="flex-1 min-w-0">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</div>
+			</main>
 		</div>
 	);
 }
