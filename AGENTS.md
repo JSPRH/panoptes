@@ -298,6 +298,40 @@ git commit -m "fix: various fixes"
 5. **Test changes** - Verify everything works
 6. **Update examples** - Ensure examples still work
 
+## External Service Integration
+
+### MCP (Model Context Protocol) Validation
+
+**CRITICAL: When making changes that affect external services (Vercel, Convex, PostHog, etc.), ALWAYS validate via MCP before assuming configuration is correct.**
+
+1. **Before making changes**: Use MCP tools to check current configuration
+   - For Vercel: Use `list_projects`, `get_project`, `get_deployment` to verify project settings
+   - For Convex: Use Convex MCP tools to verify schema and functions
+   - For other services: Use their respective MCP tools
+
+2. **After making changes**: Validate the changes via MCP to ensure they're correct
+   - Don't assume configuration files are in the right place - verify via MCP
+   - Check that deployment settings match your expectations
+   - Verify environment variables and configuration are correct
+
+3. **Examples**:
+   - Changing Vercel config? Use `get_project` to verify root directory, build settings, etc.
+   - Updating Convex schema? Use Convex MCP to verify the schema is correct
+   - Modifying deployment settings? Check via MCP before and after
+
+**Never skip MCP validation** - it's the source of truth for external service configuration.
+
+### Committing Changes
+
+**MANDATORY: Always commit changes after making them, unless explicitly told not to.**
+
+1. **After making changes**: Stage and commit them immediately
+2. **Use atomic commits**: One logical change per commit (see Git Practices section)
+3. **Write clear commit messages**: Follow the commit message format
+4. **Verify pre-commit hook passes**: The hook runs automatically, but ensure it passes
+
+**Never forget to commit** - uncommitted changes don't help anyone and can be lost.
+
 ## Common Tasks
 
 ### Adding a New Package
