@@ -127,11 +127,12 @@
 
 ## Publishing reporter packages
 
-The reporters and shared types are published to [GitHub Packages](https://github.com/JustinMiehle?tab=packages) under the `@justinmiehle` scope:
+The reporters and shared types are published under the `@justinmiehle` scope to:
 
-- `@justinmiehle/shared` (required by both reporters)
-- `@justinmiehle/reporter-playwright`
-- `@justinmiehle/reporter-vitest`
+- **[GitHub Packages](https://github.com/JustinMiehle?tab=packages)** (workflow: "Publish reporters to GitHub Packages")
+- **npm** (workflow: "Publish reporters to npm") — public registry, no auth needed to install
+
+Packages: `@justinmiehle/shared`, `@justinmiehle/reporter-playwright`, `@justinmiehle/reporter-vitest`.
 
 ### Publishing (manual)
 
@@ -161,6 +162,18 @@ GitHub Packages **defaults personal-account packages to private**. Even with `np
 
 After that, anyone can install the packages (with `.npmrc` and auth as described below). You cannot change a package back to private after making it public.
 
+### Publishing to npm (CI)
+
+The **Publish reporters to npm** workflow runs on version tags (`v*`) and on manual trigger. It publishes to the public npm registry so consumers can install without GitHub auth.
+
+**One-time setup:** Add an **NPM_TOKEN** secret to the repo:
+
+1. Create an [npm access token](https://www.npmjs.com/settings/~/tokens) (Automation or Publish).
+2. In the repo: **Settings → Secrets and variables → Actions → New repository secret**.
+3. Name: `NPM_TOKEN`, Value: your npm token.
+
+After that, pushing a version tag (e.g. `v0.0.6`) or running the workflow manually will publish to npm. Install from npm with `bun add -d @justinmiehle/reporter-playwright` (no `.npmrc` needed for npm).
+
 ### Using in another GitHub Action
 
 In the repo that uses the reporters, add before installing dependencies:
@@ -183,6 +196,8 @@ Add an `.npmrc` in that repo (or a step that writes it):
 ```
 
 Then add `@justinmiehle/reporter-playwright` or `@justinmiehle/reporter-vitest` to that repo’s dependencies and use the reporter in your test config.
+
+**From npm:** If you use the npm-published packages, no registry config or token is needed — just add the dependency and run install.
 
 ## Troubleshooting
 
