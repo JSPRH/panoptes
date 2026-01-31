@@ -254,12 +254,22 @@ export const ingestTestRun = mutation({
 		for (const test of args.tests) {
 			// If test run is complete but test has "running" status, convert to "failed"
 			// This ensures tests don't stay in "running" state forever
+			// ALWAYS convert "running" to "failed" if completedAt is set (most reliable indicator)
 			let finalStatus = test.status;
-			if (runIsActuallyComplete && test.status === "running") {
-				finalStatus = "failed";
-				console.warn(
-					`[ingestTestRun] Test "${test.name}" has "running" status but run is complete (completedAt=${args.completedAt}, allFinal=${allTestsHaveFinalStatus}). Converting to "failed".`
-				);
+			if (test.status === "running") {
+				// If completedAt is set, the run is definitely complete - convert to failed
+				if (args.completedAt !== undefined) {
+					finalStatus = "failed";
+					console.warn(
+						`[ingestTestRun] Test "${test.name}" has "running" status but completedAt is set (${args.completedAt}). Converting to "failed".`
+					);
+				} else if (runIsActuallyComplete) {
+					// Fallback: if all tests have final status, also convert
+					finalStatus = "failed";
+					console.warn(
+						`[ingestTestRun] Test "${test.name}" has "running" status but run is complete (allFinal=${allTestsHaveFinalStatus}). Converting to "failed".`
+					);
+				}
 			}
 
 			const testId = await ctx.db.insert("tests", {
