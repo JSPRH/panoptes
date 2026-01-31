@@ -324,4 +324,27 @@ export default defineSchema({
 	})
 		.index("by_project_type_key", ["projectId", "testType", "definitionKey"])
 		.index("by_project", ["projectId"]),
+
+	testSuggestions: defineTable({
+		projectId: v.id("projects"),
+		file: v.string(),
+		commitSha: v.string(), // For cache invalidation
+		suggestions: v.array(
+			v.object({
+				title: v.string(),
+				description: v.string(),
+				value: v.number(), // 0-1 score
+				difficulty: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+				estimatedRuntime: v.optional(v.number()), // milliseconds
+				testType: v.union(v.literal("unit"), v.literal("integration"), v.literal("e2e")),
+				uncoveredLines: v.array(v.number()),
+				prompt: v.string(), // Full prompt for Cursor
+				cursorDeeplink: v.string(),
+			})
+		),
+		generatedAt: v.number(),
+		model: v.string(),
+	})
+		.index("by_file_commit", ["file", "commitSha"])
+		.index("by_project", ["projectId"]),
 });

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import TestSuggestions from "../components/TestSuggestions";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -48,6 +49,7 @@ export default function FileCoverageDetail() {
 		filePath ? { file: decodeURIComponent(filePath) } : "skip"
 	);
 	const getFileContent = useAction(api.github.getFileContent);
+	const generateTestSuggestions = useAction(api.testSuggestionsActions.generateTestSuggestions);
 
 	const [fileLines, setFileLines] = useState<string[]>([]);
 	const [loadingContent, setLoadingContent] = useState(false);
@@ -55,6 +57,8 @@ export default function FileCoverageDetail() {
 	const [activeTab, setActiveTab] = useState("coverage");
 	const [showInfo, setShowInfo] = useState(false);
 	const [coverageViewType, setCoverageViewType] = useState<"line" | "statement">("line");
+	const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+	const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
 
 	const fileCoverage = fileCoverageData
 		? {
@@ -150,6 +154,53 @@ export default function FileCoverageDetail() {
 		return generateCursorDeeplink(decodeURIComponent(filePath), uncoveredLines);
 	}, [filePath, lineDetails]);
 
+	// Get test suggestions (cached)
+	const testSuggestions = useQuery(
+		api.tests.getTestSuggestions,
+		fileCoverage && filePath
+			? {
+					file: decodeURIComponent(filePath),
+					projectId: fileCoverage.projectId,
+					commitSha: fileCoverageData?.testRun?.commitSha,
+				}
+			: "skip"
+	);
+
+	// Generate suggestions when AI Suggestions tab is opened and no cache exists
+	useEffect(() => {
+		if (
+			activeTab === "suggestions" &&
+			!testSuggestions &&
+			!loadingSuggestions &&
+			fileCoverage &&
+			filePath
+		) {
+			setLoadingSuggestions(true);
+			setSuggestionsError(null);
+			generateTestSuggestions({
+				file: decodeURIComponent(filePath),
+				projectId: fileCoverage.projectId,
+				commitSha: fileCoverageData?.testRun?.commitSha,
+			})
+				.catch((error) => {
+					setSuggestionsError(
+						error instanceof Error ? error.message : "Failed to generate test suggestions"
+					);
+				})
+				.finally(() => {
+					setLoadingSuggestions(false);
+				});
+		}
+	}, [
+		activeTab,
+		testSuggestions,
+		loadingSuggestions,
+		fileCoverage,
+		filePath,
+		fileCoverageData?.testRun?.commitSha,
+		generateTestSuggestions,
+	]);
+
 	// Fetch file content from GitHub
 	useEffect(() => {
 		if (!fileCoverageData?.projectId || !filePath) return;
@@ -221,8 +272,9 @@ export default function FileCoverageDetail() {
 			<PageHeader title="File Coverage" description={`Coverage details for ${decodedFilePath}`} />
 
 			<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-				<TabsList className="grid w-full max-w-md grid-cols-2">
+				<TabsList className="grid w-full max-w-lg grid-cols-3">
 					<TabsTrigger value="coverage">Coverage</TabsTrigger>
+					<TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
 					<TabsTrigger value="about">About Coverage</TabsTrigger>
 				</TabsList>
 
@@ -415,7 +467,7 @@ export default function FileCoverageDetail() {
 												? statementDetails
 														.filter((s) => !s.covered)
 														.map((stmt) => {
-															const lines = [];
+															const lines: number[] = [];
 															for (let line = stmt.startLine; line <= stmt.endLine; line++) {
 																lines.push(line);
 															}
@@ -511,7 +563,7 @@ export default function FileCoverageDetail() {
 												? statementDetails
 														.filter((s) => !s.covered)
 														.map((stmt) => {
-															const lines = [];
+															const lines: number[] = [];
 															for (let line = stmt.startLine; line <= stmt.endLine; line++) {
 																lines.push(line);
 															}
@@ -568,6 +620,14 @@ export default function FileCoverageDetail() {
 							</CardContent>
 						</Card>
 					)}
+				</TabsContent>
+
+				<TabsContent value="suggestions" className="space-y-6 mt-6">
+					<TestSuggestions
+						suggestions={testSuggestions?.suggestions || []}
+						loading={loadingSuggestions}
+						error={suggestionsError}
+					/>
 				</TabsContent>
 
 				<TabsContent value="about" className="space-y-6 mt-6">

@@ -52,12 +52,16 @@ describe("PullRequests", () => {
 			_creationTime: Date.now(),
 			name: "Test Project 1",
 			repository: "owner/repo1",
+			createdAt: Date.now(),
+			updatedAt: Date.now(),
 		},
 		{
 			_id: "project2" as Id<"projects">,
 			_creationTime: Date.now(),
 			name: "Test Project 2",
-			repository: null,
+			repository: undefined,
+			createdAt: Date.now(),
+			updatedAt: Date.now(),
 		},
 	];
 

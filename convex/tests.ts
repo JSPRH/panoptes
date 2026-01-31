@@ -434,7 +434,6 @@ export const getCoverageTree = query({
 
 			// Find the closest run to target time (prefer before, but allow after if needed) with coverage
 			let historicalRunId: Id<"testRuns"> | undefined;
-			let closestRun: Doc<"testRuns"> | undefined;
 			let closestDistance = Number.POSITIVE_INFINITY;
 
 			for (const run of historicalRuns) {
@@ -446,7 +445,6 @@ export const getCoverageTree = query({
 					const distance = Math.abs(run.startedAt - targetTime);
 					if (distance < closestDistance) {
 						closestDistance = distance;
-						closestRun = run;
 						historicalRunId = run._id;
 					}
 				}
@@ -1667,5 +1665,21 @@ export const seedHistoricalCoverage = mutation({
 			createdRuns: createdRuns.length,
 			message: `Created ${createdRuns.length} historical test runs with coverage data`,
 		};
+	},
+});
+
+export const getTestSuggestions = query({
+	args: {
+		file: v.string(),
+		projectId: v.id("projects"),
+		commitSha: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const commitSha = args.commitSha || "latest";
+		const cached = await ctx.db
+			.query("testSuggestions")
+			.withIndex("by_file_commit", (q) => q.eq("file", args.file).eq("commitSha", commitSha))
+			.first();
+		return cached;
 	},
 });
