@@ -166,7 +166,23 @@ After that, anyone can install the packages (with `.npmrc` and auth as described
 
 The **Publish reporters to npm** workflow uses [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (OIDC). No long-lived tokens; GitHub Actions authenticates to npm via short-lived OIDC tokens.
 
-**One-time setup on npmjs.com:** Add a trusted publisher for each package (shared, reporter-playwright, reporter-vitest). The packages must exist on npm first — if they don’t, run the workflow once with an **NPM_TOKEN** secret so the packages are created, then add the trusted publisher and you can remove the token.
+**One-time: publish from local so packages exist on npm.** Then add trusted publishers (below). From the repo root:
+
+1. **Log in to npm** (once):
+   ```bash
+   npm login
+   ```
+   Use your npm username, password, and email (or use 2FA if enabled). Use **`npm publish`** (via `bun run publish:npm`), not `bun publish` — Bun does not use npm’s stored credentials.
+
+2. **Publish all three packages** (order matters: shared first). Run **from the repo root only** — npm ignores workspace package `.npmrc`, so the script temporarily overrides the root `.npmrc` to point `@justinmiehle` at registry.npmjs.org, then restores it.
+   ```bash
+   bun run publish:npm
+   ```
+   (Do not run `npm publish` from inside a package directory — the scope will still use GitHub Packages.)
+
+3. After that, add the trusted publisher for each package on npmjs.com (below). Future publishes can use the GitHub Actions workflow with OIDC (no token).
+
+**One-time setup on npmjs.com:** Add a trusted publisher for each package (shared, reporter-playwright, reporter-vitest). The packages must exist on npm first (use the local publish above).
 
 1. Open [npm](https://www.npmjs.com) → your profile → **Packages** → open **@justinmiehle/shared** (then repeat for **reporter-playwright** and **reporter-vitest**).
 2. **Package settings** → find **Trusted Publisher**.
