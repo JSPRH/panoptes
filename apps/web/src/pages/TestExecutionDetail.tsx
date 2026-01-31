@@ -59,7 +59,7 @@ export default function TestExecutionDetail() {
 		api.testFailureAnalysis.getTestFailureAnalysis,
 		executionId ? { testId: executionId as Id<"tests"> } : "skip"
 	);
-	const analyzeTestFailure = useAction(api.testFailureAnalysis.analyzeTestFailure);
+	const analyzeTestFailure = useAction(api.testFailureAnalysisActions.analyzeTestFailure);
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
 	const [analysisError, setAnalysisError] = useState<string | null>(null);
 

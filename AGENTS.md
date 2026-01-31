@@ -294,8 +294,8 @@ git commit -m "fix: various fixes"
 
 When you make changes to a **published** package (`packages/shared`, `packages/reporters/vitest`, `packages/reporters/playwright`), bump its `version` in `package.json` in the same commit (or same PR) as the change.
 
-- **Patch** (e.g. 0.0.6 → 0.0.7): Backward-compatible fixes, additive types/schemas, new optional fields.
-- **Minor** (e.g. 0.0.7 → 0.1.0): New backward-compatible features.
+- **Patch** (e.g. 0.0.6 → 0.0.9): Backward-compatible fixes, additive types/schemas, new optional fields.
+- **Minor** (e.g. 0.0.9 → 0.1.0): New backward-compatible features.
 - **Major**: Breaking changes (rare before 1.0).
 
 If you bump `packages/shared`, bump the reporter packages that depend on it in the same release. See `.cursor/rules/version-bump.mdc` for the full rule.

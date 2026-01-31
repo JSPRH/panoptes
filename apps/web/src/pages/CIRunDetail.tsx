@@ -295,7 +295,14 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 
 	const handleOpenCursorDeeplink = () => {
 		if (analysis?.analysis?.cursorDeeplink) {
-			window.location.href = analysis.analysis.cursorDeeplink;
+			// Convert cursor:// protocol to web format for better compatibility
+			// cursor://anysphere.cursor-deeplink/prompt?text=... -> https://cursor.com/link/prompt?text=...
+			// Web format works in browsers and redirects to Cursor app if installed
+			const webDeeplink = analysis.analysis.cursorDeeplink.replace(
+				"cursor://anysphere.cursor-deeplink/",
+				"https://cursor.com/link/"
+			);
+			window.open(webDeeplink, "_blank");
 		}
 	};
 
@@ -334,10 +341,15 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 			<CardHeader>
 				<div className="flex items-center justify-between">
 					<CardTitle>AI Failure Analysis</CardTitle>
-					<div className="flex items-center gap-2">
+					<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
 						{analysis?.analysis?.cursorDeeplink && (
-							<Button onClick={handleOpenCursorDeeplink} size="sm" variant="outline">
-								💬 Open in Cursor
+							<Button
+								onClick={handleOpenCursorDeeplink}
+								size="sm"
+								variant="outline"
+								className="flex-1"
+							>
+								💬 Open Prompt in Cursor
 							</Button>
 						)}
 						{analysis?.analysis?.cursorBackgroundAgentData && (
@@ -346,12 +358,13 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 								disabled={isTriggeringAgent || !!analysis?.analysis?.cursorAgentId}
 								size="sm"
 								variant="default"
+								className="flex-1"
 							>
 								{isTriggeringAgent
 									? "Launching..."
 									: analysis?.analysis?.cursorAgentId
 										? "✅ Agent Launched"
-										: "🚀 Launch Cloud Agent"}
+										: "🚀 Launch Automated Agent"}
 							</Button>
 						)}
 						{analysis?.analysis?.cursorAgentUrl && (
@@ -434,20 +447,37 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 							</div>
 						</details>
 						{(analysis.analysis.cursorDeeplink || analysis.analysis.cursorBackgroundAgentData) && (
-							<div>
-								<div className="text-sm font-medium mb-2">Cursor Integration</div>
-								<div className="space-y-2 text-sm text-muted-foreground">
+							<div className="border-t pt-4">
+								<div className="text-sm font-semibold mb-3">Fix with Cursor</div>
+								<div className="space-y-3">
 									{analysis.analysis.cursorDeeplink && (
-										<div>
-											<strong>Open in Cursor:</strong> Click "Open in Cursor" above to open this
-											prompt in Cursor for manual review and editing.
+										<div className="p-3 bg-muted/50 rounded-lg border border-border">
+											<div className="flex items-start gap-2 mb-1">
+												<span className="text-lg">💬</span>
+												<div className="flex-1">
+													<div className="text-sm font-medium mb-1">Manual Fix (Deeplink)</div>
+													<div className="text-xs text-muted-foreground">
+														Opens the prompt in Cursor for you to review and fix manually. You'll
+														have full control over the changes.
+													</div>
+												</div>
+											</div>
 										</div>
 									)}
 									{analysis.analysis.cursorBackgroundAgentData && (
-										<div>
-											<strong>Launch Cloud Agent:</strong> Click "Launch Cloud Agent" above to
-											automatically create a pull request with fixes. The agent will work in the
-											background.
+										<div className="p-3 bg-muted/50 rounded-lg border border-border">
+											<div className="flex items-start gap-2 mb-1">
+												<span className="text-lg">🚀</span>
+												<div className="flex-1">
+													<div className="text-sm font-medium mb-1">
+														Automated Fix (Cloud Agent)
+													</div>
+													<div className="text-xs text-muted-foreground">
+														Launches a background agent that automatically creates a pull request
+														with fixes. The agent works independently and you can monitor progress.
+													</div>
+												</div>
+											</div>
 										</div>
 									)}
 								</div>

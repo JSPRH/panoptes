@@ -15,6 +15,8 @@ import type * as ciAnalysisActions from "../ciAnalysisActions.js";
 import type * as github from "../github.js";
 import type * as http from "../http.js";
 import type * as scheduled from "../scheduled.js";
+import type * as testFailureAnalysis from "../testFailureAnalysis.js";
+import type * as testFailureAnalysisActions from "../testFailureAnalysisActions.js";
 import type * as testSuggestions from "../testSuggestions.js";
 import type * as testSuggestionsActions from "../testSuggestionsActions.js";
 import type * as tests from "../tests.js";
@@ -33,6 +35,8 @@ declare const fullApi: ApiFromModules<{
   github: typeof github;
   http: typeof http;
   scheduled: typeof scheduled;
+  testFailureAnalysis: typeof testFailureAnalysis;
+  testFailureAnalysisActions: typeof testFailureAnalysisActions;
   testSuggestions: typeof testSuggestions;
   testSuggestionsActions: typeof testSuggestionsActions;
   tests: typeof tests;

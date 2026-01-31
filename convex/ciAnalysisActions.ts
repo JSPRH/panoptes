@@ -461,7 +461,7 @@ export const triggerCursorCloudAgent = action({
 			cursorAgentId: string;
 			cursorAgentUrl: string;
 		} = {
-			title: analysis.analysis.title,
+			title: analysis.analysis.title || "CI Failure Analysis",
 			summary: analysis.analysis.summary,
 			rootCause: analysis.analysis.rootCause,
 			proposedFix: analysis.analysis.proposedFix,
