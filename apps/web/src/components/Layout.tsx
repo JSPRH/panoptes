@@ -14,6 +14,8 @@ export default function Layout({ children }: LayoutProps) {
 		{ path: "/explorer", label: "Test Explorer" },
 		{ path: "/code-lens", label: "Code Lens" },
 		{ path: "/anomalies", label: "Anomalies" },
+		{ path: "/ci-runs", label: "CI Runs" },
+		{ path: "/pull-requests", label: "Pull Requests" },
 	];
 
 	return (

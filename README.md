@@ -7,6 +7,8 @@ A test visualization platform that ingests test results from multiple frameworks
 - **Frontend**: Vite + React + TypeScript - Modern UI with shadcn/ui
 - **Backend**: Convex - Real-time database, backend functions, and HTTP actions
 - **Reporters**: Custom reporters for Vitest and Playwright that send directly to Convex
+- **GitHub Integration**: Fetch CI runs, PRs, and code snippets from GitHub
+- **Cloud Agents**: Trigger Cursor Cloud Agents via GitHub Actions or UI
 - **Linting**: Biome - Fast linter and formatter
 
 ## Getting Started
@@ -87,6 +89,17 @@ cd packages/cli
 bun run build
 bun run src/index.ts ingest -f test-results.json -c https://your-deployment.convex.cloud -p my-project
 ```
+
+## GitHub Integration
+
+Panoptes can integrate with GitHub to:
+- View CI runs from GitHub Actions
+- Display open pull requests
+- Show code snippets for tests
+- Link test runs to commits
+- Trigger Cursor Cloud Agents
+
+See [GITHUB_INTEGRATION.md](GITHUB_INTEGRATION.md) for detailed setup instructions.
 
 ## Project Structure
 

@@ -41,6 +41,23 @@
    ```bash
    VITE_CONVEX_URL=https://xxxxx.convex.cloud  # Same URL from convex/.env.local
    ```
+
+4. **Configure GitHub Integration (Optional)**:
+   
+   To enable GitHub integration (CI runs, PRs, code snippets):
+   
+   a. Create a GitHub Personal Access Token with `repo` and `actions:read` permissions
+   
+   b. Add it to Convex secrets:
+      - Go to Convex Dashboard → Settings → Environment Variables
+      - Add secret: `GITHUB_ACCESS_TOKEN_STORYBOOK`
+      - Paste your GitHub token
+   
+   c. Configure project repository:
+      - In Panoptes UI, set the repository URL for your project
+      - Format: `https://github.com/owner/repo` or `owner/repo`
+   
+   See [GITHUB_INTEGRATION.md](GITHUB_INTEGRATION.md) for detailed instructions.
    
    **Important**: Keep `bun run dev:convex` (or `bun run dev` from the convex directory) running in a terminal - it watches for changes and generates types.
 
@@ -127,3 +144,13 @@ Make sure:
 2. Check that `VITE_CONVEX_URL` is set in `apps/web/.env`
 3. Verify test reporters are configured with the correct `CONVEX_URL`
 4. Check browser console for errors
+
+### GitHub integration not working
+
+1. Verify `GITHUB_ACCESS_TOKEN_STORYBOOK` is set in Convex secrets
+2. Check that project has a repository URL configured
+3. Ensure token has correct permissions (`repo`, `actions:read`)
+4. Try clicking "Sync GitHub Data" button on CI Runs or Pull Requests page
+5. Check browser console for API errors
+
+See [GITHUB_INTEGRATION.md](GITHUB_INTEGRATION.md) for troubleshooting.

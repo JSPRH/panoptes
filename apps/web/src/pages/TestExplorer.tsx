@@ -1,12 +1,14 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
-import type { Doc } from "@convex/_generated/dataModel";
-import { useMutation, usePaginatedQuery } from "convex/react";
+import type { Doc, Id } from "@convex/_generated/dataModel";
+import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
+import CodeSnippet from "../components/CodeSnippet";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 
 type Test = Doc<"tests">;
+type Project = Doc<"projects">;
 
 const ITEMS_PER_PAGE = 20;
 const PAGINATION_PAGE_SIZE = 100; // Load 100 tests per page from Convex
@@ -15,24 +17,98 @@ export default function TestExplorer() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [statusFilter, setStatusFilter] = useState<string>("all");
 	const [currentPage, setCurrentPage] = useState(1);
+	const [expandedTestId, setExpandedTestId] = useState<Id<"tests"> | null>(null);
 
 	const {
 		results: tests,
 		status,
 		loadMore,
-	} = usePaginatedQuery(api.tests.getTestsPaginated, {}, { initialNumItems: PAGINATION_PAGE_SIZE });
+	} = usePaginatedQuery(
+		api.tests.getTestsPaginated,
+		{
+			status:
+				statusFilter === "all"
+					? undefined
+					: (statusFilter as "passed" | "failed" | "skipped" | "running" | undefined),
+			searchQuery: searchQuery.trim() || undefined,
+		},
+		{ initialNumItems: PAGINATION_PAGE_SIZE }
+	);
 	const seedFailingTest = useMutation(api.tests.seedFailingTest);
+	const getCodeSnippet = useAction(api.github.getCodeSnippet);
+	const storeCodeSnippet = useMutation(api.github.storeCodeSnippet);
+	const projects = useQuery(api.tests.getProjects);
 
-	const filteredTests = useMemo(() => {
-		if (!tests) return [];
-		return tests.filter((test: Test) => {
-			const matchesSearch =
-				test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				test.file.toLowerCase().includes(searchQuery.toLowerCase());
-			const matchesStatus = statusFilter === "all" || test.status === statusFilter;
-			return matchesSearch && matchesStatus;
-		});
-	}, [tests, searchQuery, statusFilter]);
+	// Get project for the test to find repository
+	const getProjectForTest = (test: Test): Project | undefined => {
+		return projects?.find((p) => p._id === test.projectId);
+	};
+
+	// Query for the expanded test's code snippet
+	const expandedCodeSnippet = useQuery(
+		api.github.getCodeSnippetForTest,
+		expandedTestId ? { testId: expandedTestId as Id<"tests"> } : "skip"
+	);
+
+	const handleViewCode = async (test: Test) => {
+		if (expandedTestId === test._id) {
+			setExpandedTestId(null);
+			return;
+		}
+
+		setExpandedTestId(test._id as Id<"tests">);
+
+		// If we don't have a cached snippet, fetch it
+		if (!expandedCodeSnippet) {
+			const project = getProjectForTest(test);
+			if (!project?.repository || !test.line) {
+				return;
+			}
+
+			try {
+				const snippet = await getCodeSnippet({
+					projectId: project._id,
+					file: test.file,
+					line: test.line,
+					contextLines: 10,
+				});
+
+				// Store snippet in database
+				await storeCodeSnippet({
+					testId: test._id,
+					file: test.file,
+					startLine: snippet.startLine,
+					endLine: snippet.endLine,
+					content: snippet.content,
+					language: snippet.language,
+				});
+			} catch (error) {
+				console.error("Failed to fetch code snippet:", error);
+			}
+		}
+	};
+
+	const handleTriggerCloudAgent = (test: Test) => {
+		const project = getProjectForTest(test);
+		if (!project?.repository) {
+			alert("Project repository not configured. Cannot trigger cloud agent.");
+			return;
+		}
+
+		// For now, show instructions. In the future, this could call an API
+		const prompt = `Investigate and fix the failing test "${test.name}" in file ${test.file}${test.line ? ` at line ${test.line}` : ""}. Error: ${test.error || "Test failed"}.`;
+		const instructions = `To trigger a Cursor Cloud Agent for this test:
+
+1. Go to your repository: ${project.repository}
+2. Use the GitHub Action workflow (if configured) or
+3. Use Cursor CLI: agent -p "${prompt}"
+
+Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
+		alert(instructions);
+	};
+
+	// Tests are already filtered server-side, so use them directly
+	const filteredTests = tests || [];
 
 	const totalPages = Math.ceil((filteredTests?.length || 0) / ITEMS_PER_PAGE);
 	const paginatedTests = useMemo(() => {
@@ -126,11 +202,9 @@ export default function TestExplorer() {
 				<CardHeader>
 					<CardTitle>Tests</CardTitle>
 					<CardDescription>
-						{filteredTests?.length || 0} test
-						{filteredTests?.length !== 1 ? "s" : ""} found
-						{status === "CanLoadMore" && (
-							<> (loaded {tests?.length || 0} of many - load more to see all)</>
-						)}
+						{status === "CanLoadMore" || status === "LoadingMore" || status === "LoadingFirstPage"
+							? `Loading tests... (${filteredTests.length} loaded so far)`
+							: `${filteredTests.length} test${filteredTests.length !== 1 ? "s" : ""} found`}
 						{filteredTests && filteredTests.length > ITEMS_PER_PAGE && (
 							<>
 								{" "}
@@ -145,46 +219,99 @@ export default function TestExplorer() {
 					{paginatedTests && paginatedTests.length > 0 ? (
 						<>
 							<div className="space-y-2">
-								{paginatedTests.map((test: Test) => (
-									<div
-										key={test._id}
-										className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
-									>
-										<div className="flex-1">
-											<div className="font-medium">{test.name}</div>
-											<div className="text-sm text-muted-foreground">{test.file}</div>
-											{test.suite && (
-												<div className="text-xs text-muted-foreground mt-1">
-													Suite: {test.suite}
+								{paginatedTests.map((test: Test) => {
+									const project = getProjectForTest(test);
+									const showCodeSnippet = expandedTestId === test._id;
+									const codeSnippet = showCodeSnippet ? expandedCodeSnippet : null;
+
+									return (
+										<div key={test._id}>
+											<div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors">
+												<div className="flex-1">
+													<div className="font-medium">{test.name}</div>
+													<div className="text-sm text-muted-foreground">
+														{test.file}
+														{test.line && `:${test.line}`}
+													</div>
+													{test.suite && (
+														<div className="text-xs text-muted-foreground mt-1">
+															Suite: {test.suite}
+														</div>
+													)}
+													{project?.repository && (
+														<a
+															href={`${project.repository}/blob/main/${test.file}${test.line ? `#L${test.line}` : ""}`}
+															target="_blank"
+															rel="noopener noreferrer"
+															className="text-xs text-blue-600 hover:text-blue-800 underline mt-1"
+														>
+															View in GitHub
+														</a>
+													)}
+												</div>
+												<div className="flex items-center gap-2">
+													<div className="text-sm text-muted-foreground">{test.duration}ms</div>
+													<div
+														className={`px-2 py-1 rounded text-xs font-medium ${
+															test.status === "passed"
+																? "bg-green-100 text-green-800"
+																: test.status === "failed"
+																	? "bg-red-100 text-red-800"
+																	: "bg-gray-100 text-gray-800"
+														}`}
+													>
+														{test.status}
+													</div>
+													{test.line && project?.repository && (
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() => handleViewCode(test)}
+															className="text-xs"
+														>
+															{showCodeSnippet ? "Hide Code" : "View Code"}
+														</Button>
+													)}
+													{test.status === "failed" && (
+														<>
+															<a
+																href={`cursor://anysphere.cursor-deeplink/prompt?file=${encodeURIComponent(test.file)}&text=${encodeURIComponent(
+																	`Investigate and fix the failing test "${test.name}" in file ${test.file}${test.line ? ` at line ${test.line}` : ""}. Error: ${test.error || "Test failed"}.`
+																)}`}
+																className="text-xs text-blue-600 hover:text-blue-800 underline"
+															>
+																Debug in Cursor
+															</a>
+															{project?.repository && (
+																<Button
+																	variant="outline"
+																	size="sm"
+																	onClick={() => handleTriggerCloudAgent(test)}
+																	className="text-xs"
+																>
+																	Trigger Cloud Agent
+																</Button>
+															)}
+														</>
+													)}
+												</div>
+											</div>
+											{showCodeSnippet && codeSnippet && project && (
+												<div className="mt-2 ml-4">
+													<CodeSnippet
+														content={codeSnippet.content}
+														language={codeSnippet.language}
+														startLine={codeSnippet.startLine}
+														endLine={codeSnippet.endLine}
+														targetLine={test.line || undefined}
+														file={test.file}
+														repository={project.repository}
+													/>
 												</div>
 											)}
 										</div>
-										<div className="flex items-center gap-4">
-											<div className="text-sm text-muted-foreground">{test.duration}ms</div>
-											<div
-												className={`px-2 py-1 rounded text-xs font-medium ${
-													test.status === "passed"
-														? "bg-green-100 text-green-800"
-														: test.status === "failed"
-															? "bg-red-100 text-red-800"
-															: "bg-gray-100 text-gray-800"
-												}`}
-											>
-												{test.status}
-											</div>
-											{test.status === "failed" && (
-												<a
-													href={`cursor://anysphere.cursor-deeplink/prompt?file=${encodeURIComponent(test.file)}&text=${encodeURIComponent(
-														`Investigate and fix the failing test "${test.name}" in file ${test.file}${test.line ? ` at line ${test.line}` : ""}. Error: ${test.error || "Test failed"}.`
-													)}`}
-													className="text-xs text-blue-600 hover:text-blue-800 underline"
-												>
-													Debug in Cursor
-												</a>
-											)}
-										</div>
-									</div>
-								))}
+									);
+								})}
 							</div>
 							<div className="flex flex-col gap-4 mt-6 pt-4 border-t">
 								{totalPages > 1 && (

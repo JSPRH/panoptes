@@ -23,6 +23,7 @@ http.route({
 			skippedTests: number;
 			environment?: string;
 			ci?: boolean;
+			commitSha?: string;
 			tests: Array<{
 				name: string;
 				file: string;
@@ -65,6 +66,7 @@ http.route({
 			skippedTests: data.skippedTests,
 			environment: data.environment,
 			ci: data.ci,
+			commitSha: data.commitSha,
 			tests: data.tests,
 			suites: data.suites,
 			metadata: data.metadata,

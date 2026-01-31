@@ -34,6 +34,7 @@ export const ingestTestRun = mutation({
 		skippedTests: v.number(),
 		environment: v.optional(v.string()),
 		ci: v.optional(v.boolean()),
+		commitSha: v.optional(v.string()),
 		tests: v.array(
 			v.object({
 				name: v.string(),
@@ -118,6 +119,7 @@ export const ingestTestRun = mutation({
 			skippedTests: args.skippedTests,
 			environment: args.environment,
 			ci: args.ci,
+			commitSha: args.commitSha,
 			metadata: args.metadata,
 		});
 
@@ -236,36 +238,77 @@ export const getTestsPaginated = query({
 		testRunId: v.optional(v.id("testRuns")),
 		projectId: v.optional(v.id("projects")),
 		status: v.optional(
-			v.union(v.literal("passed"), v.literal("failed"), v.literal("skipped"), v.literal("running"))
+			v.union(
+				v.literal("passed"),
+				v.literal("failed"),
+				v.literal("skipped"),
+				v.literal("running"),
+				v.literal("all")
+			)
 		),
+		searchQuery: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
+		// Get all tests matching filters (status, projectId, testRunId)
+		// Use type inference from the query results
+		// biome-ignore lint/suspicious/noImplicitAnyLet: Type inferred from query results
+		let allTests;
+
 		if (args.testRunId !== undefined) {
 			const testRunId = args.testRunId;
-			return await ctx.db
+			allTests = await ctx.db
 				.query("tests")
 				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunId))
-				.order("desc")
-				.paginate(args.paginationOpts);
-		}
-		if (args.projectId !== undefined) {
+				.collect();
+		} else if (args.projectId !== undefined) {
 			const projectId = args.projectId;
-			return await ctx.db
+			allTests = await ctx.db
 				.query("tests")
 				.withIndex("by_project", (q) => q.eq("projectId", projectId))
-				.order("desc")
-				.paginate(args.paginationOpts);
-		}
-		if (args.status !== undefined) {
+				.collect();
+		} else if (args.status !== undefined && args.status !== "all") {
 			const status = args.status;
-			return await ctx.db
+			allTests = await ctx.db
 				.query("tests")
 				.withIndex("by_status", (q) => q.eq("status", status))
-				.order("desc")
-				.paginate(args.paginationOpts);
+				.collect();
+		} else {
+			// Get all tests
+			allTests = await ctx.db.query("tests").collect();
 		}
-		// Order by _id descending for consistent pagination
-		return await ctx.db.query("tests").order("desc").paginate(args.paginationOpts);
+
+		// Apply status filter if needed (for cases where we got all tests)
+		if (args.status !== undefined && args.status !== "all") {
+			allTests = allTests.filter((test) => test.status === args.status);
+		}
+
+		// Apply search query filter if provided
+		if (args.searchQuery && args.searchQuery.trim() !== "") {
+			const searchLower = args.searchQuery.toLowerCase();
+			allTests = allTests.filter(
+				(test) =>
+					test.name.toLowerCase().includes(searchLower) ||
+					test.file.toLowerCase().includes(searchLower)
+			);
+		}
+
+		// Sort by _id descending for consistent ordering
+		allTests.sort((a, b) => (b._id > a._id ? 1 : -1));
+
+		// Manual pagination since we've filtered in memory
+		const { numItems, cursor } = args.paginationOpts;
+		const startIndex = cursor ? Number.parseInt(cursor, 10) : 0;
+		const endIndex = startIndex + numItems;
+		const page = allTests.slice(startIndex, endIndex);
+		const isDone = endIndex >= allTests.length;
+		// Convex expects continueCursor to be a string, use empty string when done
+		const nextCursor = isDone ? "" : endIndex.toString();
+
+		return {
+			page,
+			continueCursor: nextCursor,
+			isDone,
+		};
 	},
 });
 

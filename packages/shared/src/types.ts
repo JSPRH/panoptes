@@ -33,6 +33,7 @@ export const TestRunIngestSchema = z.object({
 	skippedTests: z.number(),
 	environment: z.string().optional(),
 	ci: z.boolean().optional(),
+	commitSha: z.string().optional(),
 	tests: z.array(TestResultSchema),
 	suites: z
 		.array(

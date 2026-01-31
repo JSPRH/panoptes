@@ -1,0 +1,53 @@
+name: Trigger Cursor Cloud Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Task for cloud agent'
+        required: true
+        type: string
+      model:
+        description: 'Model to use (optional)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  trigger-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Cursor CLI
+        run: |
+          curl https://cursor.com/install -fsS | bash
+          echo "$HOME/.cursor/bin" >> $GITHUB_PATH
+
+      - name: Verify Cursor CLI installation
+        run: |
+          which agent || echo "Cursor CLI not found in PATH"
+          agent --version || echo "Could not get version"
+
+      - name: Trigger Cloud Agent
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: |
+          if [ -z "$CURSOR_API_KEY" ]; then
+            echo "Warning: CURSOR_API_KEY secret not set. Cloud agent may require authentication."
+          fi
+          
+          MODEL_FLAG=""
+          if [ -n "${{ inputs.model }}" ]; then
+            MODEL_FLAG="--model ${{ inputs.model }}"
+          fi
+          
+          agent -p "${{ inputs.prompt }}" $MODEL_FLAG --non-interactive || {
+            echo "Cloud agent execution completed with exit code $?"
+            exit 0
+          }
+
+      - name: Report completion
+        run: |
+          echo "Cloud agent task completed. Check the Cursor dashboard for results."

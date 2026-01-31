@@ -4,8 +4,10 @@ import { ConvexConfigError } from "./components/ConvexConfigError";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import Anomalies from "./pages/Anomalies";
+import CIRuns from "./pages/CIRuns";
 import CodeLens from "./pages/CodeLens";
 import Dashboard from "./pages/Dashboard";
+import PullRequests from "./pages/PullRequests";
 import TestExplorer from "./pages/TestExplorer";
 import TestPyramid from "./pages/TestPyramid";
 
@@ -56,6 +58,8 @@ function App() {
 							<Route path="/explorer" element={<TestExplorer />} />
 							<Route path="/code-lens" element={<CodeLens />} />
 							<Route path="/anomalies" element={<Anomalies />} />
+							<Route path="/ci-runs" element={<CIRuns />} />
+							<Route path="/pull-requests" element={<PullRequests />} />
 						</Routes>
 					</Layout>
 				</BrowserRouter>

@@ -8,6 +8,28 @@ interface PanoptesReporterOptions {
 	ci?: boolean;
 }
 
+function getCommitSha(): string | undefined {
+	// Check CI environment first (GitHub Actions, etc.)
+	if (process.env.GITHUB_SHA) {
+		return process.env.GITHUB_SHA;
+	}
+	if (process.env.CIRCLE_SHA1) {
+		return process.env.CIRCLE_SHA1;
+	}
+	if (process.env.GITLAB_CI_COMMIT_SHA) {
+		return process.env.GITLAB_CI_COMMIT_SHA;
+	}
+	// Try to get from git in local environment
+	// Note: This requires git to be available and may fail silently
+	try {
+		const { execSync } = require("child_process");
+		return execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
+	} catch {
+		// Git not available or not in a git repo
+		return undefined;
+	}
+}
+
 export default class PanoptesReporter implements Reporter {
 	private options: Required<PanoptesReporterOptions>;
 	private startTime = 0;
@@ -108,6 +130,7 @@ export default class PanoptesReporter implements Reporter {
 			skippedTests,
 			environment: this.options.environment,
 			ci: this.options.ci,
+			commitSha: getCommitSha(),
 			tests: this.tests,
 			suites: suiteData,
 		};
