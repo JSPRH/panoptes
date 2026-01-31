@@ -1,7 +1,7 @@
-import type { TestResult, TestRunIngest } from "@panoptes/shared";
+import type { TestResult, TestRunIngest } from "@justinmiehle/shared";
 import type {
 	FullConfig,
-	FullProject,
+	FullResult,
 	TestResult as PlaywrightTestResult,
 	Reporter,
 	Suite,
@@ -65,9 +65,8 @@ export default class PanoptesReporter implements Reporter {
 
 	onTestEnd(test: TestCase, result: PlaywrightTestResult) {
 		console.log(`[Panoptes] Test end: ${test.title}, status: ${result.status}`);
-		// Extract file path - try multiple sources to ensure we capture it
-		const filePath =
-			test.location?.file || test.file || test.titlePath?.slice(-1)[0]?.file || "unknown";
+		// Extract file path from test location
+		const filePath = test.location?.file ?? "unknown";
 
 		// Get project name from test's parent suite
 		const project = test.parent?.project();
@@ -105,7 +104,7 @@ export default class PanoptesReporter implements Reporter {
 		this.suites.get(suiteName)?.tests.push(testResult);
 	}
 
-	async onEnd(result: { status?: "passed" | "failed" | "timedout" }) {
+	async onEnd(result: FullResult) {
 		const endTime = Date.now();
 		const duration = endTime - this.startTime;
 
