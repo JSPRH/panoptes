@@ -1,12 +1,14 @@
 "use node";
 
 import { v } from "convex/values";
+import type { z } from "zod";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action } from "./_generated/server";
 import {
 	TestFailureAnalysisSchema,
 	analyzeFailure,
+	analyzeFailureWithImages,
 	formatCodeSnippet,
 	getCursorApiKey,
 } from "./aiAnalysisUtils";
@@ -80,6 +82,32 @@ export const analyzeTestFailure = action({
 				}
 			}
 
+			// Check if this is an e2e test and get screenshots
+			const isE2ETest = testRun?.testType === "e2e";
+			let screenshots: Array<{ url: string; contentType: string }> = [];
+
+			if (isE2ETest) {
+				// Get attachments (screenshots) for e2e tests
+				try {
+					const attachmentsWithUrls = await ctx.runAction(api.tests.getTestAttachmentsWithUrls, {
+						testId: args.testId,
+					});
+					// Filter for image attachments (screenshots)
+					screenshots = attachmentsWithUrls
+						.filter(
+							(att): att is typeof att & { url: string } =>
+								att.url !== null && att.contentType.startsWith("image/")
+						)
+						.map((att) => ({
+							url: att.url,
+							contentType: att.contentType,
+						}));
+				} catch (error) {
+					console.warn("Failed to fetch attachments:", error);
+					// Continue without screenshots
+				}
+			}
+
 			// Build prompt for AI
 			let prompt = `Analyze this test failure and provide insights on what went wrong.
 
@@ -121,6 +149,10 @@ ${testRun.ci ? "- CI Run" : "- Local Run"}
 `;
 			}
 
+			if (isE2ETest && screenshots.length > 0) {
+				prompt += `\n\nThis is an end-to-end test. ${screenshots.length} screenshot(s) are attached showing the state of the application when the test failed. Please analyze the screenshots along with the error messages to understand what went wrong.`;
+			}
+
 			prompt += `\nPlease analyze this test failure and provide:
 1. A brief summary of what went wrong
 2. The root cause of the failure
@@ -131,13 +163,26 @@ ${testRun.ci ? "- CI Run" : "- Local Run"}
 
 Be specific and actionable. Focus on helping the developer understand and fix the issue quickly.`;
 
-			// Call OpenAI API using shared utility
-			const analysis = await analyzeFailure({
-				schema: TestFailureAnalysisSchema,
-				prompt,
-				system:
-					"You are an expert software engineer analyzing test failures. Provide clear, actionable insights that help developers understand and fix issues quickly.",
-			});
+			// Use vision model for e2e tests with screenshots, otherwise use text-only model
+			let analysis: z.infer<typeof TestFailureAnalysisSchema>;
+			if (isE2ETest && screenshots.length > 0) {
+				// Use vision model with screenshots
+				analysis = await analyzeFailureWithImages({
+					schema: TestFailureAnalysisSchema,
+					prompt,
+					images: screenshots,
+					system:
+						"You are an expert software engineer analyzing end-to-end test failures. You can see screenshots from the test execution. Analyze both the error messages and the visual state shown in the screenshots to provide clear, actionable insights that help developers understand and fix issues quickly.",
+				});
+			} else {
+				// Use text-only model
+				analysis = await analyzeFailure({
+					schema: TestFailureAnalysisSchema,
+					prompt,
+					system:
+						"You are an expert software engineer analyzing test failures. Provide clear, actionable insights that help developers understand and fix issues quickly.",
+				});
+			}
 
 			// Update analysis record with results
 			// Normalize confidence to enum if it's a number

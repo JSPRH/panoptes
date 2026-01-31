@@ -180,6 +180,62 @@ export async function analyzeFailure<T extends z.ZodTypeAny>(options: {
 }
 
 /**
+ * Analyze a failure with images using a vision model (GPT-4o-mini).
+ * This is specifically for e2e tests that have screenshots.
+ */
+export async function analyzeFailureWithImages<T extends z.ZodTypeAny>(options: {
+	schema: T;
+	prompt: string;
+	images: Array<{ url: string; contentType: string }>;
+	system?: string;
+	temperature?: number;
+}): Promise<z.infer<T>> {
+	const { schema, prompt, images, system, temperature = 0.3 } = options;
+
+	const openai = createOpenAIClient();
+
+	// Build message content with text and images
+	// The content array can contain both text and image_url objects
+	const content: Array<
+		| { type: "text"; text: string }
+		| { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } }
+	> = [{ type: "text", text: prompt }];
+
+	// Add images to the content
+	for (const image of images) {
+		// Use the image URL directly (can be a data URI or public URL)
+		content.push({
+			type: "image_url",
+			image_url: {
+				url: image.url,
+				detail: "high", // Use high detail for better analysis of screenshots
+			},
+		});
+	}
+
+	const { object: analysis } = await generateObject({
+		model: openai("gpt-4o-mini"), // Use vision-capable model
+		schema,
+		messages: [
+			{
+				role: "system",
+				content:
+					system ||
+					"You are an expert software engineer analyzing end-to-end test failures. You can see screenshots from the test execution. Provide clear, actionable insights based on both the error messages and what you see in the screenshots.",
+			},
+			{
+				role: "user",
+				// biome-ignore lint/suspicious/noExplicitAny: AI SDK requires mixed content types
+				content: content as any,
+			},
+		],
+		temperature,
+	});
+
+	return analysis as z.infer<T>;
+}
+
+/**
  * Format code snippet for inclusion in prompts.
  */
 export function formatCodeSnippet(options: {
