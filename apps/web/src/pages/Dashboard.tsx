@@ -13,9 +13,9 @@ type TestRun = Doc<"testRuns">;
 type Project = Doc<"projects">;
 
 export default function Dashboard() {
+	const dashboardStats = useQuery(api.tests.getDashboardStats);
 	const projects = useQuery(api.tests.getProjects);
 	const testRuns = useQuery(api.tests.getTestRuns, { limit: 10 });
-	const pyramidData = useQuery(api.tests.getTestPyramidData, {});
 
 	// Get CI runs and PRs for the first project with a repository
 	const projectWithRepo = projects?.find((p: Project) => p.repository);
@@ -28,7 +28,7 @@ export default function Dashboard() {
 		projectWithRepo ? { projectId: projectWithRepo._id, state: "open" } : "skip"
 	);
 
-	if (projects === undefined || testRuns === undefined) {
+	if (dashboardStats === undefined || projects === undefined || testRuns === undefined) {
 		return (
 			<div className="space-y-8">
 				<PageHeader title="Dashboard" description="Overview of your testing pyramid" />
@@ -84,16 +84,17 @@ export default function Dashboard() {
 					</CardContent>
 				</Card>
 
-				{pyramidData && (
+				{dashboardStats && (
 					<>
 						<Card>
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 								<CardTitle className="text-sm font-medium">Unit test definitions</CardTitle>
 							</CardHeader>
 							<CardContent>
-								<div className="text-2xl font-bold">{pyramidData.unit.total}</div>
+								<div className="text-2xl font-bold">{dashboardStats.pyramid.unit.total}</div>
 								<p className="text-xs text-muted-foreground">
-									{pyramidData.unit.passed} passed, {pyramidData.unit.failed} failed
+									{dashboardStats.pyramid.unit.passed} passed, {dashboardStats.pyramid.unit.failed}{" "}
+									failed
 								</p>
 							</CardContent>
 						</Card>
@@ -103,9 +104,10 @@ export default function Dashboard() {
 								<CardTitle className="text-sm font-medium">E2E test definitions</CardTitle>
 							</CardHeader>
 							<CardContent>
-								<div className="text-2xl font-bold">{pyramidData.e2e.total}</div>
+								<div className="text-2xl font-bold">{dashboardStats.pyramid.e2e.total}</div>
 								<p className="text-xs text-muted-foreground">
-									{pyramidData.e2e.passed} passed, {pyramidData.e2e.failed} failed
+									{dashboardStats.pyramid.e2e.passed} passed, {dashboardStats.pyramid.e2e.failed}{" "}
+									failed
 								</p>
 							</CardContent>
 						</Card>
@@ -150,9 +152,10 @@ export default function Dashboard() {
 					{testRuns && testRuns.length > 0 ? (
 						<div className="space-y-2">
 							{testRuns.map((run: TestRun) => (
-								<div
+								<Link
 									key={run._id}
-									className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
+									to={`/runs/${run._id}`}
+									className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
 								>
 									<div>
 										<div className="font-medium">
@@ -178,7 +181,7 @@ export default function Dashboard() {
 											{run.passedTests}/{run.totalTests} passed
 										</span>
 									</div>
-								</div>
+								</Link>
 							))}
 						</div>
 					) : (
