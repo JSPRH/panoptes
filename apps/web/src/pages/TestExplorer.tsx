@@ -9,8 +9,9 @@ import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { getGitHubBlobUrl } from "../lib/utils";
 
-type Test = Doc<"tests">;
+type Test = Doc<"tests"> & { ci?: boolean; commitSha?: string };
 type Project = Doc<"projects">;
 
 const ITEMS_PER_PAGE = 20;
@@ -40,7 +41,11 @@ export default function TestExplorer() {
 	const seedFailingTest = useMutation(api.tests.seedFailingTest);
 	const getCodeSnippet = useAction(api.github.getCodeSnippet);
 	const storeCodeSnippet = useMutation(api.github.storeCodeSnippet);
+	const getTestAttachmentsWithUrls = useAction(api.tests.getTestAttachmentsWithUrls);
 	const projects = useQuery(api.tests.getProjects);
+	const [attachmentsWithUrls, setAttachmentsWithUrls] = useState<
+		Array<{ _id: Id<"testAttachments">; name: string; contentType: string; url: string | null }>
+	>([]);
 
 	// Get project for the test to find repository
 	const getProjectForTest = (test: Test): Project | undefined => {
@@ -53,42 +58,23 @@ export default function TestExplorer() {
 		expandedTestId ? { testId: expandedTestId as Id<"tests"> } : "skip"
 	);
 
-	const handleViewCode = async (test: Test) => {
+	// Fetch attachments with URLs when a test is expanded
+	useEffect(() => {
+		if (!expandedTestId) {
+			setAttachmentsWithUrls([]);
+			return;
+		}
+		getTestAttachmentsWithUrls({ testId: expandedTestId })
+			.then(setAttachmentsWithUrls)
+			.catch(() => setAttachmentsWithUrls([]));
+	}, [expandedTestId, getTestAttachmentsWithUrls]);
+
+	const handleViewCode = (test: Test) => {
 		if (expandedTestId === test._id) {
 			setExpandedTestId(null);
 			return;
 		}
-
 		setExpandedTestId(test._id as Id<"tests">);
-
-		// If we don't have a cached snippet, fetch it
-		if (!expandedCodeSnippet) {
-			const project = getProjectForTest(test);
-			if (!project?.repository || !test.line) {
-				return;
-			}
-
-			try {
-				const snippet = await getCodeSnippet({
-					projectId: project._id,
-					file: test.file,
-					line: test.line,
-					contextLines: 10,
-				});
-
-				// Store snippet in database
-				await storeCodeSnippet({
-					testId: test._id,
-					file: test.file,
-					startLine: snippet.startLine,
-					endLine: snippet.endLine,
-					content: snippet.content,
-					language: snippet.language,
-				});
-			} catch (error) {
-				console.error("Failed to fetch code snippet:", error);
-			}
-		}
 	};
 
 	const handleTriggerCloudAgent = (test: Test) => {
@@ -133,6 +119,40 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 	useEffect(() => {
 		setCurrentPage(1);
 	}, [searchQuery, statusFilter]);
+
+	// Fetch code snippet from GitHub when expanded test has no snippet in DB
+	useEffect(() => {
+		if (!expandedTestId || expandedCodeSnippet !== null || !projects || !filteredTests.length)
+			return;
+		const test = filteredTests.find((t) => t._id === expandedTestId);
+		if (!test?.line) return;
+		const project = projects.find((p) => p._id === test.projectId);
+		if (!project?.repository) return;
+		getCodeSnippet({
+			projectId: project._id,
+			file: test.file,
+			line: test.line,
+			contextLines: 10,
+		})
+			.then((snippet) =>
+				storeCodeSnippet({
+					testId: test._id,
+					file: test.file,
+					startLine: snippet.startLine,
+					endLine: snippet.endLine,
+					content: snippet.content,
+					language: snippet.language,
+				})
+			)
+			.catch((err) => console.error("Failed to fetch code snippet:", err));
+	}, [
+		expandedTestId,
+		expandedCodeSnippet,
+		filteredTests,
+		projects,
+		getCodeSnippet,
+		storeCodeSnippet,
+	]);
 
 	return (
 		<div className="space-y-8">
@@ -238,16 +258,25 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 															Suite: {test.suite}
 														</div>
 													)}
-													{project?.repository && (
-														<a
-															href={`${project.repository}/blob/main/${test.file}${test.line ? `#L${test.line}` : ""}`}
-															target="_blank"
-															rel="noopener noreferrer"
-															className="text-xs text-primary hover:underline mt-1"
-														>
-															View in GitHub
-														</a>
-													)}
+													{(() => {
+														const githubUrl =
+															project?.repository &&
+															test.ci === true &&
+															getGitHubBlobUrl(project.repository, test.file, {
+																line: test.line ?? undefined,
+																ref: test.commitSha,
+															});
+														return githubUrl ? (
+															<a
+																href={githubUrl}
+																target="_blank"
+																rel="noopener noreferrer"
+																className="text-xs text-primary hover:underline mt-1"
+															>
+																View in GitHub
+															</a>
+														) : null;
+													})()}
 												</div>
 												<div className="flex items-center gap-2">
 													<div className="text-sm text-muted-foreground">{test.duration}ms</div>
@@ -262,14 +291,14 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 													>
 														{test.status}
 													</Badge>
-													{test.line && project?.repository && (
+													{test.line && (
 														<Button
 															variant="outline"
 															size="sm"
 															onClick={() => handleViewCode(test)}
 															className="text-xs"
 														>
-															{showCodeSnippet ? "Hide Code" : "View Code"}
+															{showCodeSnippet ? "Hide Details" : "View Details"}
 														</Button>
 													)}
 													{test.status === "failed" && (
@@ -296,17 +325,96 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 													)}
 												</div>
 											</div>
-											{showCodeSnippet && codeSnippet && project && (
-												<div className="mt-2 ml-4">
-													<CodeSnippet
-														content={codeSnippet.content}
-														language={codeSnippet.language}
-														startLine={codeSnippet.startLine}
-														endLine={codeSnippet.endLine}
-														targetLine={test.line || undefined}
-														file={test.file}
-														repository={project.repository}
-													/>
+											{showCodeSnippet && (
+												<div className="mt-2 ml-4 space-y-4">
+													{test.stdout && (
+														<Card>
+															<CardHeader>
+																<CardTitle className="text-sm">Stdout</CardTitle>
+															</CardHeader>
+															<CardContent>
+																<pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap">
+																	{test.stdout}
+																</pre>
+															</CardContent>
+														</Card>
+													)}
+													{test.stderr && (
+														<Card>
+															<CardHeader>
+																<CardTitle className="text-sm text-destructive">Stderr</CardTitle>
+															</CardHeader>
+															<CardContent>
+																<pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap">
+																	{test.stderr}
+																</pre>
+															</CardContent>
+														</Card>
+													)}
+													{codeSnippet && project && (
+														<CodeSnippet
+															content={codeSnippet.content}
+															language={codeSnippet.language}
+															startLine={codeSnippet.startLine}
+															endLine={codeSnippet.endLine}
+															targetLine={test.line || undefined}
+															file={test.file}
+															repository={project.repository}
+															commitSha={test.commitSha}
+															showGitHubLink={test.ci === true}
+														/>
+													)}
+													{codeSnippet && !project && (
+														<CodeSnippet
+															content={codeSnippet.content}
+															language={codeSnippet.language}
+															startLine={codeSnippet.startLine}
+															endLine={codeSnippet.endLine}
+															targetLine={test.line || undefined}
+															file={test.file}
+															showGitHubLink={false}
+														/>
+													)}
+													{attachmentsWithUrls.length > 0 && (
+														<Card>
+															<CardHeader>
+																<CardTitle className="text-sm">Attachments</CardTitle>
+															</CardHeader>
+															<CardContent>
+																<div className="flex flex-wrap gap-2">
+																	{attachmentsWithUrls.map((att) =>
+																		att.url && att.contentType.startsWith("image/") ? (
+																			<a
+																				key={att._id}
+																				href={att.url}
+																				target="_blank"
+																				rel="noopener noreferrer"
+																				className="block"
+																			>
+																				<img
+																					src={att.url}
+																					alt={att.name}
+																					className="max-w-xs max-h-48 rounded border object-contain"
+																				/>
+																			</a>
+																		) : (
+																			att.url && (
+																				<a
+																					key={att._id}
+																					href={att.url}
+																					target="_blank"
+																					rel="noopener noreferrer"
+																					className="text-sm text-primary hover:underline"
+																				>
+																					{att.name}
+																				</a>
+																			)
+																		)
+																	)}
+																</div>
+															</CardContent>
+														</Card>
+													)}
 												</div>
 											)}
 										</div>

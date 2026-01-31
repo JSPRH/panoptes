@@ -41,6 +41,7 @@ export default defineSchema({
 		ci: v.optional(v.boolean()),
 		commitSha: v.optional(v.string()),
 		ciRunId: v.optional(v.id("ciRuns")),
+		triggeredBy: v.optional(v.string()),
 		metadata: v.optional(v.any()),
 	})
 		.index("by_project", ["projectId"])
@@ -67,6 +68,8 @@ export default defineSchema({
 		suite: v.optional(v.string()),
 		tags: v.optional(v.array(v.string())),
 		metadata: v.optional(v.any()),
+		stdout: v.optional(v.string()),
+		stderr: v.optional(v.string()),
 	})
 		.index("by_test_run", ["testRunId"])
 		.index("by_project", ["projectId"])
@@ -180,6 +183,31 @@ export default defineSchema({
 	})
 		.index("by_test", ["testId"])
 		.index("by_file", ["file"]),
+
+	testAttachments: defineTable({
+		testId: v.id("tests"),
+		name: v.string(),
+		contentType: v.string(),
+		storageId: v.id("_storage"),
+		createdAt: v.optional(v.number()),
+	}).index("by_test", ["testId"]),
+
+	fileCoverage: defineTable({
+		testRunId: v.id("testRuns"),
+		projectId: v.id("projects"),
+		file: v.string(),
+		linesCovered: v.number(),
+		linesTotal: v.number(),
+		lineDetails: v.optional(v.string()),
+		statementsCovered: v.optional(v.number()),
+		statementsTotal: v.optional(v.number()),
+		branchesCovered: v.optional(v.number()),
+		branchesTotal: v.optional(v.number()),
+		functionsCovered: v.optional(v.number()),
+		functionsTotal: v.optional(v.number()),
+	})
+		.index("by_test_run", ["testRunId"])
+		.index("by_project", ["projectId"]),
 
 	cloudAgentRuns: defineTable({
 		projectId: v.id("projects"),

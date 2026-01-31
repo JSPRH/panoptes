@@ -3,8 +3,9 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 // import { components } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { action, mutation, query } from "./_generated/server";
 
 // Aggregates temporarily commented out - causing deployment issues
 // Will re-enable once basic functions are working
@@ -35,6 +36,7 @@ export const ingestTestRun = mutation({
 		environment: v.optional(v.string()),
 		ci: v.optional(v.boolean()),
 		commitSha: v.optional(v.string()),
+		triggeredBy: v.optional(v.string()),
 		tests: v.array(
 			v.object({
 				name: v.string(),
@@ -54,6 +56,25 @@ export const ingestTestRun = mutation({
 				suite: v.optional(v.string()),
 				tags: v.optional(v.array(v.string())),
 				metadata: v.optional(v.any()),
+				stdout: v.optional(v.string()),
+				stderr: v.optional(v.string()),
+				codeSnippet: v.optional(
+					v.object({
+						startLine: v.number(),
+						endLine: v.number(),
+						content: v.string(),
+						language: v.optional(v.string()),
+					})
+				),
+				attachments: v.optional(
+					v.array(
+						v.object({
+							name: v.string(),
+							contentType: v.string(),
+							storageId: v.id("_storage"),
+						})
+					)
+				),
 			})
 		),
 		suites: v.optional(
@@ -69,6 +90,34 @@ export const ingestTestRun = mutation({
 					skippedTests: v.number(),
 				})
 			)
+		),
+		coverage: v.optional(
+			v.object({
+				summary: v.optional(
+					v.object({
+						lines: v.optional(v.object({ total: v.number(), covered: v.number() })),
+						statements: v.optional(v.object({ total: v.number(), covered: v.number() })),
+						branches: v.optional(v.object({ total: v.number(), covered: v.number() })),
+						functions: v.optional(v.object({ total: v.number(), covered: v.number() })),
+					})
+				),
+				files: v.optional(
+					v.record(
+						v.string(),
+						v.object({
+							linesCovered: v.number(),
+							linesTotal: v.number(),
+							lineDetails: v.optional(v.string()),
+							statementsCovered: v.optional(v.number()),
+							statementsTotal: v.optional(v.number()),
+							branchesCovered: v.optional(v.number()),
+							branchesTotal: v.optional(v.number()),
+							functionsCovered: v.optional(v.number()),
+							functionsTotal: v.optional(v.number()),
+						})
+					)
+				),
+			})
 		),
 		metadata: v.optional(v.any()),
 	},
@@ -120,6 +169,7 @@ export const ingestTestRun = mutation({
 			environment: args.environment,
 			ci: args.ci,
 			commitSha: args.commitSha,
+			triggeredBy: args.triggeredBy,
 			metadata: args.metadata,
 		});
 
@@ -150,8 +200,9 @@ export const ingestTestRun = mutation({
 		}
 
 		// Insert individual tests
+		const now = Date.now();
 		for (const test of args.tests) {
-			await ctx.db.insert("tests", {
+			const testId = await ctx.db.insert("tests", {
 				testRunId,
 				projectId,
 				name: test.name,
@@ -166,10 +217,68 @@ export const ingestTestRun = mutation({
 				suite: test.suite,
 				tags: test.tags,
 				metadata: test.metadata,
+				stdout: test.stdout,
+				stderr: test.stderr,
 			});
+
+			if (test.codeSnippet) {
+				await ctx.db.insert("codeSnippets", {
+					testId,
+					file: test.file,
+					startLine: test.codeSnippet.startLine,
+					endLine: test.codeSnippet.endLine,
+					content: test.codeSnippet.content,
+					language: test.codeSnippet.language,
+					fetchedAt: now,
+				});
+			}
+
+			if (test.attachments) {
+				for (const att of test.attachments) {
+					await ctx.db.insert("testAttachments", {
+						testId,
+						name: att.name,
+						contentType: att.contentType,
+						storageId: att.storageId,
+						createdAt: now,
+					});
+				}
+			}
+		}
+
+		// Insert file coverage when provided
+		if (args.coverage?.files && Object.keys(args.coverage.files).length > 0) {
+			for (const [file, fileCov] of Object.entries(args.coverage.files)) {
+				await ctx.db.insert("fileCoverage", {
+					testRunId,
+					projectId,
+					file,
+					linesCovered: fileCov.linesCovered,
+					linesTotal: fileCov.linesTotal,
+					lineDetails: fileCov.lineDetails,
+					statementsCovered: fileCov.statementsCovered,
+					statementsTotal: fileCov.statementsTotal,
+					branchesCovered: fileCov.branchesCovered,
+					branchesTotal: fileCov.branchesTotal,
+					functionsCovered: fileCov.functionsCovered,
+					functionsTotal: fileCov.functionsTotal,
+				});
+			}
 		}
 
 		return { testRunId, projectId };
+	},
+});
+
+export const getCoverageForTestRun = query({
+	args: {
+		testRunId: v.id("testRuns"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("fileCoverage")
+			.withIndex("by_test_run", (q) => q.eq("testRunId", args.testRunId))
+			.collect();
 	},
 });
 
@@ -179,22 +288,67 @@ export const getTestRuns = query({
 		testType: v.optional(
 			v.union(v.literal("unit"), v.literal("integration"), v.literal("e2e"), v.literal("visual"))
 		),
+		ci: v.optional(v.boolean()),
+		triggeredBy: v.optional(v.string()),
 		limit: v.optional(v.number()),
 	},
 	handler: async (ctx, args) => {
+		let runs: Doc<"testRuns">[];
 		if (args.projectId !== undefined) {
 			const projectId = args.projectId;
-			return await ctx.db
+			runs = await ctx.db
 				.query("testRuns")
 				.withIndex("by_project", (q) => q.eq("projectId", projectId))
 				.order("desc")
-				.take(args.limit || 50);
+				.take(args.limit ?? 100);
+		} else {
+			runs = await ctx.db
+				.query("testRuns")
+				.withIndex("by_started_at")
+				.order("desc")
+				.take(args.limit ?? 100);
 		}
+		let filtered = runs;
+		if (args.ci !== undefined) {
+			filtered = filtered.filter((r) => r.ci === args.ci);
+		}
+		if (args.triggeredBy !== undefined && args.triggeredBy !== "") {
+			filtered = filtered.filter((r) => r.triggeredBy === args.triggeredBy);
+		}
+		if (args.testType !== undefined) {
+			filtered = filtered.filter((r) => r.testType === args.testType);
+		}
+		return filtered.slice(0, args.limit || 50);
+	},
+});
+
+export const getTestAttachments = query({
+	args: {
+		testId: v.id("tests"),
+	},
+	handler: async (ctx, args) => {
 		return await ctx.db
-			.query("testRuns")
-			.withIndex("by_started_at")
-			.order("desc")
-			.take(args.limit || 50);
+			.query("testAttachments")
+			.withIndex("by_test", (q) => q.eq("testId", args.testId))
+			.collect();
+	},
+});
+
+export const getTestAttachmentsWithUrls = action({
+	args: {
+		testId: v.id("tests"),
+	},
+	handler: async (ctx, args): Promise<Array<Doc<"testAttachments"> & { url: string | null }>> => {
+		const attachments: Doc<"testAttachments">[] = await ctx.runQuery(api.tests.getTestAttachments, {
+			testId: args.testId,
+		});
+		const withUrls = await Promise.all(
+			attachments.map(async (att: Doc<"testAttachments">) => {
+				const url = await ctx.storage.getUrl(att.storageId);
+				return { ...att, url };
+			})
+		);
+		return withUrls;
 	},
 });
 
@@ -368,7 +522,18 @@ export const getTestsPaginated = query({
 		const { numItems, cursor } = args.paginationOpts;
 		const startIndex = cursor ? Number.parseInt(cursor, 10) : 0;
 		const endIndex = startIndex + numItems;
-		const page = allTests.slice(startIndex, endIndex);
+		const slice = allTests.slice(startIndex, endIndex);
+		// Attach test run's ci and commitSha so UI can show GitHub links only for CI runs
+		const page = await Promise.all(
+			slice.map(async (test) => {
+				const run = await ctx.db.get(test.testRunId);
+				return {
+					...test,
+					ci: run?.ci,
+					commitSha: run?.commitSha,
+				};
+			})
+		);
 		const isDone = endIndex >= allTests.length;
 		// Convex expects continueCursor to be a string, use empty string when done
 		const nextCursor = isDone ? "" : endIndex.toString();
