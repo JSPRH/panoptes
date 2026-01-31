@@ -91,6 +91,12 @@ jobs:
       - name: Build Web
         run: bun run --cwd apps/web build
 
+      - name: Build shared package
+        run: bun run build:shared
+
+      - name: Build reporter packages
+        run: bun run build:reporters
+
   all-checks:
     name: All Checks
     runs-on: ubuntu-latest
