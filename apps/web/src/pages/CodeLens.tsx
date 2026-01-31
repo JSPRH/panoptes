@@ -49,18 +49,22 @@ export default function CodeLens() {
 			const passed = fileTests.filter((t: Test) => t.status === "passed").length;
 			const failed = fileTests.filter((t: Test) => t.status === "failed").length;
 			const total = fileTests.length;
-			const coverage = total > 0 ? (passed / total) * 100 : 0;
+			const testPassRate = total > 0 ? (passed / total) * 100 : 0;
 			const loc = locByFile.get(file);
+			const locPct =
+				loc && loc.linesTotal > 0 ? (loc.linesCovered / loc.linesTotal) * 100 : undefined;
 
 			return {
 				file,
 				total,
 				passed,
 				failed,
-				coverage,
+				testPassRate,
 				locCovered: loc?.linesCovered,
 				locTotal: loc?.linesTotal,
-				locPct: loc && loc.linesTotal > 0 ? (loc.linesCovered / loc.linesTotal) * 100 : undefined,
+				locPct,
+				// Use LOC coverage as the main coverage metric if available, otherwise fall back to test pass rate
+				coverage: locPct ?? testPassRate,
 			};
 		})
 		.sort((a, b) => b.total - a.total);
@@ -86,7 +90,7 @@ export default function CodeLens() {
 										<div className="font-medium">{stat.file}</div>
 										<div className="text-sm text-muted-foreground flex flex-wrap gap-x-2 gap-y-1">
 											<span>
-												{stat.passed}/{stat.total} tests passed ({stat.coverage.toFixed(1)}%)
+												{stat.passed}/{stat.total} tests passed ({stat.testPassRate.toFixed(1)}%)
 											</span>
 											{stat.locTotal != null && stat.locTotal > 0 && (
 												<span>
@@ -96,33 +100,39 @@ export default function CodeLens() {
 											)}
 										</div>
 									</div>
-									<div className="w-full bg-muted rounded-full h-2">
-										<div
-											className={`h-2 rounded-full ${
-												stat.coverage >= 80
-													? "bg-success"
-													: stat.coverage >= 50
-														? "bg-warning"
-														: "bg-error"
-											}`}
-											style={{ width: `${stat.coverage}%` }}
-										/>
-									</div>
-									{stat.locTotal != null && stat.locTotal > 0 && (
-										<div className="w-full bg-muted rounded-full h-1.5">
+									{stat.locTotal != null && stat.locTotal > 0 ? (
+										<div className="space-y-1">
+											<div className="w-full bg-muted rounded-full h-2">
+												<div
+													className={`h-2 rounded-full ${
+														(stat.locPct ?? 0) >= 80
+															? "bg-success"
+															: (stat.locPct ?? 0) >= 50
+																? "bg-warning"
+																: "bg-error"
+													}`}
+													style={{
+														width: `${Math.min(100, stat.locPct ?? 0)}%`,
+													}}
+												/>
+											</div>
+											<div className="text-xs text-muted-foreground">Lines of Code Coverage</div>
+										</div>
+									) : (
+										<div className="w-full bg-muted rounded-full h-2">
 											<div
-												className={`h-1.5 rounded-full ${
-													(stat.locPct ?? 0) >= 80
+												className={`h-2 rounded-full ${
+													stat.testPassRate >= 80
 														? "bg-success"
-														: (stat.locPct ?? 0) >= 50
+														: stat.testPassRate >= 50
 															? "bg-warning"
 															: "bg-error"
 												}`}
-												style={{
-													width: `${Math.min(100, stat.locPct ?? 0)}%`,
-												}}
+												style={{ width: `${stat.testPassRate}%` }}
 											/>
-											<div className="text-xs text-muted-foreground mt-0.5">LOC coverage</div>
+											<div className="text-xs text-muted-foreground mt-0.5">
+												Test pass rate (no coverage data)
+											</div>
 										</div>
 									)}
 									{stat.failed > 0 && (

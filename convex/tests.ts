@@ -1,12 +1,11 @@
 // Aggregates temporarily disabled to unblock - will re-enable once components are working
 // import { TableAggregate } from "@convex-dev/aggregate";
-import { paginationOptsValidator } from "convex/server";
 import type { GenericMutationCtx } from "convex/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 // import { components } from "./_generated/api";
 import { api } from "./_generated/api";
-import type { DataModel } from "./_generated/dataModel";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { DataModel, Doc, Id } from "./_generated/dataModel";
 import { action, mutation, query } from "./_generated/server";
 
 // Aggregates temporarily commented out - causing deployment issues
