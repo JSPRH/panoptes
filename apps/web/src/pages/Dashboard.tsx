@@ -88,7 +88,7 @@ export default function Dashboard() {
 					<>
 						<Card>
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">Unit Tests</CardTitle>
+								<CardTitle className="text-sm font-medium">Unit test definitions</CardTitle>
 							</CardHeader>
 							<CardContent>
 								<div className="text-2xl font-bold">{pyramidData.unit.total}</div>
@@ -100,7 +100,7 @@ export default function Dashboard() {
 
 						<Card>
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">E2E Tests</CardTitle>
+								<CardTitle className="text-sm font-medium">E2E test definitions</CardTitle>
 							</CardHeader>
 							<CardContent>
 								<div className="text-2xl font-bold">{pyramidData.e2e.total}</div>

@@ -38,7 +38,9 @@ export default function TestPyramid() {
 			<Card>
 				<CardHeader>
 					<CardTitle>Testing Pyramid Visualization</CardTitle>
-					<CardDescription>Distribution of tests across different test types</CardDescription>
+					<CardDescription>
+						Distribution of unique test definitions by type (not execution count)
+					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<div className="flex flex-col items-center space-y-4 py-8">
@@ -55,7 +57,7 @@ export default function TestPyramid() {
 								>
 									<div className="text-center">
 										<div className="font-bold">E2E</div>
-										<div className="text-xs">{pyramidData.e2e.total} tests</div>
+										<div className="text-xs">{pyramidData.e2e.total} definitions</div>
 									</div>
 								</div>
 								<div className="text-sm text-muted-foreground mt-1">
@@ -74,7 +76,7 @@ export default function TestPyramid() {
 								>
 									<div className="text-center">
 										<div className="font-bold">Integration</div>
-										<div className="text-xs">{pyramidData.integration.total} tests</div>
+										<div className="text-xs">{pyramidData.integration.total} definitions</div>
 									</div>
 								</div>
 								<div className="text-sm text-muted-foreground mt-1">
@@ -93,7 +95,7 @@ export default function TestPyramid() {
 								>
 									<div className="text-center">
 										<div className="font-bold">Unit</div>
-										<div className="text-xs">{pyramidData.unit.total} tests</div>
+										<div className="text-xs">{pyramidData.unit.total} definitions</div>
 									</div>
 								</div>
 								<div className="text-sm text-muted-foreground mt-1">
@@ -107,19 +109,19 @@ export default function TestPyramid() {
 					<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
 						<div className="text-center">
 							<div className="text-2xl font-bold">{pyramidData.unit.total}</div>
-							<div className="text-sm text-muted-foreground">Unit Tests</div>
+							<div className="text-sm text-muted-foreground">Unit test definitions</div>
 						</div>
 						<div className="text-center">
 							<div className="text-2xl font-bold">{pyramidData.integration.total}</div>
-							<div className="text-sm text-muted-foreground">Integration Tests</div>
+							<div className="text-sm text-muted-foreground">Integration test definitions</div>
 						</div>
 						<div className="text-center">
 							<div className="text-2xl font-bold">{pyramidData.e2e.total}</div>
-							<div className="text-sm text-muted-foreground">E2E Tests</div>
+							<div className="text-sm text-muted-foreground">E2E test definitions</div>
 						</div>
 						<div className="text-center">
 							<div className="text-2xl font-bold">{pyramidData.visual.total}</div>
-							<div className="text-sm text-muted-foreground">Visual Tests</div>
+							<div className="text-sm text-muted-foreground">Visual test definitions</div>
 						</div>
 					</div>
 				</CardContent>
