@@ -2,7 +2,7 @@
 import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
@@ -40,11 +40,24 @@ export default function PullRequests() {
 
 	const selectedProject = projects?.find((p) => p._id === selectedProjectId);
 
+	// Auto-select first project if only one exists
+	useEffect(() => {
+		if (projects && projects.length === 1 && !selectedProjectId) {
+			setSelectedProjectId(projects[0]._id);
+		}
+	}, [projects, selectedProjectId]);
+
 	const handleSync = async () => {
 		if (!selectedProjectId) return;
 		try {
-			await syncGitHubData({ projectId: selectedProjectId });
-			alert("GitHub data synced successfully!");
+			const result = await syncGitHubData({ projectId: selectedProjectId });
+			let message = "";
+			if (result.partialSuccess && result.warnings) {
+				message = `Partially synced: ${result.ciRunsCount || 0} CI runs, ${result.prsCount || 0} PRs.\n\nWarnings:\n${result.warnings.join("\n")}`;
+			} else {
+				message = `GitHub data synced successfully! Stored ${result.ciRunsCount || 0} CI runs and ${result.prsCount || 0} PRs.`;
+			}
+			alert(message);
 		} catch (error) {
 			console.error("Failed to sync GitHub data:", error);
 			const errorMessage = error instanceof Error ? error.message : String(error);

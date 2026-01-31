@@ -267,34 +267,33 @@ export const getCIRuns = action({
 			throw new Error(`GitHub API error: ${response.status} - ${error}`);
 		}
 
-		const data = (await response.json()) as { workflow_runs?: GitHubWorkflowRun[] };
+		const responseData = (await response.json()) as { workflow_runs?: GitHubWorkflowRun[] };
 
-		// Debug: log the response structure
-		console.log("GitHub API response keys:", Object.keys(data));
-		console.log("Workflow runs count:", data.workflow_runs?.length || 0);
-
-		const workflowRuns = data.workflow_runs || [];
-
-		if (workflowRuns.length === 0) {
-			console.log(
-				"No workflow runs found in GitHub API response. Full response:",
-				JSON.stringify(data, null, 2)
+		// Check if response has workflow_runs or if it's a different structure
+		if (!responseData.workflow_runs && !Array.isArray(responseData)) {
+			throw new Error(
+				`Unexpected GitHub API response structure. Expected 'workflow_runs' array. Got keys: ${Object.keys(responseData).join(", ")}`
 			);
-			return [];
 		}
 
-		// Debug: log first run structure
-		if (workflowRuns.length > 0) {
-			console.log("First workflow run structure:", JSON.stringify(workflowRuns[0], null, 2));
-		}
+		const workflowRuns = responseData.workflow_runs || [];
 
 		// Store CI runs in database
 		const storedRuns: Id<"ciRuns">[] = [];
+		const errors: string[] = [];
+
 		for (const run of workflowRuns) {
 			try {
 				// Validate required fields
 				if (!run.id || !run.workflow_id || !run.head_sha || !run.head_branch) {
-					console.error("Missing required fields in workflow run:", run);
+					errors.push(
+						`Workflow run ${run.id} missing required fields: ${JSON.stringify({
+							id: run.id,
+							workflow_id: run.workflow_id,
+							head_sha: run.head_sha,
+							head_branch: run.head_branch,
+						})}`
+					);
 					continue;
 				}
 
@@ -337,9 +336,20 @@ export const getCIRuns = action({
 					storedRuns.push(runId);
 				}
 			} catch (error) {
-				console.error(`Failed to store workflow run ${run.id}:`, error);
-				// Continue with other runs instead of failing completely
+				const errorMsg = error instanceof Error ? error.message : String(error);
+				errors.push(`Failed to store workflow run ${run.id}: ${errorMsg}`);
 			}
+		}
+
+		if (errors.length > 0 && storedRuns.length === 0) {
+			throw new Error(`Failed to store any CI runs. Errors:\n${errors.join("\n")}`);
+		}
+
+		// If we have errors but some succeeded, throw with details
+		if (errors.length > 0) {
+			throw new Error(
+				`Stored ${storedRuns.length} runs but encountered errors:\n${errors.join("\n")}`
+			);
 		}
 
 		return storedRuns;
@@ -587,29 +597,41 @@ export const syncProjectGitHubData = action({
 		const errors: string[] = [];
 		let ciRunsCount = 0;
 		let prsCount = 0;
+		let ciRunsError: string | null = null;
+		let prsError: string | null = null;
 
 		try {
 			const ciRuns = await ctx.runAction(api.github.getCIRuns, { projectId: args.projectId });
-			ciRunsCount = ciRuns.length;
+			ciRunsCount = Array.isArray(ciRuns) ? ciRuns.length : 0;
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
+			ciRunsError = errorMessage;
 			errors.push(`CI Runs: ${errorMessage}`);
-			console.error("Failed to sync CI runs:", error);
 		}
 
 		try {
 			const prs = await ctx.runAction(api.github.getOpenPRs, { projectId: args.projectId });
-			prsCount = prs.length;
+			prsCount = Array.isArray(prs) ? prs.length : 0;
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
+			prsError = errorMessage;
 			errors.push(`Pull Requests: ${errorMessage}`);
-			console.error("Failed to sync PRs:", error);
 		}
 
+		// If both failed, throw error
+		if (ciRunsError && prsError) {
+			throw new Error(`Failed to sync both CI runs and PRs:\n${errors.join("\n")}`);
+		}
+
+		// If one failed, return partial success with details
 		if (errors.length > 0) {
-			throw new Error(
-				`Sync completed with errors:\n${errors.join("\n")}\n\nStored: ${ciRunsCount} CI runs, ${prsCount} PRs`
-			);
+			return {
+				success: true,
+				ciRunsCount,
+				prsCount,
+				warnings: errors,
+				partialSuccess: true,
+			};
 		}
 
 		return { success: true, ciRunsCount, prsCount };
