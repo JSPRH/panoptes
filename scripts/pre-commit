@@ -74,6 +74,13 @@ if ! bun run build; then
 	exit 1
 fi
 
+# Build shared package first (reporters depend on it)
+echo "📦 Building shared package..."
+if ! bun run build:shared; then
+	echo "❌ Shared package build failed. Please fix the errors above."
+	exit 1
+fi
+
 # Run reporters build to ensure reporter packages build and emit declarations
 echo "📦 Building reporters..."
 if ! bun run build:reporters; then
