@@ -115,12 +115,20 @@ describe("pathUtils", () => {
 	describe("splitPath", () => {
 		it("should split Unix paths", () => {
 			expect(splitPath("src/utils.ts")).toEqual(["src", "utils.ts"]);
-			expect(splitPath("packages/shared/index.ts")).toEqual(["packages", "shared", "index.ts"]);
+			expect(splitPath("packages/shared/index.ts")).toEqual([
+				"packages",
+				"shared",
+				"index.ts",
+			]);
 		});
 
 		it("should split Windows paths", () => {
 			expect(splitPath("src\\utils.ts")).toEqual(["src", "utils.ts"]);
-			expect(splitPath("packages\\shared\\index.ts")).toEqual(["packages", "shared", "index.ts"]);
+			expect(splitPath("packages\\shared\\index.ts")).toEqual([
+				"packages",
+				"shared",
+				"index.ts",
+			]);
 		});
 
 		it("should handle root files", () => {
@@ -170,7 +178,9 @@ describe("pathUtils", () => {
 		});
 
 		it("should return tree structure for single file", () => {
-			const files = [{ file: "src/utils.ts", linesCovered: 8, linesTotal: 10 }];
+			const files = [
+				{ file: "src/utils.ts", linesCovered: 8, linesTotal: 10 },
+			];
 
 			const tree = buildTree(files);
 			expect(tree).toHaveLength(1);
