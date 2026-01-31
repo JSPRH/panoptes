@@ -2,16 +2,17 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 
+const DETECT_ANOMALIES_TESTS_LIMIT = 25_000; // Stay under Convex read limit (32k) with room for anomaly writes
+
 export const detectAnomalies = mutation({
 	args: {
 		projectId: v.id("projects"),
 	},
 	handler: async (ctx, args) => {
-		// Get all tests for the project
 		const tests = await ctx.db
 			.query("tests")
 			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-			.collect();
+			.take(DETECT_ANOMALIES_TESTS_LIMIT);
 
 		// Group tests by name and file
 		const testGroups = new Map<string, typeof tests>();
@@ -122,6 +123,8 @@ export const detectAnomalies = mutation({
 	},
 });
 
+const ANOMALIES_QUERY_LIMIT = 2000;
+
 export const getAnomalies = query({
 	args: {
 		projectId: v.optional(v.id("projects")),
@@ -136,39 +139,30 @@ export const getAnomalies = query({
 		resolved: v.optional(v.boolean()),
 	},
 	handler: async (ctx, args) => {
-		// Use the most specific index available and collect results
 		let results: Doc<"anomalies">[];
-		if (args.projectId) {
-			const projectId = args.projectId;
+		const projectId = args.projectId;
+		const type = args.type;
+		const resolved = args.resolved;
+		if (projectId !== undefined) {
 			results = await ctx.db
 				.query("anomalies")
 				.withIndex("by_project", (q) => q.eq("projectId", projectId))
-				.collect();
-			// Apply additional filters in memory
-			if (args.type) {
-				results = results.filter((a) => a.type === args.type);
-			}
-			if (args.resolved !== undefined) {
-				results = results.filter((a) => a.resolved === args.resolved);
-			}
-		} else if (args.type) {
-			const type = args.type;
+				.take(ANOMALIES_QUERY_LIMIT);
+			if (type !== undefined) results = results.filter((a) => a.type === type);
+			if (resolved !== undefined) results = results.filter((a) => a.resolved === resolved);
+		} else if (type !== undefined) {
 			results = await ctx.db
 				.query("anomalies")
 				.withIndex("by_type", (q) => q.eq("type", type))
-				.collect();
-			// Apply additional filters in memory
-			if (args.resolved !== undefined) {
-				results = results.filter((a) => a.resolved === args.resolved);
-			}
-		} else if (args.resolved !== undefined) {
-			const resolved = args.resolved;
+				.take(ANOMALIES_QUERY_LIMIT);
+			if (resolved !== undefined) results = results.filter((a) => a.resolved === resolved);
+		} else if (resolved !== undefined) {
 			results = await ctx.db
 				.query("anomalies")
 				.withIndex("by_resolved", (q) => q.eq("resolved", resolved))
-				.collect();
+				.take(ANOMALIES_QUERY_LIMIT);
 		} else {
-			results = await ctx.db.query("anomalies").collect();
+			results = await ctx.db.query("anomalies").take(ANOMALIES_QUERY_LIMIT);
 		}
 
 		return results.sort((a, b) => b.detectedAt - a.detectedAt);

@@ -653,17 +653,19 @@ export const getCIRunsForProject = query({
 	},
 });
 
+const PRS_PER_PROJECT_LIMIT = 500;
+
 export const getPRsForProject = query({
 	args: {
 		projectId: v.id("projects"),
 		state: v.optional(v.union(v.literal("open"), v.literal("closed"), v.literal("merged"))),
 	},
 	handler: async (ctx, args) => {
-		const query = ctx.db
+		const results = await ctx.db
 			.query("pullRequests")
-			.withIndex("by_project", (q) => q.eq("projectId", args.projectId));
-
-		const results = await query.order("desc").collect();
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.order("desc")
+			.take(PRS_PER_PROJECT_LIMIT);
 
 		if (args.state) {
 			return results.filter((pr) => pr.state === args.state);

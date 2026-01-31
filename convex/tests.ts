@@ -270,6 +270,8 @@ export const ingestTestRun = mutation({
 	},
 });
 
+const COVERAGE_PER_RUN_LIMIT = 2000;
+
 export const getCoverageForTestRun = query({
 	args: {
 		testRunId: v.id("testRuns"),
@@ -278,7 +280,7 @@ export const getCoverageForTestRun = query({
 		return await ctx.db
 			.query("fileCoverage")
 			.withIndex("by_test_run", (q) => q.eq("testRunId", args.testRunId))
-			.collect();
+			.take(COVERAGE_PER_RUN_LIMIT);
 	},
 });
 
@@ -331,6 +333,8 @@ export const getTestRun = query({
 	},
 });
 
+const ATTACHMENTS_PER_TEST_LIMIT = 100;
+
 export const getTestAttachments = query({
 	args: {
 		testId: v.id("tests"),
@@ -339,7 +343,7 @@ export const getTestAttachments = query({
 		return await ctx.db
 			.query("testAttachments")
 			.withIndex("by_test", (q) => q.eq("testId", args.testId))
-			.collect();
+			.take(ATTACHMENTS_PER_TEST_LIMIT);
 	},
 });
 
@@ -371,29 +375,35 @@ export const getTests = query({
 		limit: v.optional(v.number()),
 	},
 	handler: async (ctx, args) => {
-		if (args.testRunId !== undefined) {
-			const testRunId = args.testRunId;
-			const query = ctx.db
+		const defaultLimit = 1000;
+		const limit = args.limit ?? defaultLimit;
+		const testRunId = args.testRunId;
+		const projectId = args.projectId;
+		const status = args.status;
+
+		if (testRunId !== undefined) {
+			return await ctx.db
 				.query("tests")
-				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunId));
-			return args.limit ? await query.take(args.limit) : await query.collect();
+				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunId))
+				.take(limit);
 		}
-		if (args.projectId !== undefined) {
-			const projectId = args.projectId;
-			const query = ctx.db
+		if (projectId !== undefined) {
+			return await ctx.db
 				.query("tests")
-				.withIndex("by_project", (q) => q.eq("projectId", projectId));
-			return args.limit ? await query.take(args.limit) : await query.collect();
+				.withIndex("by_project", (q) => q.eq("projectId", projectId))
+				.take(limit);
 		}
-		if (args.status !== undefined) {
-			const status = args.status;
-			const query = ctx.db.query("tests").withIndex("by_status", (q) => q.eq("status", status));
-			return args.limit ? await query.take(args.limit) : await query.collect();
+		if (status !== undefined) {
+			return await ctx.db
+				.query("tests")
+				.withIndex("by_status", (q) => q.eq("status", status))
+				.take(limit);
 		}
-		const query = ctx.db.query("tests");
-		return args.limit ? await query.take(args.limit) : await query.collect();
+		return await ctx.db.query("tests").take(limit);
 	},
 });
+
+const SEARCH_TAKE_LIMIT = 500; // Max docs per search index to stay under read limit when merging two searches
 
 export const getTestsPaginated = query({
 	args: {
@@ -412,18 +422,13 @@ export const getTestsPaginated = query({
 		searchQuery: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		// Use type inference from the query results
-		// biome-ignore lint/suspicious/noImplicitAnyLet: Type inferred from query results
-		let allTests;
-
 		const hasSearchQuery = args.searchQuery && args.searchQuery.trim() !== "";
 		const effectiveStatus = args.status === "all" ? undefined : args.status;
 
-		// Priority 1: If search query is provided, use search indexes
+		// Search path: capped read then manual cursor slice (cannot use DB-level pagination for merged search)
 		if (hasSearchQuery && args.searchQuery) {
 			const searchTerm = args.searchQuery.trim();
 
-			// Search by name
 			const nameResults = await ctx.db
 				.query("tests")
 				.withSearchIndex("search_name", (q) => {
@@ -439,9 +444,8 @@ export const getTestsPaginated = query({
 					}
 					return baseQuery;
 				})
-				.collect();
+				.take(SEARCH_TAKE_LIMIT);
 
-			// Search by file
 			const fileResults = await ctx.db
 				.query("tests")
 				.withSearchIndex("search_file", (q) => {
@@ -457,11 +461,10 @@ export const getTestsPaginated = query({
 					}
 					return baseQuery;
 				})
-				.collect();
+				.take(SEARCH_TAKE_LIMIT);
 
-			// Combine results (union of both searches) - deduplicate by _id
 			const seenIds = new Set<Id<"tests">>();
-			allTests = [];
+			const allTests: Doc<"tests">[] = [];
 			for (const test of nameResults) {
 				if (!seenIds.has(test._id)) {
 					seenIds.add(test._id);
@@ -475,89 +478,119 @@ export const getTestsPaginated = query({
 				}
 			}
 
-			// Apply additional filters that weren't handled by search index
-			if (args.testRunId) {
-				allTests = allTests.filter((test) => test.testRunId === args.testRunId);
+			const filterTestRunId = args.testRunId;
+			if (filterTestRunId) {
+				allTests.splice(
+					0,
+					allTests.length,
+					...allTests.filter((t) => t.testRunId === filterTestRunId)
+				);
 			}
-		} else if (args.testRunId !== undefined) {
-			// Priority 2: Filter by testRunId (most specific)
-			const testRunId = args.testRunId;
-			const query = ctx.db
-				.query("tests")
-				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunId));
 
-			allTests = await query.collect();
+			allTests.sort((a, b) => (b._id > a._id ? 1 : -1));
 
-			// Apply status filter if needed
-			if (effectiveStatus) {
-				allTests = allTests.filter((test) => test.status === effectiveStatus);
-			}
-		} else if (args.projectId !== undefined && effectiveStatus) {
-			// Priority 3: Use composite index for project + status
-			const projectId = args.projectId;
-			allTests = await ctx.db
-				.query("tests")
-				.withIndex("by_project_and_status", (q) =>
-					q.eq("projectId", projectId).eq("status", effectiveStatus)
-				)
-				.collect();
-		} else if (args.projectId !== undefined) {
-			// Priority 4: Filter by projectId
-			const projectId = args.projectId;
-			allTests = await ctx.db
-				.query("tests")
-				.withIndex("by_project", (q) => q.eq("projectId", projectId))
-				.collect();
-
-			// Apply status filter if needed
-			if (effectiveStatus) {
-				allTests = allTests.filter((test) => test.status === effectiveStatus);
-			}
-		} else if (effectiveStatus) {
-			// Priority 5: Filter by status only
-			allTests = await ctx.db
-				.query("tests")
-				.withIndex("by_status", (q) => q.eq("status", effectiveStatus))
-				.collect();
-		} else {
-			// Priority 6: Get all tests
-			allTests = await ctx.db.query("tests").collect();
+			const { numItems, cursor } = args.paginationOpts;
+			const startIndex = cursor ? Number.parseInt(cursor, 10) : 0;
+			const endIndex = startIndex + numItems;
+			const slice = allTests.slice(startIndex, endIndex);
+			const page = await Promise.all(
+				slice.map(async (test) => {
+					const run = await ctx.db.get(test.testRunId);
+					return { ...test, ci: run?.ci, commitSha: run?.commitSha };
+				})
+			);
+			return {
+				page,
+				continueCursor: endIndex >= allTests.length ? "" : endIndex.toString(),
+				isDone: endIndex >= allTests.length,
+			};
 		}
 
-		// Sort by _id descending for consistent ordering
-		allTests.sort((a, b) => (b._id > a._id ? 1 : -1));
+		// Indexed paths: use DB-level pagination to avoid reading more than numItems (+ run lookups)
+		const testRunIdPag = args.testRunId;
+		const projectIdPag = args.projectId;
+		let paginated: { page: Doc<"tests">[]; continueCursor: string; isDone: boolean };
 
-		// Manual pagination since we've filtered in memory
-		const { numItems, cursor } = args.paginationOpts;
-		const startIndex = cursor ? Number.parseInt(cursor, 10) : 0;
-		const endIndex = startIndex + numItems;
-		const slice = allTests.slice(startIndex, endIndex);
-		// Attach test run's ci and commitSha so UI can show GitHub links only for CI runs
+		if (testRunIdPag !== undefined) {
+			const q = ctx.db
+				.query("tests")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunIdPag))
+				.order("desc");
+			const result = await q.paginate(args.paginationOpts);
+			const filtered = effectiveStatus
+				? result.page.filter((t) => t.status === effectiveStatus)
+				: result.page;
+			paginated = {
+				page: filtered,
+				continueCursor: result.continueCursor,
+				isDone: result.isDone,
+			};
+		} else if (projectIdPag !== undefined && effectiveStatus) {
+			const result = await ctx.db
+				.query("tests")
+				.withIndex("by_project_and_status", (q) =>
+					q.eq("projectId", projectIdPag).eq("status", effectiveStatus)
+				)
+				.order("desc")
+				.paginate(args.paginationOpts);
+			paginated = {
+				page: result.page,
+				continueCursor: result.continueCursor,
+				isDone: result.isDone,
+			};
+		} else if (projectIdPag !== undefined) {
+			const result = await ctx.db
+				.query("tests")
+				.withIndex("by_project", (q) => q.eq("projectId", projectIdPag))
+				.order("desc")
+				.paginate(args.paginationOpts);
+			const filtered = effectiveStatus
+				? result.page.filter((t) => t.status === effectiveStatus)
+				: result.page;
+			paginated = {
+				page: filtered,
+				continueCursor: result.continueCursor,
+				isDone: result.isDone,
+			};
+		} else if (effectiveStatus) {
+			const result = await ctx.db
+				.query("tests")
+				.withIndex("by_status", (q) => q.eq("status", effectiveStatus))
+				.order("desc")
+				.paginate(args.paginationOpts);
+			paginated = {
+				page: result.page,
+				continueCursor: result.continueCursor,
+				isDone: result.isDone,
+			};
+		} else {
+			const result = await ctx.db.query("tests").order("desc").paginate(args.paginationOpts);
+			paginated = {
+				page: result.page,
+				continueCursor: result.continueCursor,
+				isDone: result.isDone,
+			};
+		}
+
 		const page = await Promise.all(
-			slice.map(async (test) => {
+			paginated.page.map(async (test) => {
 				const run = await ctx.db.get(test.testRunId);
-				return {
-					...test,
-					ci: run?.ci,
-					commitSha: run?.commitSha,
-				};
+				return { ...test, ci: run?.ci, commitSha: run?.commitSha };
 			})
 		);
-		const isDone = endIndex >= allTests.length;
-		// Convex expects continueCursor to be a string, use empty string when done
-		const nextCursor = isDone ? "" : endIndex.toString();
-
 		return {
 			page,
-			continueCursor: nextCursor,
-			isDone,
+			continueCursor: paginated.continueCursor,
+			isDone: paginated.isDone,
 		};
 	},
 });
 
+const PROJECTS_LIMIT = 500;
+
 export const getProjects = query({
 	handler: async (ctx) => {
-		return await ctx.db.query("projects").order("desc").collect();
+		return await ctx.db.query("projects").order("desc").take(PROJECTS_LIMIT);
 	},
 });
 
@@ -584,21 +617,26 @@ function testDefinitionKey(
 	return `${projectId}|${name}|${file}|${line ?? ""}`;
 }
 
+const PYRAMID_RUNS_LIMIT = 50; // Max runs to consider (newest first)
+const PYRAMID_TESTS_PER_RUN_LIMIT = 500; // Max tests read per run; keeps total reads under 32k
+
 export const getTestPyramidData = query({
 	args: {
 		projectId: v.optional(v.id("projects")),
 	},
 	handler: async (ctx, args) => {
 		// Count unique test definitions per type; passed/failed from latest execution per definition.
-		// See docs/TERMINOLOGY.md: test = definition, tests table = test executions.
-		const projectId = args.projectId;
-		const runsUnsorted = projectId
+		// Capped to stay under Convex read limit (~32k). See docs/TERMINOLOGY.md.
+		const pyramidProjectId = args.projectId;
+		const runsUnsorted = pyramidProjectId
 			? await ctx.db
 					.query("testRuns")
-					.withIndex("by_project", (q) => q.eq("projectId", projectId))
-					.collect()
-			: await ctx.db.query("testRuns").collect();
-		const testRuns = runsUnsorted.sort((a, b) => b.startedAt - a.startedAt);
+					.withIndex("by_project", (q) => q.eq("projectId", pyramidProjectId))
+					.take(500)
+			: await ctx.db.query("testRuns").withIndex("by_started_at").order("desc").take(500);
+		const testRuns = runsUnsorted
+			.sort((a, b) => b.startedAt - a.startedAt)
+			.slice(0, PYRAMID_RUNS_LIMIT);
 
 		const pyramid = {
 			unit: { total: 0, passed: 0, failed: 0 },
@@ -607,7 +645,6 @@ export const getTestPyramidData = query({
 			visual: { total: 0, passed: 0, failed: 0 },
 		};
 
-		// Per type: map of definition key -> latest status (we process runs newest-first)
 		const seenByType: Record<
 			keyof typeof pyramid,
 			Map<string, "passed" | "failed" | "skipped" | "running">
@@ -625,7 +662,7 @@ export const getTestPyramidData = query({
 			const tests = await ctx.db
 				.query("tests")
 				.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
-				.collect();
+				.take(PYRAMID_TESTS_PER_RUN_LIMIT);
 			for (const test of tests) {
 				const key = testDefinitionKey(test.projectId, test.name, test.file, test.line);
 				if (!map.has(key)) {
