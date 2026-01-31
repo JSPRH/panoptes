@@ -294,21 +294,38 @@ export default function TestExecutionDetail() {
 					{analysis && analysis.status === "completed" && (
 						<Card>
 							<CardHeader>
-								<CardTitle>AI Analysis</CardTitle>
-								<CardDescription>
-									Confidence:{" "}
-									<Badge
-										variant={
-											analysis.confidence === "high"
-												? "success"
-												: analysis.confidence === "medium"
-													? "info"
-													: "neutral"
-										}
-									>
-										{analysis.confidence}
-									</Badge>
-								</CardDescription>
+								<div className="flex items-center justify-between">
+									<div>
+										<CardTitle>AI Analysis</CardTitle>
+										<CardDescription>
+											Confidence:{" "}
+											<Badge
+												variant={
+													analysis.confidence === "high"
+														? "success"
+														: analysis.confidence === "medium"
+															? "info"
+															: "neutral"
+												}
+											>
+												{analysis.confidence}
+											</Badge>
+										</CardDescription>
+									</div>
+									{analysis.cursorDeeplink && (
+										<Button
+											onClick={() => {
+												// generateCursorDeeplink already returns web format (https://cursor.com/link/...)
+												// which works in browsers and redirects to Cursor app if installed
+												window.open(analysis.cursorDeeplink, "_blank");
+											}}
+											size="sm"
+											variant="outline"
+										>
+											💬 Open Prompt in Cursor
+										</Button>
+									)}
+								</div>
 							</CardHeader>
 							<CardContent className="space-y-4">
 								{analysis.summary && (

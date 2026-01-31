@@ -55,6 +55,7 @@ export const _updateTestFailureAnalysis = mutation({
 		codeLocation: v.optional(v.string()),
 		confidence: v.optional(v.union(v.literal("high"), v.literal("medium"), v.literal("low"))),
 		relatedFiles: v.optional(v.array(v.string())),
+		cursorDeeplink: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const { analysisId, ...updateData } = args;
