@@ -97,7 +97,7 @@ export default function Dashboard() {
 							</CardHeader>
 							<CardContent>
 								<div className="text-2xl font-bold">{ciRuns?.length || 0}</div>
-								<Link to="/ci-runs" className="text-xs text-blue-600 hover:text-blue-800 underline">
+								<Link to="/ci-runs" className="text-xs text-primary hover:underline">
 									View all CI runs
 								</Link>
 							</CardContent>
@@ -109,10 +109,7 @@ export default function Dashboard() {
 							</CardHeader>
 							<CardContent>
 								<div className="text-2xl font-bold">{prs?.length || 0}</div>
-								<Link
-									to="/pull-requests"
-									className="text-xs text-blue-600 hover:text-blue-800 underline"
-								>
+								<Link to="/pull-requests" className="text-xs text-primary hover:underline">
 									View all PRs
 								</Link>
 							</CardContent>
@@ -143,10 +140,10 @@ export default function Dashboard() {
 										<div
 											className={`font-medium ${
 												run.status === "passed"
-													? "text-green-600"
+													? "text-success"
 													: run.status === "failed"
-														? "text-red-600"
-														: "text-gray-600"
+														? "text-error"
+														: "text-muted-foreground"
 											}`}
 										>
 											{run.status}
@@ -191,10 +188,10 @@ export default function Dashboard() {
 												<span
 													className={`text-xs px-2 py-1 rounded ${
 														run.conclusion === "success"
-															? "bg-green-100 text-green-800"
+															? "bg-success-muted text-success"
 															: run.conclusion === "failure"
-																? "bg-red-100 text-red-800"
-																: "bg-gray-100 text-gray-800"
+																? "bg-error-muted text-error"
+																: "bg-muted text-muted-foreground"
 													}`}
 												>
 													{run.conclusion || run.status}
@@ -204,7 +201,7 @@ export default function Dashboard() {
 									))}
 									<Link
 										to="/ci-runs"
-										className="block text-center text-sm text-blue-600 hover:text-blue-800 underline mt-2"
+										className="block text-center text-sm text-primary hover:underline mt-2"
 									>
 										View all CI runs →
 									</Link>
@@ -212,7 +209,7 @@ export default function Dashboard() {
 							) : (
 								<p className="text-muted-foreground text-sm">
 									No CI runs found.{" "}
-									<Link to="/ci-runs" className="text-blue-600 hover:text-blue-800 underline">
+									<Link to="/ci-runs" className="text-primary hover:underline">
 										Sync GitHub data
 									</Link>
 								</p>
@@ -241,14 +238,14 @@ export default function Dashboard() {
 													{pr.author} • {pr.branch} → {pr.baseBranch}
 												</div>
 											</div>
-											<span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800">
+											<span className="text-xs px-2 py-1 rounded bg-success-muted text-success">
 												{pr.state}
 											</span>
 										</div>
 									))}
 									<Link
 										to="/pull-requests"
-										className="block text-center text-sm text-blue-600 hover:text-blue-800 underline mt-2"
+										className="block text-center text-sm text-primary hover:underline mt-2"
 									>
 										View all PRs →
 									</Link>
@@ -256,7 +253,7 @@ export default function Dashboard() {
 							) : (
 								<p className="text-muted-foreground text-sm">
 									No open PRs found.{" "}
-									<Link to="/pull-requests" className="text-blue-600 hover:text-blue-800 underline">
+									<Link to="/pull-requests" className="text-primary hover:underline">
 										Sync GitHub data
 									</Link>
 								</p>

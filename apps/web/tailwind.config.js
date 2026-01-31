@@ -4,6 +4,10 @@ export default {
 	content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
 	theme: {
 		extend: {
+			fontFamily: {
+				sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+				heading: ["Plus Jakarta Sans", "ui-sans-serif", "system-ui", "sans-serif"],
+			},
 			colors: {
 				border: "hsl(var(--border))",
 				input: "hsl(var(--input))",
@@ -38,11 +42,27 @@ export default {
 					DEFAULT: "hsl(var(--card))",
 					foreground: "hsl(var(--card-foreground))",
 				},
+				success: {
+					DEFAULT: "hsl(var(--success))",
+					muted: "hsl(var(--success-muted))",
+				},
+				warning: {
+					DEFAULT: "hsl(var(--warning))",
+					muted: "hsl(var(--warning-muted))",
+				},
+				error: {
+					DEFAULT: "hsl(var(--error))",
+					muted: "hsl(var(--error-muted))",
+				},
+				info: {
+					DEFAULT: "hsl(var(--info))",
+					muted: "hsl(var(--info-muted))",
+				},
 			},
 			borderRadius: {
 				lg: "var(--radius)",
 				md: "calc(var(--radius) - 2px)",
-				sm: "calc(var(--radius) - 4px)",
+				sm: "var(--radius-sm)",
 			},
 		},
 	},
