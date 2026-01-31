@@ -9,8 +9,8 @@
  */
 
 import type * as anomalies from "../anomalies.js";
-import type * as convex__generated_api from "../convex/_generated/api.js";
-import type * as convex__generated_server from "../convex/_generated/server.js";
+import type * as ciAnalysis from "../ciAnalysis.js";
+import type * as ciAnalysisActions from "../ciAnalysisActions.js";
 import type * as github from "../github.js";
 import type * as http from "../http.js";
 import type * as tests from "../tests.js";
@@ -23,8 +23,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   anomalies: typeof anomalies;
-  "convex/_generated/api": typeof convex__generated_api;
-  "convex/_generated/server": typeof convex__generated_server;
+  ciAnalysis: typeof ciAnalysis;
+  ciAnalysisActions: typeof ciAnalysisActions;
   github: typeof github;
   http: typeof http;
   tests: typeof tests;
