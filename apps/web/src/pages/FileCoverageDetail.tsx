@@ -1,7 +1,7 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
-import { useQuery } from "convex/react";
-import { useMemo, useState } from "react";
+import { useAction, useQuery } from "convex/react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
@@ -27,12 +27,33 @@ function generateCursorDeeplink(file: string, uncoveredLines: number[]): string 
 
 export default function FileCoverageDetail() {
 	const { file: filePath } = useParams<{ file: string }>();
-	const fileCoverage = useQuery(
+	const fileCoverageData = useQuery(
 		api.tests.getFileCoverage,
 		filePath ? { file: decodeURIComponent(filePath) } : "skip"
 	);
+	const getFileContent = useAction(api.github.getFileContent);
 
-	const [fileContent] = useState<string | null>(null);
+	const [fileLines, setFileLines] = useState<string[]>([]);
+	const [loadingContent, setLoadingContent] = useState(false);
+	const [contentError, setContentError] = useState<string | null>(null);
+
+	const fileCoverage = fileCoverageData
+		? {
+				...fileCoverageData,
+				projectId: fileCoverageData.projectId,
+				testRunId: fileCoverageData.testRunId,
+				file: fileCoverageData.file,
+				linesCovered: fileCoverageData.linesCovered,
+				linesTotal: fileCoverageData.linesTotal,
+				lineDetails: fileCoverageData.lineDetails,
+				statementsCovered: fileCoverageData.statementsCovered,
+				statementsTotal: fileCoverageData.statementsTotal,
+				branchesCovered: fileCoverageData.branchesCovered,
+				branchesTotal: fileCoverageData.branchesTotal,
+				functionsCovered: fileCoverageData.functionsCovered,
+				functionsTotal: fileCoverageData.functionsTotal,
+			}
+		: null;
 
 	const lineDetails = useMemo(() => {
 		if (!fileCoverage?.lineDetails) return null;
@@ -49,12 +70,41 @@ export default function FileCoverageDetail() {
 	const coverage = fileCoverage ? (fileCoverage.linesCovered / fileCoverage.linesTotal) * 100 : 0;
 
 	const cursorLink = useMemo(() => {
-		if (!filePath || !lineDetails?.uncovered.length) return null;
-		return generateCursorDeeplink(decodeURIComponent(filePath), lineDetails.uncovered);
+		if (!filePath) return null;
+		const uncoveredLines = lineDetails?.uncovered || [];
+		// Always generate link, even if all lines are covered (for viewing the file)
+		return generateCursorDeeplink(
+			decodeURIComponent(filePath),
+			uncoveredLines.length > 0 ? uncoveredLines : [1]
+		);
 	}, [filePath, lineDetails]);
 
-	// File content would ideally come from a Convex function or GitHub API
-	// For now, we show uncovered lines as badges
+	// Fetch file content from GitHub
+	useEffect(() => {
+		if (!fileCoverageData?.projectId || !filePath) return;
+
+		const fetchContent = async () => {
+			setLoadingContent(true);
+			setContentError(null);
+			try {
+				const commitSha = fileCoverageData.testRun?.commitSha;
+				const result = await getFileContent({
+					projectId: fileCoverageData.projectId,
+					file: decodeURIComponent(filePath),
+					ref: commitSha,
+				});
+				setFileLines(result.lines);
+			} catch (error) {
+				setContentError(
+					error instanceof Error ? error.message : "Failed to fetch file content from GitHub"
+				);
+			} finally {
+				setLoadingContent(false);
+			}
+		};
+
+		fetchContent();
+	}, [fileCoverageData?.projectId, fileCoverageData?.testRun?.commitSha, filePath, getFileContent]);
 
 	if (!filePath) {
 		return (
@@ -140,6 +190,11 @@ export default function FileCoverageDetail() {
 										<line x1="15" y1="12" x2="3" y2="12" />
 									</svg>
 									Open in Cursor
+									{lineDetails && lineDetails.uncovered.length > 0 && (
+										<span className="ml-2 text-xs opacity-80">
+											({lineDetails.uncovered.length} uncovered)
+										</span>
+									)}
 								</Button>
 							)}
 						</div>
@@ -192,33 +247,67 @@ export default function FileCoverageDetail() {
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						{fileContent ? (
-							<div className="font-mono text-sm">
-								{fileContent.split("\n").map((line, index) => {
-									const lineNum = index + 1;
-									const isCovered = lineDetails.covered.includes(lineNum);
-									const isUncovered = lineDetails.uncovered.includes(lineNum);
-									return (
-										<div
-											key={lineNum}
-											className={`flex gap-4 py-0.5 px-2 ${
-												isUncovered
-													? "bg-error-muted/30 border-l-2 border-error"
-													: isCovered
-														? "bg-success-muted/20"
-														: ""
-											}`}
+						{loadingContent ? (
+							<div className="text-center text-muted-foreground py-8">
+								Loading file content from GitHub...
+							</div>
+						) : contentError ? (
+							<div className="space-y-4">
+								<div className="text-sm text-error bg-error-muted/20 p-4 rounded-lg">
+									{contentError}
+								</div>
+								<div className="text-sm text-muted-foreground">Uncovered lines:</div>
+								<div className="flex flex-wrap gap-2">
+									{lineDetails?.uncovered.map((line) => (
+										<Badge
+											key={line}
+											variant="error"
+											className="font-mono cursor-pointer hover:bg-error/20"
+											onClick={() => {
+												if (cursorLink) {
+													const link = generateCursorDeeplink(decodedFilePath, [line]);
+													window.location.href = link;
+												}
+											}}
 										>
-											<div className="text-muted-foreground w-12 text-right flex-shrink-0">
-												{lineNum}
+											Line {line}
+										</Badge>
+									))}
+								</div>
+							</div>
+						) : fileLines.length > 0 ? (
+							<div className="font-mono text-sm bg-muted/30 rounded-lg overflow-hidden border border-border">
+								<div className="max-h-[600px] overflow-y-auto">
+									{fileLines.map((line, index) => {
+										const lineNum = index + 1;
+										const isCovered = lineDetails?.covered.includes(lineNum) ?? false;
+										const isUncovered = lineDetails?.uncovered.includes(lineNum) ?? false;
+										return (
+											<div
+												key={lineNum}
+												className={`flex gap-4 py-1 px-3 hover:bg-muted/50 transition-colors ${
+													isUncovered
+														? "bg-error-muted/40 border-l-3 border-error"
+														: isCovered
+															? "bg-success-muted/20 border-l-3 border-success/50"
+															: ""
+												}`}
+											>
+												<div className="text-muted-foreground w-12 text-right flex-shrink-0 select-none">
+													{lineNum}
+												</div>
+												<div className="flex-1 break-all whitespace-pre-wrap">{line || " "}</div>
+												{isUncovered && (
+													<div className="text-error text-xs flex items-center flex-shrink-0">
+														<Badge variant="error" className="text-xs">
+															Uncovered
+														</Badge>
+													</div>
+												)}
 											</div>
-											<div className="flex-1">{line || " "}</div>
-											{isUncovered && (
-												<div className="text-error text-xs flex items-center">Uncovered</div>
-											)}
-										</div>
-									);
-								})}
+										);
+									})}
+								</div>
 							</div>
 						) : (
 							<div className="space-y-2">

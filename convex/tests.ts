@@ -316,7 +316,13 @@ export const getFileCoverage = query({
 				.filter((q) => q.eq(q.field("file"), args.file))
 				.first();
 			if (coverage) {
-				return coverage;
+				// Also fetch project info for repository URL
+				const project = await ctx.db.get(coverage.projectId);
+				return {
+					...coverage,
+					project,
+					testRun: run,
+				};
 			}
 		}
 		return null;

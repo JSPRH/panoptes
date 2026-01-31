@@ -544,6 +544,85 @@ export const getCodeSnippet = action({
 	},
 });
 
+export const getFileContent = action({
+	args: {
+		projectId: v.id("projects"),
+		file: v.string(),
+		ref: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const project = await ctx.runQuery(internal.github._getProject, {
+			projectId: args.projectId,
+		});
+
+		if (!project) {
+			throw new Error("Project not found");
+		}
+
+		if (!project.repository) {
+			throw new Error("Project repository not configured");
+		}
+
+		const repoInfo = parseRepositoryUrl(project.repository);
+		if (!repoInfo) {
+			throw new Error(`Invalid repository URL: ${project.repository}`);
+		}
+
+		const token = getGitHubToken();
+		const ref = args.ref || "main";
+
+		// Fetch full file content
+		const fileResponse = await fetch(
+			`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${encodeURIComponent(args.file)}?ref=${ref}`,
+			{
+				headers: {
+					Authorization: `Bearer ${token}`,
+					Accept: "application/vnd.github.v3+json",
+				},
+			}
+		);
+
+		if (!fileResponse.ok) {
+			const error = await fileResponse.text();
+			throw new Error(`GitHub API error: ${fileResponse.status} - ${error}`);
+		}
+
+		const fileData = (await fileResponse.json()) as GitHubFileContent;
+		const content = Buffer.from(fileData.content, "base64").toString("utf-8");
+
+		// Detect language from file extension
+		const extension = args.file.split(".").pop()?.toLowerCase() || "";
+		const languageMap: Record<string, string> = {
+			ts: "typescript",
+			tsx: "typescript",
+			js: "javascript",
+			jsx: "javascript",
+			py: "python",
+			rs: "rust",
+			go: "go",
+			java: "java",
+			cpp: "cpp",
+			c: "c",
+			cs: "csharp",
+			php: "php",
+			rb: "ruby",
+			swift: "swift",
+			kt: "kotlin",
+			json: "json",
+			md: "markdown",
+			yaml: "yaml",
+			yml: "yaml",
+		};
+		const language = languageMap[extension] || "text";
+
+		return {
+			content,
+			language,
+			lines: content.split("\n"),
+		};
+	},
+});
+
 export const getAvailableRepositories = action({
 	args: {
 		limit: v.optional(v.number()),
