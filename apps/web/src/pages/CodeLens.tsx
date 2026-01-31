@@ -54,29 +54,32 @@ export default function CodeLens() {
 				</CardHeader>
 				<CardContent>
 					{fileStats.length > 0 ? (
-						<div className="space-y-4">
+						<div className="space-y-2">
 							{fileStats.map((stat) => (
-								<div key={stat.file} className="border rounded-lg p-4">
-									<div className="flex items-center justify-between mb-2">
+								<div
+									key={stat.file}
+									className="flex flex-col gap-2 py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
+								>
+									<div className="flex items-center justify-between">
 										<div className="font-medium">{stat.file}</div>
 										<div className="text-sm text-muted-foreground">
 											{stat.passed}/{stat.total} passed ({stat.coverage.toFixed(1)}%)
 										</div>
 									</div>
-									<div className="w-full bg-gray-200 rounded-full h-2">
+									<div className="w-full bg-muted rounded-full h-2">
 										<div
 											className={`h-2 rounded-full ${
 												stat.coverage >= 80
-													? "bg-green-500"
+													? "bg-success"
 													: stat.coverage >= 50
-														? "bg-yellow-500"
-														: "bg-red-500"
+														? "bg-warning"
+														: "bg-error"
 											}`}
 											style={{ width: `${stat.coverage}%` }}
 										/>
 									</div>
 									{stat.failed > 0 && (
-										<div className="mt-2 text-sm text-red-600">
+										<div className="text-sm text-error">
 											{stat.failed} test{stat.failed !== 1 ? "s" : ""} failing
 										</div>
 									)}

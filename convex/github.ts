@@ -267,46 +267,78 @@ export const getCIRuns = action({
 			throw new Error(`GitHub API error: ${response.status} - ${error}`);
 		}
 
-		const data = (await response.json()) as { workflow_runs: GitHubWorkflowRun[] };
+		const data = (await response.json()) as { workflow_runs?: GitHubWorkflowRun[] };
+
+		// Debug: log the response structure
+		console.log("GitHub API response keys:", Object.keys(data));
+		console.log("Workflow runs count:", data.workflow_runs?.length || 0);
+
 		const workflowRuns = data.workflow_runs || [];
+
+		if (workflowRuns.length === 0) {
+			console.log(
+				"No workflow runs found in GitHub API response. Full response:",
+				JSON.stringify(data, null, 2)
+			);
+			return [];
+		}
+
+		// Debug: log first run structure
+		if (workflowRuns.length > 0) {
+			console.log("First workflow run structure:", JSON.stringify(workflowRuns[0], null, 2));
+		}
 
 		// Store CI runs in database
 		const storedRuns: Id<"ciRuns">[] = [];
 		for (const run of workflowRuns) {
-			const existing = await ctx.runQuery(internal.github._getExistingCIRun, {
-				projectId: args.projectId,
-				runId: run.id,
-			});
+			try {
+				// Validate required fields
+				if (!run.id || !run.workflow_id || !run.head_sha || !run.head_branch) {
+					console.error("Missing required fields in workflow run:", run);
+					continue;
+				}
 
-			if (existing) {
-				// Update existing run
-				await ctx.runMutation(internal.github._updateCIRun, {
-					runId: existing._id,
-					status: run.status,
-					conclusion: run.conclusion || undefined,
-					commitSha: run.head_sha,
-					branch: run.head_branch,
-					startedAt: new Date(run.created_at).getTime(),
-					completedAt: run.status === "completed" ? new Date(run.updated_at).getTime() : undefined,
-					htmlUrl: run.html_url,
-				});
-				storedRuns.push(existing._id);
-			} else {
-				// Insert new run
-				const runId = await ctx.runMutation(internal.github._insertCIRun, {
+				const existing = await ctx.runQuery(internal.github._getExistingCIRun, {
 					projectId: args.projectId,
-					workflowId: run.workflow_id,
-					workflowName: run.name,
 					runId: run.id,
-					status: run.status,
-					conclusion: run.conclusion || undefined,
-					commitSha: run.head_sha,
-					branch: run.head_branch,
-					startedAt: new Date(run.created_at).getTime(),
-					completedAt: run.status === "completed" ? new Date(run.updated_at).getTime() : undefined,
-					htmlUrl: run.html_url,
 				});
-				storedRuns.push(runId);
+
+				if (existing) {
+					// Update existing run
+					await ctx.runMutation(internal.github._updateCIRun, {
+						runId: existing._id,
+						status: run.status,
+						conclusion: run.conclusion || undefined,
+						commitSha: run.head_sha,
+						branch: run.head_branch,
+						startedAt: new Date(run.created_at).getTime(),
+						completedAt:
+							run.status === "completed" ? new Date(run.updated_at).getTime() : undefined,
+						htmlUrl: run.html_url,
+					});
+					storedRuns.push(existing._id);
+				} else {
+					// Insert new run - workflow name might be in workflow object or null
+					const workflowName = run.name || `Workflow ${run.workflow_id}`;
+					const runId = await ctx.runMutation(internal.github._insertCIRun, {
+						projectId: args.projectId,
+						workflowId: run.workflow_id,
+						workflowName,
+						runId: run.id,
+						status: run.status,
+						conclusion: run.conclusion || undefined,
+						commitSha: run.head_sha,
+						branch: run.head_branch,
+						startedAt: new Date(run.created_at).getTime(),
+						completedAt:
+							run.status === "completed" ? new Date(run.updated_at).getTime() : undefined,
+						htmlUrl: run.html_url,
+					});
+					storedRuns.push(runId);
+				}
+			} catch (error) {
+				console.error(`Failed to store workflow run ${run.id}:`, error);
+				// Continue with other runs instead of failing completely
 			}
 		}
 
@@ -355,44 +387,60 @@ export const getOpenPRs = action({
 
 		const prs = (await response.json()) as GitHubPullRequest[];
 
+		if (!Array.isArray(prs)) {
+			console.error("GitHub API returned non-array response for PRs:", prs);
+			return [];
+		}
+
 		// Store/update PRs in database
 		const storedPRs: Id<"pullRequests">[] = [];
 		for (const pr of prs) {
-			const existing = await ctx.runQuery(internal.github._getExistingPR, {
-				projectId: args.projectId,
-				prNumber: pr.number,
-			});
+			try {
+				// Validate required fields
+				if (!pr.number || !pr.title || !pr.user?.login || !pr.head?.ref || !pr.head?.sha) {
+					console.error("Missing required fields in PR:", pr);
+					continue;
+				}
 
-			if (existing) {
-				// Update existing PR
-				await ctx.runMutation(internal.github._updatePR, {
-					prId: existing._id,
-					title: pr.title,
-					state: pr.state,
-					author: pr.user.login,
-					branch: pr.head.ref,
-					baseBranch: pr.base.ref,
-					updatedAt: new Date(pr.updated_at).getTime(),
-					htmlUrl: pr.html_url,
-					commitSha: pr.head.sha,
-				});
-				storedPRs.push(existing._id);
-			} else {
-				// Insert new PR
-				const prId = await ctx.runMutation(internal.github._insertPR, {
+				const existing = await ctx.runQuery(internal.github._getExistingPR, {
 					projectId: args.projectId,
 					prNumber: pr.number,
-					title: pr.title,
-					state: pr.state,
-					author: pr.user.login,
-					branch: pr.head.ref,
-					baseBranch: pr.base.ref,
-					createdAt: new Date(pr.created_at).getTime(),
-					updatedAt: new Date(pr.updated_at).getTime(),
-					htmlUrl: pr.html_url,
-					commitSha: pr.head.sha,
 				});
-				storedPRs.push(prId);
+
+				if (existing) {
+					// Update existing PR
+					await ctx.runMutation(internal.github._updatePR, {
+						prId: existing._id,
+						title: pr.title,
+						state: pr.state,
+						author: pr.user.login,
+						branch: pr.head.ref,
+						baseBranch: pr.base.ref,
+						updatedAt: new Date(pr.updated_at).getTime(),
+						htmlUrl: pr.html_url,
+						commitSha: pr.head.sha,
+					});
+					storedPRs.push(existing._id);
+				} else {
+					// Insert new PR
+					const prId = await ctx.runMutation(internal.github._insertPR, {
+						projectId: args.projectId,
+						prNumber: pr.number,
+						title: pr.title,
+						state: pr.state,
+						author: pr.user.login,
+						branch: pr.head.ref,
+						baseBranch: pr.base.ref,
+						createdAt: new Date(pr.created_at).getTime(),
+						updatedAt: new Date(pr.updated_at).getTime(),
+						htmlUrl: pr.html_url,
+						commitSha: pr.head.sha,
+					});
+					storedPRs.push(prId);
+				}
+			} catch (error) {
+				console.error(`Failed to store PR ${pr.number}:`, error);
+				// Continue with other PRs instead of failing completely
 			}
 		}
 
@@ -536,9 +584,35 @@ export const syncProjectGitHubData = action({
 		projectId: v.id("projects"),
 	},
 	handler: async (ctx, args) => {
-		await ctx.runAction(api.github.getCIRuns, { projectId: args.projectId });
-		await ctx.runAction(api.github.getOpenPRs, { projectId: args.projectId });
-		return { success: true };
+		const errors: string[] = [];
+		let ciRunsCount = 0;
+		let prsCount = 0;
+
+		try {
+			const ciRuns = await ctx.runAction(api.github.getCIRuns, { projectId: args.projectId });
+			ciRunsCount = ciRuns.length;
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			errors.push(`CI Runs: ${errorMessage}`);
+			console.error("Failed to sync CI runs:", error);
+		}
+
+		try {
+			const prs = await ctx.runAction(api.github.getOpenPRs, { projectId: args.projectId });
+			prsCount = prs.length;
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			errors.push(`Pull Requests: ${errorMessage}`);
+			console.error("Failed to sync PRs:", error);
+		}
+
+		if (errors.length > 0) {
+			throw new Error(
+				`Sync completed with errors:\n${errors.join("\n")}\n\nStored: ${ciRunsCount} CI runs, ${prsCount} PRs`
+			);
+		}
+
+		return { success: true, ciRunsCount, prsCount };
 	},
 });
 

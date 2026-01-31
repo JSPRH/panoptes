@@ -3,6 +3,8 @@ import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
+import { PageHeader } from "../components/PageHeader";
+import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 
@@ -42,8 +44,12 @@ export default function CIRuns() {
 	const handleSync = async () => {
 		if (!selectedProjectId) return;
 		try {
-			await syncGitHubData({ projectId: selectedProjectId });
-			alert("GitHub data synced successfully!");
+			const result = await syncGitHubData({ projectId: selectedProjectId });
+			const message =
+				result.ciRunsCount !== undefined
+					? `GitHub data synced successfully! Stored ${result.ciRunsCount} CI runs and ${result.prsCount || 0} PRs.`
+					: "GitHub data synced successfully!";
+			alert(message);
 		} catch (error) {
 			console.error("Failed to sync GitHub data:", error);
 			const errorMessage = error instanceof Error ? error.message : String(error);
@@ -109,11 +115,14 @@ export default function CIRuns() {
 		return run.status === statusFilter;
 	});
 
-	const getStatusColor = (status: string, conclusion?: string) => {
-		if (conclusion === "success") return "text-green-600 bg-green-100";
-		if (conclusion === "failure") return "text-red-600 bg-red-100";
-		if (status === "in_progress" || status === "queued") return "text-blue-600 bg-blue-100";
-		return "text-gray-600 bg-gray-100";
+	const getStatusVariant = (
+		status: string,
+		conclusion?: string
+	): "success" | "error" | "info" | "neutral" => {
+		if (conclusion === "success") return "success";
+		if (conclusion === "failure") return "error";
+		if (status === "in_progress" || status === "queued") return "info";
+		return "neutral";
 	};
 
 	const getStatusLabel = (status: string, conclusion?: string) => {
@@ -122,12 +131,9 @@ export default function CIRuns() {
 	};
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-8">
 			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-3xl font-bold">CI Runs</h1>
-					<p className="text-muted-foreground">GitHub Actions workflow runs</p>
-				</div>
+				<PageHeader title="CI Runs" description="GitHub Actions workflow runs" />
 				{selectedProjectId && (
 					<Button onClick={handleSync} variant="outline" size="sm">
 						Sync GitHub Data
@@ -152,7 +158,7 @@ export default function CIRuns() {
 								>
 									{project.name}
 									{!project.repository && (
-										<span className="ml-2 text-xs text-yellow-600">(no repo)</span>
+										<span className="ml-2 text-xs text-warning">(no repo)</span>
 									)}
 								</Button>
 							))}
@@ -301,19 +307,16 @@ export default function CIRuns() {
 									{filteredRuns.map((run: CIRun) => (
 										<div
 											key={run._id}
-											className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
+											className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
 										>
 											<div className="flex-1">
 												<div className="flex items-center gap-2">
 													<div className="font-medium">{run.workflowName}</div>
-													<span
-														className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-															run.status,
-															run.conclusion || undefined
-														)}`}
+													<Badge
+														variant={getStatusVariant(run.status, run.conclusion || undefined)}
 													>
 														{getStatusLabel(run.status, run.conclusion || undefined)}
-													</span>
+													</Badge>
 												</div>
 												<div className="text-sm text-muted-foreground mt-1">
 													Branch: {run.branch} • Commit: {run.commitSha.substring(0, 7)}
@@ -330,7 +333,7 @@ export default function CIRuns() {
 													href={run.htmlUrl}
 													target="_blank"
 													rel="noopener noreferrer"
-													className="text-sm text-blue-600 hover:text-blue-800 underline"
+													className="text-sm text-primary hover:underline"
 												>
 													View on GitHub
 												</a>
