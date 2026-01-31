@@ -4,13 +4,7 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action } from "./_generated/server";
-import {
-	TestFailureAnalysisSchema,
-	analyzeFailure,
-	formatCodeSnippet,
-	generateCursorDeeplink,
-	generateFixPrompt,
-} from "./aiAnalysisUtils";
+import { TestFailureAnalysisSchema, analyzeFailure, formatCodeSnippet } from "./aiAnalysisUtils";
 
 export const analyzeTestFailure = action({
 	args: {
@@ -151,16 +145,6 @@ Be specific and actionable. Focus on helping the developer understand and fix th
 							: "low"
 					: analysis.confidence;
 
-			// Generate Cursor deeplink for quick fix
-			const deeplinkPrompt = generateFixPrompt({
-				title: test.name,
-				summary: analysis.summary.substring(0, 300),
-				rootCause: analysis.rootCause.substring(0, 300),
-				suggestedFix: analysis.suggestedFix.substring(0, 500),
-				context: test.file && test.line ? `${test.file}:${test.line}` : test.file || undefined,
-			});
-			const cursorDeeplink = generateCursorDeeplink(deeplinkPrompt);
-
 			await ctx.runMutation(api.testFailureAnalysis._updateTestFailureAnalysis, {
 				analysisId,
 				status: "completed",
@@ -170,7 +154,6 @@ Be specific and actionable. Focus on helping the developer understand and fix th
 				codeLocation: analysis.codeLocation || undefined,
 				confidence: confidenceValue,
 				relatedFiles: analysis.relatedFiles || undefined,
-				cursorDeeplink,
 			});
 
 			// Return the completed analysis

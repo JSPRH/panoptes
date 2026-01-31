@@ -242,7 +242,6 @@ export default defineSchema({
 		codeLocation: v.optional(v.string()),
 		confidence: v.optional(v.union(v.literal("high"), v.literal("medium"), v.literal("low"))),
 		relatedFiles: v.optional(v.array(v.string())),
-		cursorDeeplink: v.optional(v.string()),
 		createdAt: v.number(),
 		updatedAt: v.optional(v.number()),
 	}).index("by_test", ["testId"]),

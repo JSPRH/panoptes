@@ -12,6 +12,49 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 type TestExecution = Doc<"tests">;
 
+/**
+ * Generate a Cursor deeplink from test failure analysis data.
+ * This is generated dynamically on the frontend to avoid storing URLs that might change.
+ */
+function generateCursorDeeplinkFromAnalysis(
+	analysis: Doc<"testFailureAnalysis">,
+	testName: string,
+	file?: string,
+	line?: number
+): string {
+	// Build a concise prompt similar to generateFixPrompt
+	const summary = analysis.summary?.substring(0, 300) || "";
+	const rootCause = analysis.rootCause?.substring(0, 300) || "";
+	const suggestedFix = analysis.suggestedFix?.substring(0, 500) || "";
+	const context = file && line ? `${file}:${line}` : file || undefined;
+
+	let prompt = `Fix: ${testName}\n\n${summary}\n\nRoot cause: ${rootCause}\n\nFix: ${suggestedFix}`;
+
+	if (context) {
+		prompt += `\n\nContext:\n${context}`;
+	}
+
+	// Generate web-compatible deeplink (works in browsers and redirects to Cursor app)
+	const encodedPrompt = encodeURIComponent(prompt);
+	const maxLength = 8000;
+	let deeplink = `https://cursor.com/link/prompt?text=${encodedPrompt}`;
+
+	// Truncate if necessary to stay under URL length limit
+	if (deeplink.length > maxLength) {
+		const truncatedPrompt = prompt.substring(0, Math.floor(prompt.length * 0.7));
+		const encodedTruncated = encodeURIComponent(truncatedPrompt);
+		deeplink = `https://cursor.com/link/prompt?text=${encodedTruncated}`;
+
+		if (deeplink.length > maxLength) {
+			const ultraShortPrompt = prompt.substring(0, 500);
+			const encodedUltraShort = encodeURIComponent(ultraShortPrompt);
+			deeplink = `https://cursor.com/link/prompt?text=${encodedUltraShort}`;
+		}
+	}
+
+	return deeplink;
+}
+
 function formatTime(ts: number): string {
 	return new Date(ts).toLocaleString(undefined, {
 		dateStyle: "short",
@@ -312,12 +355,17 @@ export default function TestExecutionDetail() {
 											</Badge>
 										</CardDescription>
 									</div>
-									{analysis.cursorDeeplink && (
+									{analysis.summary && analysis.rootCause && analysis.suggestedFix && (
 										<Button
 											onClick={() => {
-												// generateCursorDeeplink already returns web format (https://cursor.com/link/...)
-												// which works in browsers and redirects to Cursor app if installed
-												window.open(analysis.cursorDeeplink, "_blank");
+												// Generate deeplink dynamically from analysis data
+												const deeplink = generateCursorDeeplinkFromAnalysis(
+													analysis,
+													selectedExecution.name,
+													selectedExecution.file,
+													selectedExecution.line
+												);
+												window.open(deeplink, "_blank");
 											}}
 											size="sm"
 											variant="outline"
