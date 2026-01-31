@@ -75,6 +75,8 @@ export interface TreeNode {
 export function buildTree(
 	files: Array<{ file: string; linesCovered: number; linesTotal: number }>
 ): TreeNode[] {
+	// Use a Map to track directory nodes and their child Maps
+	const directoryMaps = new Map<TreeNode, Map<string, TreeNode>>();
 	const root: Map<string, TreeNode> = new Map();
 
 	for (const fileData of files) {
@@ -112,14 +114,23 @@ export function buildTree(
 						type: "directory",
 						children: [],
 					};
+					const childMap = new Map<string, TreeNode>();
+					directoryMaps.set(dirNode, childMap);
 					current.set(segment, dirNode);
 				}
 				const dirNode = current.get(segment);
-				if (dirNode?.children) {
-					// Create a map for the next level
-					const nextLevel = new Map<string, TreeNode>();
-					for (const child of dirNode.children) {
-						nextLevel.set(child.name, child);
+				if (dirNode) {
+					// Get or create the map for this directory's children
+					let nextLevel = directoryMaps.get(dirNode);
+					if (!nextLevel) {
+						nextLevel = new Map<string, TreeNode>();
+						directoryMaps.set(dirNode, nextLevel);
+						// Convert existing children array to map
+						if (dirNode.children) {
+							for (const child of dirNode.children) {
+								nextLevel.set(child.name, child);
+							}
+						}
 					}
 					current = nextLevel;
 				}
@@ -130,13 +141,16 @@ export function buildTree(
 
 	// Convert maps to arrays and aggregate directory coverage
 	function processNode(node: TreeNode): TreeNode {
-		if (node.type === "directory" && node.children) {
+		if (node.type === "directory") {
+			const childMap = directoryMaps.get(node);
+			const children = childMap ? Array.from(childMap.values()) : node.children || [];
+
 			// Aggregate coverage from children
 			let totalLinesCovered = 0;
 			let totalLinesTotal = 0;
 			const processedChildren: TreeNode[] = [];
 
-			for (const child of node.children) {
+			for (const child of children) {
 				const processed = processNode(child);
 				processedChildren.push(processed);
 				if (processed.linesCovered !== undefined) {
