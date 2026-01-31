@@ -9,6 +9,7 @@ const navItems = [
 	{ path: "/", label: "Dashboard" },
 	{ path: "/pyramid", label: "Test Pyramid" },
 	{ path: "/explorer", label: "Test Explorer" },
+	{ path: "/runs", label: "Test Runs" },
 	{ path: "/code-lens", label: "Code Lens" },
 	{ path: "/anomalies", label: "Anomalies" },
 	{ path: "/ci-runs", label: "CI Runs" },
