@@ -4,10 +4,13 @@ import { ConvexConfigError } from "./components/ConvexConfigError";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import Anomalies from "./pages/Anomalies";
+import CIRunDetail from "./pages/CIRunDetail";
 import CIRuns from "./pages/CIRuns";
 import CodeLens from "./pages/CodeLens";
 import Dashboard from "./pages/Dashboard";
 import PullRequests from "./pages/PullRequests";
+import TestDetail from "./pages/TestDetail";
+import TestExecutionDetail from "./pages/TestExecutionDetail";
 import TestExplorer from "./pages/TestExplorer";
 import TestPyramid from "./pages/TestPyramid";
 import TestRunDetail from "./pages/TestRunDetail";
@@ -60,9 +63,12 @@ function App() {
 							<Route path="/explorer" element={<TestExplorer />} />
 							<Route path="/runs" element={<TestRuns />} />
 							<Route path="/runs/:runId" element={<TestRunDetail />} />
+							<Route path="/executions/:executionId" element={<TestExecutionDetail />} />
+							<Route path="/tests/:projectId/:name/:file" element={<TestDetail />} />
 							<Route path="/code-lens" element={<CodeLens />} />
 							<Route path="/anomalies" element={<Anomalies />} />
 							<Route path="/ci-runs" element={<CIRuns />} />
+							<Route path="/ci-runs/:runId" element={<CIRunDetail />} />
 							<Route path="/pull-requests" element={<PullRequests />} />
 						</Routes>
 					</Layout>

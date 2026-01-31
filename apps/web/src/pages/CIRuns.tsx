@@ -3,6 +3,7 @@ import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
@@ -315,9 +316,10 @@ export default function CIRuns() {
 							{filteredRuns && filteredRuns.length > 0 ? (
 								<div className="space-y-2">
 									{filteredRuns.map((run: CIRun) => (
-										<div
+										<Link
 											key={run._id}
-											className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
+											to={`/ci-runs/${run._id}`}
+											className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
 										>
 											<div className="flex-1">
 												<div className="flex items-center gap-2">
@@ -344,11 +346,12 @@ export default function CIRuns() {
 													target="_blank"
 													rel="noopener noreferrer"
 													className="text-sm text-primary hover:underline"
+													onClick={(e) => e.stopPropagation()}
 												>
 													View on GitHub
 												</a>
 											</div>
-										</div>
+										</Link>
 									))}
 								</div>
 							) : (

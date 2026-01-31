@@ -36,6 +36,7 @@ http.route({
 			ci?: boolean;
 			commitSha?: string;
 			triggeredBy?: string;
+			reporterVersion?: string;
 			tests: Array<{
 				name: string;
 				file: string;
@@ -164,6 +165,7 @@ http.route({
 			ci: data.ci,
 			commitSha: data.commitSha,
 			triggeredBy: data.triggeredBy,
+			reporterVersion: data.reporterVersion,
 			tests: normalizedTests,
 			suites: data.suites,
 			coverage: data.coverage,

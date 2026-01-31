@@ -43,6 +43,7 @@ export default defineSchema({
 		commitSha: v.optional(v.string()),
 		ciRunId: v.optional(v.id("ciRuns")),
 		triggeredBy: v.optional(v.string()),
+		reporterVersion: v.optional(v.string()),
 		metadata: v.optional(v.any()),
 	})
 		.index("by_project", ["projectId"])

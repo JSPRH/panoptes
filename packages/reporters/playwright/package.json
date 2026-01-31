@@ -14,7 +14,7 @@
 	},
 	"files": ["dist", "src"],
 	"scripts": {
-		"build": "bunx esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:@justinmiehle/shared --external:@playwright/test --external:playwright && bunx tsc --emitDeclarationOnly --declaration --outDir dist --skipLibCheck src/index.ts"
+		"build": "bunx esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:@justinmiehle/shared --external:@playwright/test --external:playwright && bunx tsc --emitDeclarationOnly --declaration --outDir dist --skipLibCheck --module ESNext --moduleResolution bundler src/index.ts"
 	},
 	"repository": {
 		"type": "git",

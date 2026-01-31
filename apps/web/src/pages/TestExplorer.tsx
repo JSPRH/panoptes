@@ -3,6 +3,7 @@ import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import CodeSnippet from "../components/CodeSnippet";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
@@ -244,11 +245,26 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 									const showCodeSnippet = expandedTestId === test._id;
 									const codeSnippet = showCodeSnippet ? expandedCodeSnippet : null;
 
+									const testDefinitionPath = `/tests/${encodeURIComponent(test.projectId)}/${encodeURIComponent(test.name)}/${encodeURIComponent(test.file)}${test.line ? `?line=${test.line}` : ""}`;
 									return (
 										<div key={test._id}>
 											<div className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors">
 												<div className="flex-1">
-													<div className="font-medium">{test.name}</div>
+													<div className="flex items-center gap-2">
+														<Link
+															to={`/executions/${test._id}`}
+															className="font-medium hover:text-primary hover:underline"
+														>
+															{test.name}
+														</Link>
+														<Link
+															to={testDefinitionPath}
+															className="text-xs text-muted-foreground hover:text-primary hover:underline"
+															onClick={(e) => e.stopPropagation()}
+														>
+															(View all executions)
+														</Link>
+													</div>
 													<div className="text-sm text-muted-foreground">
 														{test.file}
 														{test.line && `:${test.line}`}
@@ -280,17 +296,20 @@ Alternatively, add the cursor-cloud-agent.yml workflow to your repository.`;
 												</div>
 												<div className="flex items-center gap-2">
 													<div className="text-sm text-muted-foreground">{test.duration}ms</div>
-													<Badge
-														variant={
-															test.status === "passed"
-																? "success"
-																: test.status === "failed"
-																	? "error"
-																	: "neutral"
-														}
-													>
-														{test.status}
-													</Badge>
+													<Link to={`/executions/${test._id}`}>
+														<Badge
+															variant={
+																test.status === "passed"
+																	? "success"
+																	: test.status === "failed"
+																		? "error"
+																		: "neutral"
+															}
+															className="cursor-pointer hover:opacity-80"
+														>
+															{test.status}
+														</Badge>
+													</Link>
 													{test.line && (
 														<Button
 															variant="outline"

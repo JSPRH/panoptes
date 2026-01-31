@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { CoverageIngest, FileCoverage, TestResult, TestRunIngest } from "@justinmiehle/shared";
 import type { Reporter } from "vitest/reporters";
 
@@ -48,6 +49,36 @@ function getTriggeredBy(): string | undefined {
 	} catch {
 		return undefined;
 	}
+}
+
+function getReporterVersion(): string | undefined {
+	try {
+		// Try to read package.json from the package directory
+		// When bundled, this will be relative to the dist/index.js location
+		const currentFile =
+			typeof __filename !== "undefined" ? __filename : fileURLToPath(import.meta.url);
+		const packageJsonPath = path.resolve(path.dirname(currentFile), "../package.json");
+		if (fs.existsSync(packageJsonPath)) {
+			const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8")) as {
+				version?: string;
+			};
+			return packageJson.version;
+		}
+		// Fallback: try from node_modules if installed as a dependency
+		const nodeModulesPath = path.resolve(
+			process.cwd(),
+			"node_modules/@justinmiehle/reporter-vitest/package.json"
+		);
+		if (fs.existsSync(nodeModulesPath)) {
+			const packageJson = JSON.parse(fs.readFileSync(nodeModulesPath, "utf-8")) as {
+				version?: string;
+			};
+			return packageJson.version;
+		}
+	} catch {
+		// Silently fail - version is optional
+	}
+	return undefined;
 }
 
 export default class PanoptesReporter implements Reporter {
@@ -165,6 +196,7 @@ export default class PanoptesReporter implements Reporter {
 			environment: this.options.environment,
 			ci: this.options.ci,
 			commitSha: getCommitSha(),
+			reporterVersion: getReporterVersion(),
 			tests: this.tests,
 			suites: suiteData,
 			...(coverage && { coverage }),

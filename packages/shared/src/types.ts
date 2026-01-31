@@ -77,6 +77,7 @@ export const TestRunIngestSchema = z.object({
 	ci: z.boolean().optional(),
 	commitSha: z.string().optional(),
 	triggeredBy: z.string().optional(),
+	reporterVersion: z.string().optional(),
 	tests: z.array(TestResultSchema),
 	suites: z
 		.array(

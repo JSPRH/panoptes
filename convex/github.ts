@@ -653,6 +653,15 @@ export const getCIRunsForProject = query({
 	},
 });
 
+export const getCIRun = query({
+	args: {
+		runId: v.id("ciRuns"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.runId);
+	},
+});
+
 const PRS_PER_PROJECT_LIMIT = 500;
 
 export const getPRsForProject = query({

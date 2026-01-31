@@ -138,29 +138,53 @@ export default function TestRunDetail() {
 				<CardContent>
 					{testsForRun?.length ? (
 						<div className="space-y-2">
-							{testsForRun.map((test: Test) => (
-								<div
-									key={test._id}
-									className="flex items-center justify-between py-2 px-3 rounded-md border border-border bg-card"
-								>
-									<div>
-										<div className="font-medium text-sm">{test.name}</div>
-										<div className="text-xs text-muted-foreground">
-											{test.file}
-											{test.line != null && `:${test.line}`}
-										</div>
-										{test.error != null && (
-											<div className="text-xs text-destructive mt-1 truncate max-w-full">
-												{test.error}
+							{testsForRun.map((test: Test) => {
+								const testDefinitionPath = `/tests/${encodeURIComponent(test.projectId)}/${encodeURIComponent(test.name)}/${encodeURIComponent(test.file)}${test.line != null ? `?line=${test.line}` : ""}`;
+								return (
+									<div
+										key={test._id}
+										className="flex items-center justify-between py-2 px-3 rounded-md border border-border bg-card hover:bg-muted/50 transition-colors"
+									>
+										<div className="flex-1">
+											<div className="flex items-center gap-2">
+												<Link
+													to={`/executions/${test._id}`}
+													className="font-medium text-sm hover:text-primary hover:underline"
+												>
+													{test.name}
+												</Link>
+												<Link
+													to={testDefinitionPath}
+													className="text-xs text-muted-foreground hover:text-primary hover:underline"
+													onClick={(e) => e.stopPropagation()}
+												>
+													(View all executions)
+												</Link>
 											</div>
-										)}
+											<div className="text-xs text-muted-foreground">
+												{test.file}
+												{test.line != null && `:${test.line}`}
+											</div>
+											{test.error != null && (
+												<div className="text-xs text-destructive mt-1 truncate max-w-full">
+													{test.error}
+												</div>
+											)}
+										</div>
+										<div className="flex items-center gap-2">
+											<span className="text-xs text-muted-foreground">{test.duration}ms</span>
+											<Link to={`/executions/${test._id}`}>
+												<Badge
+													variant={getStatusVariant(test.status)}
+													className="cursor-pointer hover:opacity-80"
+												>
+													{test.status}
+												</Badge>
+											</Link>
+										</div>
 									</div>
-									<div className="flex items-center gap-2">
-										<span className="text-xs text-muted-foreground">{test.duration}ms</span>
-										<Badge variant={getStatusVariant(test.status)}>{test.status}</Badge>
-									</div>
-								</div>
-							))}
+								);
+							})}
 						</div>
 					) : (
 						<p className="text-muted-foreground text-sm">No test executions in this run.</p>

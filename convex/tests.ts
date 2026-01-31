@@ -39,6 +39,7 @@ export const ingestTestRun = mutation({
 		ci: v.optional(v.boolean()),
 		commitSha: v.optional(v.string()),
 		triggeredBy: v.optional(v.string()),
+		reporterVersion: v.optional(v.string()),
 		tests: v.array(
 			v.object({
 				name: v.string(),
@@ -173,6 +174,7 @@ export const ingestTestRun = mutation({
 			ci: args.ci,
 			commitSha: args.commitSha,
 			triggeredBy: args.triggeredBy,
+			reporterVersion: args.reporterVersion,
 			metadata: args.metadata,
 		});
 
@@ -342,6 +344,57 @@ export const getTestRun = query({
 	},
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.runId);
+	},
+});
+
+export const getTestExecution = query({
+	args: {
+		testId: v.id("tests"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.testId);
+	},
+});
+
+export const getTestDefinitionExecutions = query({
+	args: {
+		projectId: v.id("projects"),
+		name: v.string(),
+		file: v.string(),
+		line: v.optional(v.number()),
+		limit: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		const limit = args.limit ?? 100;
+		// Get all tests for this project
+		const allTests = await ctx.db
+			.query("tests")
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.take(1000); // Reasonable limit for filtering
+
+		// Filter by test definition (name + file + line)
+		const matchingTests = allTests.filter(
+			(test) =>
+				test.name === args.name &&
+				test.file === args.file &&
+				(test.line === args.line || (args.line === undefined && test.line === undefined))
+		);
+
+		// Sort by most recent first (by testRunId which is time-ordered)
+		const sorted = matchingTests.sort((a, b) => {
+			// Compare by ID which is roughly chronological
+			return b._id > a._id ? 1 : -1;
+		});
+
+		// Get test runs for context
+		const testRuns = await Promise.all(
+			sorted.slice(0, limit).map(async (test) => {
+				const run = await ctx.db.get(test.testRunId);
+				return { ...test, ci: run?.ci, commitSha: run?.commitSha, runStartedAt: run?.startedAt };
+			})
+		);
+
+		return testRuns;
 	},
 });
 
