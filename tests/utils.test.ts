@@ -144,9 +144,11 @@ describe("pathUtils", () => {
 			expect(tree).toHaveLength(1);
 			expect(tree[0]?.name).toBe("src");
 			expect(tree[0]?.type).toBe("directory");
-			// Note: buildTree has a bug where children arrays aren't populated from Maps
-			// This test verifies the structure exists even if children need to be fixed
 			expect(tree[0]?.children).toBeDefined();
+			expect(tree[0]?.children).toHaveLength(2);
+			expect(tree[0]?.linesCovered).toBe(15);
+			expect(tree[0]?.linesTotal).toBe(30);
+			expect(tree[0]?.coverage).toBe(50);
 		});
 
 		it("should build nested directory structure", () => {
@@ -161,6 +163,10 @@ describe("pathUtils", () => {
 			expect(tree).toHaveLength(1);
 			expect(tree[0]?.name).toBe("packages");
 			expect(tree[0]?.type).toBe("directory");
+			expect(tree[0]?.children).toBeDefined();
+			expect(tree[0]?.children).toHaveLength(2);
+			expect(tree[0]?.linesCovered).toBe(23);
+			expect(tree[0]?.linesTotal).toBe(45);
 		});
 
 		it("should handle empty file list", () => {
@@ -175,6 +181,158 @@ describe("pathUtils", () => {
 			expect(tree).toHaveLength(1);
 			expect(tree[0]?.name).toBe("src");
 			expect(tree[0]?.type).toBe("directory");
+			expect(tree[0]?.children).toBeDefined();
+			expect(tree[0]?.children).toHaveLength(1);
+			expect(tree[0]?.linesCovered).toBe(8);
+			expect(tree[0]?.linesTotal).toBe(10);
+			expect(tree[0]?.coverage).toBe(80);
+		});
+
+		it("should handle adding files to existing directories (covers line 122)", () => {
+			const files = [
+				{ file: "src/utils.ts", linesCovered: 10, linesTotal: 20 },
+				{ file: "src/index.ts", linesCovered: 5, linesTotal: 10 },
+				{ file: "src/helpers.ts", linesCovered: 8, linesTotal: 15 },
+			];
+
+			const tree = buildTree(files);
+
+			expect(tree).toHaveLength(1);
+			expect(tree[0]?.children).toHaveLength(3);
+			expect(tree[0]?.linesCovered).toBe(23);
+			expect(tree[0]?.linesTotal).toBe(45);
+		});
+
+		it("should recursively process nested directories with children (covers lines 140-147)", () => {
+			const files = [
+				{ file: "packages/shared/src/index.ts", linesCovered: 10, linesTotal: 20 },
+				{ file: "packages/shared/src/types.ts", linesCovered: 5, linesTotal: 10 },
+				{ file: "packages/shared/lib/utils.ts", linesCovered: 8, linesTotal: 15 },
+			];
+
+			const tree = buildTree(files);
+
+			expect(tree).toHaveLength(1);
+			expect(tree[0]?.name).toBe("packages");
+			expect(tree[0]?.type).toBe("directory");
+			expect(tree[0]?.children).toBeDefined();
+			expect(tree[0]?.children).toHaveLength(1);
+
+			const sharedDir = tree[0]?.children?.[0];
+			expect(sharedDir?.name).toBe("shared");
+			expect(sharedDir?.type).toBe("directory");
+			expect(sharedDir?.children).toHaveLength(2);
+			expect(sharedDir?.linesCovered).toBe(23);
+			expect(sharedDir?.linesTotal).toBe(45);
+		});
+
+		it("should sort children with directories first, then files alphabetically (covers lines 151-154)", () => {
+			const files = [
+				{ file: "src/zebra.ts", linesCovered: 5, linesTotal: 10 },
+				{ file: "src/utils.ts", linesCovered: 10, linesTotal: 20 },
+				{ file: "src/components/Button.tsx", linesCovered: 8, linesTotal: 15 },
+				{ file: "src/components/Input.tsx", linesCovered: 6, linesTotal: 12 },
+			];
+
+			const tree = buildTree(files);
+
+			expect(tree).toHaveLength(1);
+			const srcDir = tree[0];
+			expect(srcDir?.children).toBeDefined();
+			expect(srcDir?.children).toHaveLength(3);
+
+			// Directories should come first
+			expect(srcDir?.children?.[0]?.name).toBe("components");
+			expect(srcDir?.children?.[0]?.type).toBe("directory");
+
+			// Files should come after directories, sorted alphabetically
+			expect(srcDir?.children?.[1]?.name).toBe("utils.ts");
+			expect(srcDir?.children?.[1]?.type).toBe("file");
+			expect(srcDir?.children?.[2]?.name).toBe("zebra.ts");
+			expect(srcDir?.children?.[2]?.type).toBe("file");
+
+			// Check nested directory sorting
+			const componentsDir = srcDir?.children?.[0];
+			expect(componentsDir?.children).toHaveLength(2);
+			expect(componentsDir?.children?.[0]?.name).toBe("Button.tsx");
+			expect(componentsDir?.children?.[1]?.name).toBe("Input.tsx");
+		});
+
+		it("should sort root nodes with directories first, then files alphabetically (covers lines 171-174)", () => {
+			const files = [
+				{ file: "zebra.ts", linesCovered: 5, linesTotal: 10 },
+				{ file: "src/utils.ts", linesCovered: 10, linesTotal: 20 },
+				{ file: "alpha.ts", linesCovered: 8, linesTotal: 15 },
+				{ file: "components/Button.tsx", linesCovered: 6, linesTotal: 12 },
+			];
+
+			const tree = buildTree(files);
+
+			expect(tree).toHaveLength(4);
+
+			// Directories should come first
+			expect(tree[0]?.name).toBe("components");
+			expect(tree[0]?.type).toBe("directory");
+			expect(tree[1]?.name).toBe("src");
+			expect(tree[1]?.type).toBe("directory");
+
+			// Files should come after directories, sorted alphabetically
+			expect(tree[2]?.name).toBe("alpha.ts");
+			expect(tree[2]?.type).toBe("file");
+			expect(tree[3]?.name).toBe("zebra.ts");
+			expect(tree[3]?.type).toBe("file");
+		});
+
+		it("should handle files with zero total lines", () => {
+			const files = [
+				{ file: "src/utils.ts", linesCovered: 0, linesTotal: 0 },
+				{ file: "src/index.ts", linesCovered: 5, linesTotal: 10 },
+			];
+
+			const tree = buildTree(files);
+
+			expect(tree).toHaveLength(1);
+			expect(tree[0]?.coverage).toBeDefined();
+			expect(tree[0]?.linesCovered).toBe(5);
+			expect(tree[0]?.linesTotal).toBe(10);
+		});
+
+		it("should handle deeply nested directory structures", () => {
+			const files = [
+				{ file: "a/b/c/d/e/file1.ts", linesCovered: 10, linesTotal: 20 },
+				{ file: "a/b/c/d/e/file2.ts", linesCovered: 5, linesTotal: 10 },
+				{ file: "a/b/c/f/file3.ts", linesCovered: 8, linesTotal: 15 },
+			];
+
+			const tree = buildTree(files);
+
+			expect(tree).toHaveLength(1);
+			expect(tree[0]?.name).toBe("a");
+			expect(tree[0]?.type).toBe("directory");
+			expect(tree[0]?.linesCovered).toBe(23);
+			expect(tree[0]?.linesTotal).toBe(45);
+		});
+
+		it("should handle adding files to directories that already have children maps (covers lines 126-127, 129-133)", () => {
+			// This test covers the case where a directory node exists and we need to
+			// convert its existing children array to a map when adding more files
+			const files = [
+				{ file: "src/components/Button.tsx", linesCovered: 10, linesTotal: 20 },
+				{ file: "src/components/Input.tsx", linesCovered: 5, linesTotal: 10 },
+				{ file: "src/components/Modal.tsx", linesCovered: 8, linesTotal: 15 },
+			];
+
+			const tree = buildTree(files);
+
+			expect(tree).toHaveLength(1);
+			expect(tree[0]?.name).toBe("src");
+			expect(tree[0]?.type).toBe("directory");
+			const componentsDir = tree[0]?.children?.[0];
+			expect(componentsDir?.name).toBe("components");
+			expect(componentsDir?.type).toBe("directory");
+			expect(componentsDir?.children).toHaveLength(3);
+			expect(componentsDir?.linesCovered).toBe(23);
+			expect(componentsDir?.linesTotal).toBe(45);
 		});
 	});
 });
