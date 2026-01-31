@@ -11,27 +11,32 @@ const mockUseAction = vi.fn();
 
 // Create mock API references that can be compared
 // These need to be defined inside the mock factory to avoid hoisting issues
-const mockApi = {
-	tests: {
-		getProjects: Symbol("api.tests.getProjects"),
-		updateProjectRepository: Symbol("api.tests.updateProjectRepository"),
-	},
-	github: {
-		syncProjectGitHubData: Symbol("api.github.syncProjectGitHubData"),
-		getAvailableRepositories: Symbol("api.github.getAvailableRepositories"),
-		getPRsForProject: Symbol("api.github.getPRsForProject"),
-	},
-};
-
-vi.mock("@convex/_generated/api.js", () => ({
-	api: mockApi,
-}));
+// We'll import the mocked api after the mocks are set up to get the symbols
+vi.mock("@convex/_generated/api.js", () => {
+	const mockApi = {
+		tests: {
+			getProjects: Symbol("api.tests.getProjects"),
+			updateProjectRepository: Symbol("api.tests.updateProjectRepository"),
+		},
+		github: {
+			syncProjectGitHubData: Symbol("api.github.syncProjectGitHubData"),
+			getAvailableRepositories: Symbol("api.github.getAvailableRepositories"),
+			getPRsForProject: Symbol("api.github.getPRsForProject"),
+		},
+	};
+	return {
+		api: mockApi,
+	};
+});
 
 vi.mock("convex/react", () => ({
 	useQuery: (query: unknown, args?: unknown) => mockUseQuery(query, args),
 	useMutation: (mutation: unknown) => mockUseMutation(mutation),
 	useAction: (action: unknown) => mockUseAction(action),
 }));
+
+// Import the mocked api to get the symbols for comparison in tests
+import { api as mockApi } from "@convex/_generated/api.js";
 
 // Mock alert
 const mockAlert = vi.fn();
