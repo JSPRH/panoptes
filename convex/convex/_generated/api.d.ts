@@ -8,27 +8,13 @@
  * @module
  */
 
-import type * as anomalies from "../anomalies.js";
-import type * as convex__generated_api from "../convex/_generated/api.js";
-import type * as convex__generated_server from "../convex/_generated/server.js";
-import type * as github from "../github.js";
-import type * as http from "../http.js";
-import type * as tests from "../tests.js";
-
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
-declare const fullApi: ApiFromModules<{
-  anomalies: typeof anomalies;
-  "convex/_generated/api": typeof convex__generated_api;
-  "convex/_generated/server": typeof convex__generated_server;
-  github: typeof github;
-  http: typeof http;
-  tests: typeof tests;
-}>;
+declare const fullApi: ApiFromModules<{}>;
 
 /**
  * A utility for referencing Convex functions in your app's public API.

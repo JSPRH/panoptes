@@ -387,6 +387,20 @@ export const getProjects = query({
 	},
 });
 
+export const updateProjectRepository = mutation({
+	args: {
+		projectId: v.id("projects"),
+		repository: v.string(),
+	},
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.projectId, {
+			repository: args.repository,
+			updatedAt: Date.now(),
+		});
+		return { success: true };
+	},
+});
+
 export const getTestPyramidData = query({
 	args: {
 		projectId: v.optional(v.id("projects")),

@@ -1,7 +1,7 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -12,9 +12,12 @@ type Project = Doc<"projects">;
 export default function CIRuns() {
 	const [selectedProjectId, setSelectedProjectId] = useState<Id<"projects"> | null>(null);
 	const [statusFilter, setStatusFilter] = useState<string>("all");
+	const [showRepoConfig, setShowRepoConfig] = useState(false);
+	const [repoUrl, setRepoUrl] = useState("");
 
 	const projects = useQuery(api.tests.getProjects);
 	const syncGitHubData = useAction(api.github.syncProjectGitHubData);
+	const updateProjectRepository = useMutation(api.tests.updateProjectRepository);
 
 	const ciRuns = useQuery(
 		api.github.getCIRunsForProject,
@@ -30,7 +33,27 @@ export default function CIRuns() {
 			alert("GitHub data synced successfully!");
 		} catch (error) {
 			console.error("Failed to sync GitHub data:", error);
-			alert(`Failed to sync: ${error instanceof Error ? error.message : String(error)}`);
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			if (errorMessage.includes("repository not configured")) {
+				setShowRepoConfig(true);
+			}
+			alert(`Failed to sync: ${errorMessage}`);
+		}
+	};
+
+	const handleSaveRepository = async () => {
+		if (!selectedProjectId || !repoUrl.trim()) {
+			alert("Please enter a repository URL");
+			return;
+		}
+		try {
+			await updateProjectRepository({ projectId: selectedProjectId, repository: repoUrl.trim() });
+			setShowRepoConfig(false);
+			setRepoUrl("");
+			alert("Repository URL saved successfully!");
+		} catch (error) {
+			console.error("Failed to save repository:", error);
+			alert(`Failed to save: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	};
 
@@ -97,11 +120,65 @@ export default function CIRuns() {
 
 			{selectedProject && !selectedProject.repository && (
 				<Card>
-					<CardContent className="pt-6">
-						<p className="text-muted-foreground">
-							This project doesn't have a repository configured. Add a repository URL to view CI
-							runs.
-						</p>
+					<CardHeader>
+						<CardTitle>Repository Not Configured</CardTitle>
+						<CardDescription>
+							Configure the GitHub repository URL for this project to view CI runs
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						{!showRepoConfig ? (
+							<>
+								<p className="text-muted-foreground">
+									This project doesn't have a repository configured. Add a repository URL to view CI
+									runs.
+								</p>
+								<div className="space-y-2">
+									<Button onClick={() => setShowRepoConfig(true)} variant="default" size="sm">
+										Configure Repository
+									</Button>
+									<p className="text-xs text-muted-foreground">
+										Note: Make sure GITHUB_ACCESS_TOKEN_STORYBOOK is configured in Convex secrets
+										for GitHub API access.
+									</p>
+								</div>
+							</>
+						) : (
+							<div className="space-y-4">
+								<div>
+									<label htmlFor="repo-url" className="block text-sm font-medium mb-2">
+										Repository URL
+									</label>
+									<input
+										id="repo-url"
+										type="text"
+										placeholder="https://github.com/owner/repo or owner/repo"
+										value={repoUrl}
+										onChange={(e) => setRepoUrl(e.target.value)}
+										className="w-full px-4 py-2 border rounded-md"
+									/>
+									<p className="text-xs text-muted-foreground mt-1">
+										Enter a GitHub repository URL (e.g., https://github.com/owner/repo) or
+										owner/repo
+									</p>
+								</div>
+								<div className="flex gap-2">
+									<Button onClick={handleSaveRepository} variant="default" size="sm">
+										Save Repository
+									</Button>
+									<Button
+										onClick={() => {
+											setShowRepoConfig(false);
+											setRepoUrl("");
+										}}
+										variant="outline"
+										size="sm"
+									>
+										Cancel
+									</Button>
+								</div>
+							</div>
+						)}
 					</CardContent>
 				</Card>
 			)}
