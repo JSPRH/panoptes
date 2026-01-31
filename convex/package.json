@@ -1,0 +1,15 @@
+{
+	"name": "convex",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"codegen": "convex codegen"
+	},
+	"dependencies": {
+		"convex": "^1.12.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.10.0"
+	}
+}

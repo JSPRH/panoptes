@@ -1,0 +1,81 @@
+import { httpRouter } from "convex/server";
+import { api } from "./_generated/api";
+import { httpAction } from "./_generated/server";
+
+const http = httpRouter();
+
+http.route({
+	path: "/ingestTestRunHttp",
+	method: "POST",
+	handler: httpAction(async (ctx, request) => {
+		const data = (await request.json()) as {
+			projectId?: string;
+			projectName: string;
+			framework: "vitest" | "playwright" | "jest" | "other";
+			testType: "unit" | "integration" | "e2e" | "visual";
+			startedAt: number;
+			completedAt?: number;
+			duration?: number;
+			totalTests: number;
+			passedTests: number;
+			failedTests: number;
+			skippedTests: number;
+			environment?: string;
+			ci?: boolean;
+			tests: Array<{
+				name: string;
+				file: string;
+				line?: number;
+				column?: number;
+				status: "passed" | "failed" | "skipped" | "running";
+				duration: number;
+				error?: string;
+				errorDetails?: string;
+				retries?: number;
+				suite?: string;
+				tags?: string[];
+				metadata?: any;
+			}>;
+			suites?: Array<{
+				name: string;
+				file: string;
+				status: "passed" | "failed" | "skipped";
+				duration: number;
+				totalTests: number;
+				passedTests: number;
+				failedTests: number;
+				skippedTests: number;
+			}>;
+			metadata?: any;
+		};
+
+		// Validate and call the mutation
+		const result = await ctx.runMutation(api.tests.ingestTestRun, {
+			projectId: data.projectId as any,
+			projectName: data.projectName,
+			framework: data.framework,
+			testType: data.testType,
+			startedAt: data.startedAt,
+			completedAt: data.completedAt,
+			duration: data.duration,
+			totalTests: data.totalTests,
+			passedTests: data.passedTests,
+			failedTests: data.failedTests,
+			skippedTests: data.skippedTests,
+			environment: data.environment,
+			ci: data.ci,
+			tests: data.tests,
+			suites: data.suites,
+			metadata: data.metadata,
+		});
+
+		return new Response(JSON.stringify(result), {
+			status: 200,
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
+	}),
+});
+
+export default http;

@@ -1,0 +1,28 @@
+{
+	"name": "panoptes",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Test visualization platform for the testing pyramid",
+	"workspaces": ["apps/*", "packages/*"],
+	"scripts": {
+		"dev:api": "bun --cwd apps/api dev",
+		"dev:web": "bun --cwd apps/web dev",
+		"dev": "bun run dev:api & bun run dev:web",
+		"build": "bun run --cwd apps/api build && bun run --cwd apps/web build",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"format": "biome format --write .",
+		"typecheck": "bun run --cwd apps/api typecheck && bun run --cwd apps/web typecheck",
+		"test": "bun test",
+		"ci": "bun run lint && bun run typecheck && bun run test && bun run build"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.8.0",
+		"@types/node": "^20.10.0",
+		"convex": "^1.12.0",
+		"typescript": "^5.3.3"
+	},
+	"engines": {
+		"bun": ">=1.0.0"
+	}
+}

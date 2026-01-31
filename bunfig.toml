@@ -1,0 +1,9 @@
+# Bun configuration file
+# See https://bun.sh/docs/cli/bunfig
+
+[install]
+# Auto-install peer dependencies
+peer = true
+
+# Production installs only
+production = false

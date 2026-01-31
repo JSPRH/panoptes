@@ -1,0 +1,24 @@
+{
+	"name": "@panoptes/api",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun run src/index.ts",
+		"build": "bun build src/index.ts --outdir dist --target bun",
+		"start": "bun run dist/index.js",
+		"lint": "biome check .",
+		"typecheck": "bunx tsc --noEmit"
+	},
+	"dependencies": {
+		"@elysiajs/cors": "^1.1.1",
+		"@elysiajs/swagger": "^1.1.1",
+		"elysia": "^1.1.0",
+		"zod": "^3.22.4"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"@types/node": "^20.10.0",
+		"typescript": "^5.3.3"
+	}
+}
