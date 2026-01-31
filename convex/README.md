@@ -9,6 +9,7 @@ Overview counts (project count, test run count, pyramid) are pre-computed in `da
 
 A query function that takes two arguments looks like:
 
+
 ```ts
 // convex/myFunctions.ts
 import { query } from "./_generated/server";

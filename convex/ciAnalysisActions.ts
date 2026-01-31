@@ -176,6 +176,13 @@ export const analyzeCIRunFailure = action({
 				}
 			}
 
+			// Get parsed test results
+			const parsedTests = await ctx.runQuery(api.github.getCIRunParsedTests, {
+				ciRunId: args.ciRunId,
+			});
+			const failedTests =
+				parsedTests?.filter((test: Doc<"ciRunParsedTests">) => test.status === "failed") || [];
+
 			// Filter to failed jobs
 			const failedJobs = jobs.filter(
 				(job: Doc<"ciRunJobs">) => job.conclusion === "failure" || job.status === "completed"
@@ -198,7 +205,22 @@ Branch: ${ciRun.branch}
 Commit: ${ciRun.commitSha.substring(0, 7)}
 ${ciRun.commitMessage ? `Commit Message: ${ciRun.commitMessage}` : ""}
 
-Failed Jobs:\n`;
+${failedTests.length > 0 ? `Failed Tests (${failedTests.length}):\n` : ""}`;
+
+			// Add failed test information
+			for (const test of failedTests.slice(0, 10) as Doc<"ciRunParsedTests">[]) {
+				// Limit to first 10 failed tests
+				prompt += `\n- ${test.testName}`;
+				if (test.file) {
+					prompt += ` (${test.file}${test.line ? `:${test.line}` : ""})`;
+				}
+				if (test.error) {
+					const errorPreview = test.error.substring(0, 200);
+					prompt += `\n  Error: ${errorPreview}${test.error.length > 200 ? "..." : ""}`;
+				}
+			}
+
+			prompt += "\n\nFailed Jobs:\n";
 
 			for (const job of failedJobs) {
 				prompt += `\n## Job: ${job.name}\n`;
@@ -256,6 +278,34 @@ Failed Jobs:\n`;
 				temperature: 0.3,
 			});
 
+			// Generate Cursor background agent prompt and deeplink
+			const cursorPrompt = `Fix the CI failure in ${ciRun.workflowName} on branch ${ciRun.branch} (commit ${ciRun.commitSha.substring(0, 7)}).
+
+${analysisData.summary}
+
+Root Cause: ${analysisData.rootCause}
+
+			${
+				failedTests.length > 0
+					? `Failed Tests:\n${failedTests
+							.slice(0, 5)
+							.map(
+								(t: Doc<"ciRunParsedTests">) =>
+									`- ${t.testName}${t.file ? ` (${t.file}${t.line ? `:${t.line}` : ""})` : ""}${t.error ? `: ${t.error.substring(0, 100)}` : ""}`
+							)
+							.join("\n")}\n`
+					: ""
+			}
+
+Proposed Fix: ${analysisData.proposedFix}
+
+Please fix the issue and ensure all tests pass.`;
+
+			// Generate Cursor deeplink
+			// Format: cursor://anysphere.cursor-deeplink/background-agent/start?prompt=<encoded>
+			const encodedPrompt = encodeURIComponent(cursorPrompt);
+			const cursorDeeplink = `cursor://anysphere.cursor-deeplink/background-agent/start?prompt=${encodedPrompt}`;
+
 			// Store analysis result
 			await ctx.runMutation(internal.ciAnalysis._updateCIRunAnalysis, {
 				analysisId,
@@ -267,6 +317,8 @@ Failed Jobs:\n`;
 					proposedTest: analysisData.proposedTest,
 					isFlaky: analysisData.isFlaky,
 					confidence: Math.max(0, Math.min(1, analysisData.confidence)),
+					cursorDeeplink,
+					cursorPrompt,
 				},
 				model: "gpt-4",
 			});

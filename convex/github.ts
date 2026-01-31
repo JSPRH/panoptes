@@ -897,6 +897,250 @@ export const _getExistingCIRunJob = internalQuery({
 	},
 });
 
+export const _insertCIRunParsedTest = internalMutation({
+	args: {
+		ciRunId: v.id("ciRuns"),
+		stepId: v.id("ciRunJobSteps"),
+		testName: v.string(),
+		file: v.optional(v.string()),
+		line: v.optional(v.number()),
+		status: v.union(v.literal("passed"), v.literal("failed"), v.literal("skipped")),
+		error: v.optional(v.string()),
+		errorDetails: v.optional(v.string()),
+		stdout: v.optional(v.string()),
+		stderr: v.optional(v.string()),
+		duration: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.insert("ciRunParsedTests", {
+			ciRunId: args.ciRunId,
+			stepId: args.stepId,
+			testName: args.testName,
+			file: args.file,
+			line: args.line,
+			status: args.status,
+			error: args.error,
+			errorDetails: args.errorDetails,
+			stdout: args.stdout,
+			stderr: args.stderr,
+			duration: args.duration,
+			parsedAt: Date.now(),
+		});
+	},
+});
+
+export const getCIRunParsedTests = query({
+	args: {
+		ciRunId: v.id("ciRuns"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("ciRunParsedTests")
+			.withIndex("by_ciRun", (q) => q.eq("ciRunId", args.ciRunId))
+			.collect();
+	},
+});
+
+export const getCIRunParsedTestsByStep = query({
+	args: {
+		stepId: v.id("ciRunJobSteps"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("ciRunParsedTests")
+			.withIndex("by_step", (q) => q.eq("stepId", args.stepId))
+			.collect();
+	},
+});
+
+// Parse test results from logs (supports Vitest, Jest, Playwright patterns)
+function parseTestResultsFromLogs(logs: string): Array<{
+	testName: string;
+	file?: string;
+	line?: number;
+	status: "passed" | "failed" | "skipped";
+	error?: string;
+	errorDetails?: string;
+	stdout?: string;
+	stderr?: string;
+	duration?: number;
+}> {
+	const tests: Array<{
+		testName: string;
+		file?: string;
+		line?: number;
+		status: "passed" | "failed" | "skipped";
+		error?: string;
+		errorDetails?: string;
+		stdout?: string;
+		stderr?: string;
+		duration?: number;
+	}> = [];
+
+	const lines = logs.split("\n");
+	let currentTest: {
+		testName: string;
+		file?: string;
+		line?: number;
+		status: "passed" | "failed" | "skipped";
+		error?: string;
+		errorDetails?: string;
+		stdout?: string;
+		stderr?: string;
+		duration?: number;
+	} | null = null;
+	let errorBuffer: string[] = [];
+	let inError = false;
+
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+
+		// Vitest patterns
+		// FAIL  src/test.ts > Test Suite > test name
+		// PASS  src/test.ts > Test Suite > test name (123ms)
+		const vitestFailMatch = line.match(/^\s*FAIL\s+(.+?)\s*$/);
+		const vitestPassMatch = line.match(/^\s*PASS\s+(.+?)\s*(?:\((\d+(?:\.\d+)?(?:ms|s|m))\))?\s*$/);
+		const vitestSkipMatch = line.match(/^\s*SKIP\s+(.+?)\s*$/);
+
+		// Jest patterns
+		// FAIL  src/test.test.ts
+		// PASS  src/test.test.ts
+		const jestFailMatch = line.match(/^\s*FAIL\s+(.+?)\s*$/);
+		const jestPassMatch = line.match(/^\s*PASS\s+(.+?)\s*$/);
+
+		// Playwright patterns
+		// × test name (123ms)
+		// ✓ test name (123ms)
+		const playwrightFailMatch = line.match(
+			/^\s*×\s+(.+?)\s*(?:\((\d+(?:\.\d+)?(?:ms|s|m))\))?\s*$/
+		);
+		const playwrightPassMatch = line.match(
+			/^\s*✓\s+(.+?)\s*(?:\((\d+(?:\.\d+)?(?:ms|s|m))\))?\s*$/
+		);
+
+		// File path extraction (common patterns)
+		const fileMatch = line.match(/(?:at|in)\s+([^\s]+\.(?:ts|tsx|js|jsx))(?::(\d+))?/);
+
+		if (vitestFailMatch || jestFailMatch || playwrightFailMatch) {
+			// Save previous test if exists
+			if (currentTest) {
+				if (errorBuffer.length > 0) {
+					currentTest.error = errorBuffer.join("\n");
+					currentTest.errorDetails = errorBuffer.join("\n");
+				}
+				tests.push(currentTest);
+			}
+
+			const testName = vitestFailMatch?.[1] || jestFailMatch?.[1] || playwrightFailMatch?.[1] || "";
+			const durationStr = playwrightFailMatch?.[2];
+			const duration = durationStr ? parseDuration(durationStr) : undefined;
+
+			// Extract file path from test name (Vitest format: "file > suite > test")
+			const parts = testName.split(" > ");
+			const file = parts.length > 1 ? parts[0] : undefined;
+			const actualTestName = parts[parts.length - 1];
+
+			currentTest = {
+				testName: actualTestName || testName,
+				file,
+				status: "failed",
+				duration,
+			};
+			errorBuffer = [];
+			inError = true;
+		} else if (vitestPassMatch || jestPassMatch || playwrightPassMatch) {
+			// Save previous test if exists
+			if (currentTest) {
+				tests.push(currentTest);
+			}
+
+			const testName = vitestPassMatch?.[1] || jestPassMatch?.[1] || playwrightPassMatch?.[1] || "";
+			const durationStr = vitestPassMatch?.[2] || playwrightPassMatch?.[2];
+			const duration = durationStr ? parseDuration(durationStr) : undefined;
+
+			// Extract file path from test name
+			const parts = testName.split(" > ");
+			const file = parts.length > 1 ? parts[0] : undefined;
+			const actualTestName = parts[parts.length - 1];
+
+			currentTest = {
+				testName: actualTestName || testName,
+				file,
+				status: "passed",
+				duration,
+			};
+			errorBuffer = [];
+			inError = false;
+		} else if (vitestSkipMatch) {
+			if (currentTest) {
+				tests.push(currentTest);
+			}
+
+			const testName = vitestSkipMatch[1];
+			const parts = testName.split(" > ");
+			const file = parts.length > 1 ? parts[0] : undefined;
+			const actualTestName = parts[parts.length - 1];
+
+			currentTest = {
+				testName: actualTestName || testName,
+				file,
+				status: "skipped",
+			};
+			errorBuffer = [];
+			inError = false;
+		} else if (currentTest && inError) {
+			// Collect error details
+			if (
+				line.includes("Error:") ||
+				line.includes("AssertionError") ||
+				line.includes("TypeError") ||
+				line.includes("ReferenceError") ||
+				line.includes("at ") ||
+				line.trim().startsWith("at ")
+			) {
+				errorBuffer.push(line);
+			}
+		} else if (fileMatch && currentTest && !currentTest.file) {
+			// Extract file path if not already set
+			currentTest.file = fileMatch[1];
+			if (fileMatch[2]) {
+				currentTest.line = Number.parseInt(fileMatch[2], 10);
+			}
+		}
+	}
+
+	// Save last test if exists
+	if (currentTest) {
+		if (errorBuffer.length > 0) {
+			currentTest.error = errorBuffer.join("\n");
+			currentTest.errorDetails = errorBuffer.join("\n");
+		}
+		tests.push(currentTest);
+	}
+
+	return tests;
+}
+
+// Parse duration string (e.g., "123ms", "1.5s", "2m") to milliseconds
+function parseDuration(durationStr: string): number {
+	const match = durationStr.match(/^(\d+(?:\.\d+)?)(ms|s|m)$/);
+	if (!match) return 0;
+
+	const value = Number.parseFloat(match[1]);
+	const unit = match[2];
+
+	switch (unit) {
+		case "ms":
+			return value;
+		case "s":
+			return value * 1000;
+		case "m":
+			return value * 60 * 1000;
+		default:
+			return 0;
+	}
+}
+
 // Parse GitHub Actions logs to extract step information
 function parseGitHubLogs(logs: string): Array<{ name: string; logs: string; stepNumber: number }> {
 	const steps: Array<{ name: string; logs: string; stepNumber: number }> = [];
@@ -1067,7 +1311,7 @@ export const fetchCIRunJobs = action({
 					for (const parsedStep of parsedSteps) {
 						const githubStep = job.steps.find((s) => s.number === parsedStep.stepNumber);
 
-						await ctx.runMutation(internal.github._insertCIRunJobStep, {
+						const stepId = await ctx.runMutation(internal.github._insertCIRunJobStep, {
 							jobId: jobRecordId,
 							stepNumber: parsedStep.stepNumber,
 							name: parsedStep.name || githubStep?.name || `Step ${parsedStep.stepNumber}`,
@@ -1081,6 +1325,24 @@ export const fetchCIRunJobs = action({
 								: undefined,
 							logs: parsedStep.logs,
 						});
+
+						// Parse test results from step logs
+						const parsedTests = parseTestResultsFromLogs(parsedStep.logs);
+						for (const test of parsedTests) {
+							await ctx.runMutation(internal.github._insertCIRunParsedTest, {
+								ciRunId: args.ciRunId,
+								stepId,
+								testName: test.testName,
+								file: test.file,
+								line: test.line,
+								status: test.status,
+								error: test.error,
+								errorDetails: test.errorDetails,
+								stdout: test.stdout,
+								stderr: test.stderr,
+								duration: test.duration,
+							});
+						}
 					}
 				}
 			} catch (error) {

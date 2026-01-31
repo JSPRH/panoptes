@@ -180,3 +180,22 @@ export const resolveAnomaly = mutation({
 		});
 	},
 });
+
+export const updateAnomalyInsights = mutation({
+	args: {
+		anomalyId: v.id("anomalies"),
+		insights: v.string(),
+		rootCause: v.optional(v.string()),
+		suggestedFix: v.optional(v.string()),
+		confidence: v.number(),
+	},
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.anomalyId, {
+			insights: args.insights,
+			rootCause: args.rootCause,
+			suggestedFix: args.suggestedFix,
+			confidence: args.confidence,
+			insightsGeneratedAt: Date.now(),
+		});
+	},
+});

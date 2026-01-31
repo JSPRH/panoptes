@@ -9,6 +9,7 @@
  */
 
 import type * as anomalies from "../anomalies.js";
+import type * as anomaliesActions from "../anomaliesActions.js";
 import type * as ciAnalysis from "../ciAnalysis.js";
 import type * as ciAnalysisActions from "../ciAnalysisActions.js";
 import type * as github from "../github.js";
@@ -26,6 +27,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   anomalies: typeof anomalies;
+  anomaliesActions: typeof anomaliesActions;
   ciAnalysis: typeof ciAnalysis;
   ciAnalysisActions: typeof ciAnalysisActions;
   github: typeof github;

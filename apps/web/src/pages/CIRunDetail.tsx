@@ -74,7 +74,7 @@ function CIRunJobs({ ciRunId }: { ciRunId: Id<"ciRuns"> }) {
 
 	return (
 		<div className="space-y-4">
-			{jobs.map((job) => (
+			{jobs.map((job: Doc<"ciRunJobs">) => (
 				<Card key={job._id}>
 					<CardHeader>
 						<div className="flex items-center justify-between">
@@ -145,26 +145,115 @@ function CIRunJobSteps({
 
 	return (
 		<div className="mt-4 space-y-2">
-			{steps.map((step) => (
-				<div key={step._id} className="border rounded-md p-3">
-					<div className="flex items-center justify-between mb-2">
-						<div className="flex items-center gap-2">
-							<span className="text-sm font-medium">{step.name}</span>
-							<Badge
-								variant={getStatusVariant(step.status, step.conclusion || undefined)}
-								className="text-xs"
-							>
-								{getStatusLabel(step.status, step.conclusion || undefined)}
-							</Badge>
+			{steps.map((step: Doc<"ciRunJobSteps">) => (
+				<CIRunJobStep
+					key={step._id}
+					step={step}
+					isExpanded={expandedSteps.has(step._id)}
+					onToggle={() => toggleStep(step._id)}
+				/>
+			))}
+		</div>
+	);
+}
+
+function CIRunJobStep({
+	step,
+	isExpanded,
+	onToggle,
+}: {
+	step: Doc<"ciRunJobSteps">;
+	isExpanded: boolean;
+	onToggle: () => void;
+}) {
+	const parsedTests = useQuery(api.github.getCIRunParsedTestsByStep, { stepId: step._id });
+
+	return (
+		<div className="border rounded-md p-3">
+			<div className="flex items-center justify-between mb-2">
+				<div className="flex items-center gap-2">
+					<span className="text-sm font-medium">{step.name}</span>
+					<Badge
+						variant={getStatusVariant(step.status, step.conclusion || undefined)}
+						className="text-xs"
+					>
+						{getStatusLabel(step.status, step.conclusion || undefined)}
+					</Badge>
+					{parsedTests && parsedTests.length > 0 && (
+						<Badge variant="neutral" className="text-xs">
+							{parsedTests.filter((t: Doc<"ciRunParsedTests">) => t.status === "failed").length}{" "}
+							failed,{" "}
+							{parsedTests.filter((t: Doc<"ciRunParsedTests">) => t.status === "passed").length}{" "}
+							passed
+						</Badge>
+					)}
+				</div>
+				{step.logs && (
+					<Button variant="ghost" size="sm" onClick={onToggle}>
+						{isExpanded ? "Hide" : "Show"} Logs
+					</Button>
+				)}
+			</div>
+			{isExpanded && (
+				<div className="mt-2 space-y-3">
+					{parsedTests && parsedTests.length > 0 && (
+						<div className="space-y-2">
+							<div className="text-sm font-medium">Parsed Tests:</div>
+							{parsedTests.map((test: Doc<"ciRunParsedTests">) => (
+								<div
+									key={test._id}
+									className={`border rounded p-2 ${
+										test.status === "failed" ? "border-destructive bg-destructive/5" : ""
+									}`}
+								>
+									<div className="flex items-center gap-2 mb-1">
+										<Badge
+											variant={
+												test.status === "failed"
+													? "error"
+													: test.status === "passed"
+														? "success"
+														: "neutral"
+											}
+											className="text-xs"
+										>
+											{test.status}
+										</Badge>
+										<span className="text-sm font-medium">{test.testName}</span>
+										{test.file && (
+											<span className="text-xs text-muted-foreground">
+												{test.file}
+												{test.line ? `:${test.line}` : ""}
+											</span>
+										)}
+										{test.duration && (
+											<span className="text-xs text-muted-foreground">
+												({Math.round(test.duration)}ms)
+											</span>
+										)}
+									</div>
+									{test.error && (
+										<pre className="text-xs bg-muted p-2 rounded mt-1 overflow-x-auto whitespace-pre-wrap">
+											{test.error}
+										</pre>
+									)}
+									{test.stdout && (
+										<details className="mt-1">
+											<summary className="text-xs text-muted-foreground cursor-pointer">
+												Show stdout
+											</summary>
+											<pre className="text-xs bg-muted p-2 rounded mt-1 overflow-x-auto whitespace-pre-wrap">
+												{test.stdout}
+											</pre>
+										</details>
+									)}
+								</div>
+							))}
 						</div>
-						{step.logs && (
-							<Button variant="ghost" size="sm" onClick={() => toggleStep(step._id)}>
-								{expandedSteps.has(step._id) ? "Hide" : "Show"} Logs
-							</Button>
-						)}
-					</div>
-					{expandedSteps.has(step._id) && step.logs && (
-						<div className="mt-2">
+					)}
+					{step.logs && (
+						<div>
+							<div className="text-sm font-medium mb-1">Raw Logs:</div>
 							<CodeSnippet
 								content={step.logs}
 								language="text"
@@ -175,7 +264,7 @@ function CIRunJobSteps({
 						</div>
 					)}
 				</div>
-			))}
+			)}
 		</div>
 	);
 }
@@ -199,6 +288,12 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 		}
 	};
 
+	const handleStartCursorAgent = () => {
+		if (analysis?.analysis?.cursorDeeplink) {
+			window.location.href = analysis.analysis.cursorDeeplink;
+		}
+	};
+
 	if (conclusion !== "failure") {
 		return null;
 	}
@@ -212,11 +307,18 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 			<CardHeader>
 				<div className="flex items-center justify-between">
 					<CardTitle>AI Failure Analysis</CardTitle>
-					{!analysis && (
-						<Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
-							{isAnalyzing ? "Analyzing..." : "Analyze Failure"}
-						</Button>
-					)}
+					<div className="flex items-center gap-2">
+						{analysis?.analysis?.cursorDeeplink && (
+							<Button onClick={handleStartCursorAgent} size="sm" variant="default">
+								🚀 Start Cursor Agent
+							</Button>
+						)}
+						{!analysis && (
+							<Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
+								{isAnalyzing ? "Analyzing..." : "Analyze Failure"}
+							</Button>
+						)}
+					</div>
 				</div>
 			</CardHeader>
 			<CardContent>
@@ -249,6 +351,23 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 								{analysis.analysis.proposedTest}
 							</div>
 						</div>
+						{analysis.analysis.cursorDeeplink && (
+							<div>
+								<div className="text-sm font-medium mb-1">Cursor Background Agent</div>
+								<div className="text-sm text-muted-foreground mb-2">
+									Click the button above to start a Cursor background agent that will fix this issue
+									automatically.
+								</div>
+								<details className="mt-2">
+									<summary className="text-xs text-muted-foreground cursor-pointer">
+										Show agent prompt
+									</summary>
+									<pre className="text-xs bg-muted p-2 rounded mt-1 overflow-x-auto whitespace-pre-wrap">
+										{analysis.analysis.cursorPrompt}
+									</pre>
+								</details>
+							</div>
+						)}
 						<div className="flex items-center gap-2">
 							<Badge variant={analysis.analysis.isFlaky ? "info" : "neutral"}>
 								{analysis.analysis.isFlaky ? "Likely Flaky" : "Not Flaky"}

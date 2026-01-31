@@ -118,6 +118,11 @@ export default defineSchema({
 		details: v.optional(v.any()),
 		resolved: v.optional(v.boolean()),
 		resolvedAt: v.optional(v.number()),
+		insights: v.optional(v.string()),
+		insightsGeneratedAt: v.optional(v.number()),
+		rootCause: v.optional(v.string()),
+		suggestedFix: v.optional(v.string()),
+		confidence: v.optional(v.number()),
 	})
 		.index("by_project", ["projectId"])
 		.index("by_type", ["type"])
@@ -211,10 +216,29 @@ export default defineSchema({
 			proposedTest: v.string(),
 			isFlaky: v.boolean(),
 			confidence: v.number(),
+			cursorDeeplink: v.optional(v.string()),
+			cursorPrompt: v.optional(v.string()),
 		}),
 		analyzedAt: v.number(),
 		model: v.string(),
 	}).index("by_ciRun", ["ciRunId"]),
+
+	ciRunParsedTests: defineTable({
+		ciRunId: v.id("ciRuns"),
+		stepId: v.id("ciRunJobSteps"),
+		testName: v.string(),
+		file: v.optional(v.string()),
+		line: v.optional(v.number()),
+		status: v.union(v.literal("passed"), v.literal("failed"), v.literal("skipped")),
+		error: v.optional(v.string()),
+		errorDetails: v.optional(v.string()),
+		stdout: v.optional(v.string()),
+		stderr: v.optional(v.string()),
+		duration: v.optional(v.number()),
+		parsedAt: v.number(),
+	})
+		.index("by_ciRun", ["ciRunId"])
+		.index("by_step", ["stepId"]),
 
 	pullRequests: defineTable({
 		projectId: v.id("projects"),
