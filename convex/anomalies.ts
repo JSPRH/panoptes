@@ -31,7 +31,7 @@ export const detectAnomalies = mutation({
 		}> = [];
 
 		// Detect flaky tests (tests that have inconsistent pass/fail patterns)
-		for (const [key, testHistory] of testGroups) {
+		for (const [_key, testHistory] of testGroups) {
 			if (testHistory.length < 3) continue; // Need at least 3 runs
 
 			const passCount = testHistory.filter((t) => t.status === "passed").length;

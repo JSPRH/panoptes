@@ -1,18 +1,8 @@
 import { z } from "zod";
 
-export const TestFrameworkSchema = z.enum([
-	"vitest",
-	"playwright",
-	"jest",
-	"other",
-]);
+export const TestFrameworkSchema = z.enum(["vitest", "playwright", "jest", "other"]);
 export const TestTypeSchema = z.enum(["unit", "integration", "e2e", "visual"]);
-export const TestStatusSchema = z.enum([
-	"passed",
-	"failed",
-	"skipped",
-	"running",
-]);
+export const TestStatusSchema = z.enum(["passed", "failed", "skipped", "running"]);
 
 export const TestResultSchema = z.object({
 	name: z.string(),
@@ -55,7 +45,7 @@ export const TestRunIngestSchema = z.object({
 				passedTests: z.number(),
 				failedTests: z.number(),
 				skippedTests: z.number(),
-			}),
+			})
 		)
 		.optional(),
 	metadata: z.record(z.any()).optional(),

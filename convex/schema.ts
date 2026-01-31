@@ -16,19 +16,19 @@ export default defineSchema({
 			v.literal("vitest"),
 			v.literal("playwright"),
 			v.literal("jest"),
-			v.literal("other"),
+			v.literal("other")
 		),
 		testType: v.union(
 			v.literal("unit"),
 			v.literal("integration"),
 			v.literal("e2e"),
-			v.literal("visual"),
+			v.literal("visual")
 		),
 		status: v.union(
 			v.literal("passed"),
 			v.literal("failed"),
 			v.literal("skipped"),
-			v.literal("running"),
+			v.literal("running")
 		),
 		startedAt: v.number(),
 		completedAt: v.optional(v.number()),
@@ -56,7 +56,7 @@ export default defineSchema({
 			v.literal("passed"),
 			v.literal("failed"),
 			v.literal("skipped"),
-			v.literal("running"),
+			v.literal("running")
 		),
 		duration: v.number(), // milliseconds
 		error: v.optional(v.string()),
@@ -76,11 +76,7 @@ export default defineSchema({
 		projectId: v.id("projects"),
 		name: v.string(),
 		file: v.string(),
-		status: v.union(
-			v.literal("passed"),
-			v.literal("failed"),
-			v.literal("skipped"),
-		),
+		status: v.union(v.literal("passed"), v.literal("failed"), v.literal("skipped")),
 		duration: v.number(),
 		totalTests: v.number(),
 		passedTests: v.number(),
@@ -98,7 +94,7 @@ export default defineSchema({
 			v.literal("flaky"),
 			v.literal("slow"),
 			v.literal("resource_intensive"),
-			v.literal("frequently_failing"),
+			v.literal("frequently_failing")
 		),
 		severity: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
 		detectedAt: v.number(),

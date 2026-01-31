@@ -4,10 +4,9 @@ A test visualization platform that ingests test results from multiple frameworks
 
 ## Architecture
 
-- **Backend API**: Elysia (Bun) - REST API for test ingestion
 - **Frontend**: Vite + React + TypeScript - Modern UI with shadcn/ui
-- **Database**: Convex - Real-time database and backend functions
-- **Reporters**: Custom reporters for Vitest and Playwright
+- **Backend**: Convex - Real-time database, backend functions, and HTTP actions
+- **Reporters**: Custom reporters for Vitest and Playwright that send directly to Convex
 - **Linting**: Biome - Fast linter and formatter
 
 ## Getting Started
@@ -36,12 +35,7 @@ bun install
    - Copy `.env.example` to `.env` and fill in your Convex URL
    - Copy `apps/web/.env.example` to `apps/web/.env` and add your Convex URL
 
-3. **Start the API server**:
-   ```bash
-   bun run dev:api
-   ```
-
-4. **Start the frontend**:
+3. **Start the frontend**:
    ```bash
    bun run dev:web
    ```
@@ -49,11 +43,9 @@ bun install
 ### Development
 
 ```bash
-# Run all apps
+# Run the frontend
 bun run dev
-
-# Run specific app
-bun run dev:api
+# or
 bun run dev:web
 
 # Lint code
@@ -87,7 +79,7 @@ See [packages/reporters/playwright/README.md](packages/reporters/playwright/READ
 ```bash
 cd packages/cli
 bun run build
-bun run src/index.ts ingest -f test-results.json -p my-project
+bun run src/index.ts ingest -f test-results.json -c https://your-deployment.convex.cloud -p my-project
 ```
 
 ## Project Structure
@@ -95,13 +87,12 @@ bun run src/index.ts ingest -f test-results.json -p my-project
 ```
 panoptes/
 ├── apps/
-│   ├── api/              # Elysia backend API
 │   └── web/              # Vite + React frontend
 ├── packages/
-│   ├── reporters/        # Test reporters
-│   ├── cli/              # CLI tool
+│   ├── reporters/        # Test reporters (send directly to Convex)
+│   ├── cli/              # CLI tool (sends directly to Convex)
 │   └── shared/           # Shared types and utilities
-└── convex/               # Convex schema and functions
+└── convex/               # Convex schema, functions, and HTTP actions
 ```
 
 ## Code Quality

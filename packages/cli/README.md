@@ -13,13 +13,13 @@ bun add -d @panoptes/cli
 ### Ingest Test Results
 
 ```bash
-panoptes ingest -f test-results.json -p my-project
+panoptes ingest -f test-results.json -c https://your-deployment.convex.cloud -p my-project
 ```
 
 ### Options
 
 - `-f, --file <path>` - Path to test results JSON file (required)
-- `-a, --api-url <url>` - API URL (default: `http://localhost:3001` or `PANOPTES_API_URL`)
+- `-c, --convex-url <url>` - Convex URL (required, or set `CONVEX_URL` environment variable)
 - `-p, --project <name>` - Project name (default: `default-project` or `PANOPTES_PROJECT_NAME`)
 
 ## Test Results Format

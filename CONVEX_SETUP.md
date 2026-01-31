@@ -28,7 +28,6 @@
    ```bash
    # In the root directory
    CONVEX_URL=https://xxxxx.convex.cloud  # Copy from convex/.env.local
-   PANOPTES_API_URL=http://localhost:3001
    PANOPTES_PROJECT_NAME=my-project
    NODE_ENV=development
    ```

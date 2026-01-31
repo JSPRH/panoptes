@@ -40,9 +40,6 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Type check API
-        run: bun run --cwd apps/api typecheck || bunx tsc --noEmit --project apps/api/tsconfig.json
-
       - name: Type check Web
         run: bun run --cwd apps/web typecheck || bunx tsc --noEmit --project apps/web/tsconfig.json
 
@@ -90,10 +87,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install
-
-      - name: Build API
-        run: bun run --cwd apps/api build
-        continue-on-error: true
 
       - name: Build Web
         run: bun run --cwd apps/web build

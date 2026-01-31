@@ -27,7 +27,6 @@
    Create `.env` in the root:
    ```bash
    CONVEX_URL=https://xxxxx.convex.cloud  # Copy from convex/.env.local
-   PANOPTES_API_URL=http://localhost:3001
    PANOPTES_PROJECT_NAME=my-project
    NODE_ENV=development
    ```
@@ -39,13 +38,7 @@
    
    **Important**: Keep `bunx convex dev` running in a terminal - it watches for changes and generates types.
 
-4. **Start the API server** (in one terminal):
-   ```bash
-   bun run dev:api
-   ```
-   The API will run on http://localhost:3001
-
-5. **Start the frontend** (in another terminal):
+4. **Start the frontend**:
    ```bash
    bun run dev:web
    ```
@@ -69,7 +62,7 @@
        reporters: [
          'default',
          [PanoptesReporter, {
-           apiUrl: 'http://localhost:3001',
+           convexUrl: process.env.CONVEX_URL,
            projectName: 'my-project',
          }],
        ],
@@ -97,7 +90,7 @@
      reporter: [
        ['list'],
        [PanoptesReporter, {
-         apiUrl: 'http://localhost:3001',
+         convexUrl: process.env.CONVEX_URL,
          projectName: 'my-project',
        }],
      ],
@@ -109,31 +102,22 @@
    playwright test
    ```
 
-## API Endpoints
-
-- `POST /api/v1/tests/ingest` - Ingest test results
-- `GET /api/v1/tests` - Query tests
-- `GET /api/v1/projects` - List projects
-- `POST /api/v1/projects` - Create/update project
-- `GET /health` - Health check
-- `GET /swagger` - API documentation
-
 ## Troubleshooting
 
 ### Convex types not found
 
 Run `bunx convex dev` in the `convex` directory to generate types.
 
-### API can't connect to Convex
+### Test results not appearing
 
 Make sure:
 1. Convex dev server is running (`bunx convex dev`)
-2. `CONVEX_URL` is set in `.env`
+2. `CONVEX_URL` is set in your environment (for reporters) or `.env` file
 3. The URL format is correct (should be `https://xxx.convex.cloud`)
 
 ### Frontend shows no data
 
 1. Make sure Convex is running and types are generated
 2. Check that `VITE_CONVEX_URL` is set in `apps/web/.env`
-3. Verify the API is running and receiving test data
+3. Verify test reporters are configured with the correct `CONVEX_URL`
 4. Check browser console for errors

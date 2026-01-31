@@ -1,6 +1,6 @@
 # Panoptes Playwright Reporter
 
-Custom reporter for Playwright that sends test results to the Panoptes API.
+Custom reporter for Playwright that sends test results directly to Convex.
 
 ## Installation
 
@@ -22,7 +22,7 @@ export default defineConfig({
     [
       PanoptesReporter,
       {
-        apiUrl: process.env.PANOPTES_API_URL || 'http://localhost:3001',
+        convexUrl: process.env.CONVEX_URL,
         projectName: process.env.PANOPTES_PROJECT_NAME || 'my-project',
         environment: process.env.NODE_ENV || 'development',
         ci: process.env.CI === 'true',
@@ -35,7 +35,7 @@ export default defineConfig({
 
 ## Environment Variables
 
-- `PANOPTES_API_URL` - API endpoint URL (default: `http://localhost:3001`)
+- `CONVEX_URL` - Convex deployment URL (required, e.g., `https://xxx.convex.cloud`)
 - `PANOPTES_PROJECT_NAME` - Project name (default: `default-project`)
 - `NODE_ENV` - Environment name
 - `CI` - Set to `true` if running in CI
@@ -48,4 +48,4 @@ Run your tests as usual:
 playwright test
 ```
 
-The reporter will automatically send test results to the Panoptes API.
+The reporter will automatically send test results to Convex. Make sure `CONVEX_URL` is set in your environment.
