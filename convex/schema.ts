@@ -39,6 +39,8 @@ export default defineSchema({
 		skippedTests: v.number(),
 		environment: v.optional(v.string()),
 		ci: v.optional(v.boolean()),
+		commitSha: v.optional(v.string()),
+		ciRunId: v.optional(v.id("ciRuns")),
 		metadata: v.optional(v.any()),
 	})
 		.index("by_project", ["projectId"])
@@ -106,4 +108,87 @@ export default defineSchema({
 		.index("by_type", ["type"])
 		.index("by_test", ["testId"])
 		.index("by_resolved", ["resolved"]),
+
+	ciRuns: defineTable({
+		projectId: v.id("projects"),
+		workflowId: v.number(),
+		workflowName: v.string(),
+		runId: v.number(),
+		status: v.union(
+			v.literal("queued"),
+			v.literal("in_progress"),
+			v.literal("completed"),
+			v.literal("waiting")
+		),
+		conclusion: v.optional(
+			v.union(
+				v.literal("success"),
+				v.literal("failure"),
+				v.literal("neutral"),
+				v.literal("cancelled"),
+				v.literal("skipped"),
+				v.literal("timed_out"),
+				v.literal("action_required")
+			)
+		),
+		commitSha: v.string(),
+		commitMessage: v.optional(v.string()),
+		branch: v.string(),
+		startedAt: v.number(),
+		completedAt: v.optional(v.number()),
+		htmlUrl: v.string(),
+		metadata: v.optional(v.any()),
+	})
+		.index("by_project", ["projectId"])
+		.index("by_commit", ["commitSha"])
+		.index("by_status", ["status"]),
+
+	pullRequests: defineTable({
+		projectId: v.id("projects"),
+		prNumber: v.number(),
+		title: v.string(),
+		state: v.union(v.literal("open"), v.literal("closed"), v.literal("merged")),
+		author: v.string(),
+		branch: v.string(),
+		baseBranch: v.string(),
+		createdAt: v.number(),
+		updatedAt: v.number(),
+		htmlUrl: v.string(),
+		commitSha: v.optional(v.string()),
+		metadata: v.optional(v.any()),
+	})
+		.index("by_project", ["projectId"])
+		.index("by_state", ["state"]),
+
+	codeSnippets: defineTable({
+		testId: v.id("tests"),
+		file: v.string(),
+		startLine: v.number(),
+		endLine: v.number(),
+		content: v.string(),
+		language: v.optional(v.string()),
+		fetchedAt: v.number(),
+	})
+		.index("by_test", ["testId"])
+		.index("by_file", ["file"]),
+
+	cloudAgentRuns: defineTable({
+		projectId: v.id("projects"),
+		testId: v.optional(v.id("tests")),
+		triggeredBy: v.string(),
+		status: v.union(
+			v.literal("pending"),
+			v.literal("running"),
+			v.literal("completed"),
+			v.literal("failed")
+		),
+		agentId: v.optional(v.string()),
+		branch: v.optional(v.string()),
+		createdAt: v.number(),
+		completedAt: v.optional(v.number()),
+		htmlUrl: v.optional(v.string()),
+		metadata: v.optional(v.any()),
+	})
+		.index("by_project", ["projectId"])
+		.index("by_status", ["status"]),
 });
