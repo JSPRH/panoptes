@@ -432,6 +432,16 @@ export const triggerCursorCloudAgent = action({
 		// Format: https://cursor.com/agents?id={agentId}
 		const agentUrl = result.target?.url || `https://cursor.com/agents?id=${result.id}`;
 
+		// Update deeplink to include agent ID reference
+		// Add agent ID to the prompt so it's available when opening the deeplink
+		let updatedDeeplink = analysis.analysis.cursorDeeplink;
+		if (analysis.analysis.cursorDeeplink && analysis.analysis.cursorPrompt) {
+			// Update the prompt to include agent reference
+			const updatedPrompt = `${analysis.analysis.cursorPrompt}\n\nBackground Agent ID: ${result.id}\nAgent URL: ${agentUrl}`;
+			const encodedPrompt = encodeURIComponent(updatedPrompt);
+			updatedDeeplink = `cursor://anysphere.cursor-deeplink/prompt?text=${encodedPrompt}`;
+		}
+
 		// Store agent ID and URL in analysis (preserve existing analysis data)
 		const updateAnalysis: {
 			title: string;
@@ -462,8 +472,8 @@ export const triggerCursorCloudAgent = action({
 			cursorAgentUrl: agentUrl,
 		};
 
-		if (analysis.analysis.cursorDeeplink) {
-			updateAnalysis.cursorDeeplink = analysis.analysis.cursorDeeplink;
+		if (updatedDeeplink) {
+			updateAnalysis.cursorDeeplink = updatedDeeplink;
 		}
 		if (analysis.analysis.cursorPrompt) {
 			updateAnalysis.cursorPrompt = analysis.analysis.cursorPrompt;
