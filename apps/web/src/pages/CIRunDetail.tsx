@@ -423,12 +423,16 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 								{analysis.analysis.proposedFix}
 							</div>
 						</details>
-						<div>
-							<div className="text-sm font-medium mb-1">Proposed Test</div>
-							<div className="text-sm text-muted-foreground whitespace-pre-wrap">
+						<details className="group">
+							<summary className="text-sm font-medium cursor-pointer list-none flex items-center gap-2 hover:text-foreground transition-colors">
+								<span className="text-xs">▶</span>
+								<span className="hidden group-open:inline text-xs">▼</span>
+								Proposed Test
+							</summary>
+							<div className="text-sm text-muted-foreground mt-2 ml-5 pl-1 border-l-2 border-border whitespace-pre-wrap">
 								{analysis.analysis.proposedTest}
 							</div>
-						</div>
+						</details>
 						{(analysis.analysis.cursorDeeplink || analysis.analysis.cursorBackgroundAgentData) && (
 							<div>
 								<div className="text-sm font-medium mb-2">Cursor Integration</div>
