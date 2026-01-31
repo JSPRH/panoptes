@@ -61,6 +61,12 @@ else
 	fi
 fi
 
+# Regenerate Convex types before build (needed for TypeScript compilation)
+echo "🔄 Regenerating Convex types..."
+if ! bun run --cwd convex codegen; then
+	echo "⚠️  Convex codegen failed, but continuing with build..."
+fi
+
 # Run build check to catch TypeScript and build errors
 echo "🔨 Running build check..."
 if ! bun run build; then
