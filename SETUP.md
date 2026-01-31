@@ -162,17 +162,22 @@ GitHub Packages **defaults personal-account packages to private**. Even with `np
 
 After that, anyone can install the packages (with `.npmrc` and auth as described below). You cannot change a package back to private after making it public.
 
-### Publishing to npm (CI)
+### Publishing to npm (CI) — Trusted Publishing (OIDC)
 
-The **Publish reporters to npm** workflow runs on version tags (`v*`) and on manual trigger. It publishes to the public npm registry so consumers can install without GitHub auth.
+The **Publish reporters to npm** workflow uses [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (OIDC). No long-lived tokens; GitHub Actions authenticates to npm via short-lived OIDC tokens.
 
-**One-time setup:** Add an **NPM_TOKEN** secret to the repo:
+**One-time setup on npmjs.com:** Add a trusted publisher for each package (shared, reporter-playwright, reporter-vitest). The packages must exist on npm first — if they don’t, run the workflow once with an **NPM_TOKEN** secret so the packages are created, then add the trusted publisher and you can remove the token.
 
-1. Create an [npm access token](https://www.npmjs.com/settings/~/tokens) (Automation or Publish).
-2. In the repo: **Settings → Secrets and variables → Actions → New repository secret**.
-3. Name: `NPM_TOKEN`, Value: your npm token.
+1. Open [npm](https://www.npmjs.com) → your profile → **Packages** → open **@justinmiehle/shared** (then repeat for **reporter-playwright** and **reporter-vitest**).
+2. **Package settings** → find **Trusted Publisher**.
+3. Under **Select your publisher**, click **GitHub Actions**.
+4. Fill in:
+   - **Organization or user:** `JustinMiehle`
+   - **Repository:** `panoptes` (or the repo name that contains this workflow)
+   - **Workflow filename:** `publish-npm.yml` (filename only, with `.yml`)
+5. Save. Repeat for the other two packages.
 
-After that, pushing a version tag (e.g. `v0.0.6`) or running the workflow manually will publish to npm. Install from npm with `bun add -d @justinmiehle/reporter-playwright` (no `.npmrc` needed for npm).
+After that, pushing a version tag (e.g. `v0.0.6`) or running the workflow manually will publish via OIDC. You can then restrict the package to “Require 2FA and disallow tokens” in **Publishing access** for maximum security. Install from npm with `bun add -d @justinmiehle/reporter-playwright` (no `.npmrc` needed).
 
 ### Using in another GitHub Action
 

@@ -1,8 +1,10 @@
 # Publish @justinmiehle/shared and reporter packages to the public npm registry (registry.npmjs.org).
 # Run on push of version tag (e.g. v0.0.1) or manually.
 #
-# Required: Add NPM_TOKEN secret (Settings → Secrets and variables → Actions).
-# Create token at https://www.npmjs.com/settings/~/tokens (Automation or Publish).
+# Uses npm Trusted Publishing (OIDC) — no long-lived tokens. One-time setup on npmjs.com:
+# For each package (shared, reporter-playwright, reporter-vitest): Package → Settings →
+# Trusted Publisher → GitHub Actions → user JustinMiehle, repo panoptes, workflow: publish-npm.yml
+# See https://docs.npmjs.com/trusted-publishers and SETUP.md.
 name: Publish reporters to npm
 
 on:
@@ -16,6 +18,7 @@ jobs:
     name: Build and publish to npm
     runs-on: ubuntu-latest
     permissions:
+      id-token: write # Required for OIDC trusted publishing
       contents: read
     steps:
       - name: Checkout
@@ -29,7 +32,7 @@ jobs:
       - name: Setup Node (for npm publish)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
           scope: '@justinmiehle'
 
@@ -42,8 +45,6 @@ jobs:
       - name: Publish @justinmiehle/shared
         run: npm publish --access public
         working-directory: packages/shared
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build reporters
         run: bun run build:reporters
@@ -51,11 +52,7 @@ jobs:
       - name: Publish @justinmiehle/reporter-playwright
         run: npm publish --access public
         working-directory: packages/reporters/playwright
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @justinmiehle/reporter-vitest
         run: npm publish --access public
         working-directory: packages/reporters/vitest
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
