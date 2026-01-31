@@ -297,7 +297,28 @@ ${failedTests.length > 0 ? `Failed Tests (${failedTests.length}):\n` : ""}`;
 				temperature: 0.3,
 			});
 
-			// Generate Cursor prompt for both deeplink and background agent
+			// Generate concise Cursor prompt for deeplink (must be under 8000 chars URL-encoded)
+			// Keep it short and focused for deeplink
+			const deeplinkPrompt = `Fix CI failure: ${analysisData.title || `${ciRun.workflowName} on ${ciRun.branch}`}
+
+${analysisData.summary}
+
+Root cause: ${analysisData.rootCause.substring(0, 500)}
+
+Fix: ${analysisData.proposedFix.substring(0, 1000)}
+
+${
+	failedTests.length > 0
+		? `Failed tests: ${failedTests
+				.slice(0, 3)
+				.map((t: Doc<"ciRunParsedTests">) => t.testName)
+				.join(", ")}`
+		: ""
+}
+
+Fix the issues and ensure tests pass.`;
+
+			// Generate full Cursor prompt for background agent (can be longer)
 			const cursorPrompt = `Fix the CI failure in ${ciRun.workflowName} on branch ${ciRun.branch} (commit ${ciRun.commitSha.substring(0, 7)}).
 
 ${analysisData.summary}
@@ -323,8 +344,16 @@ Please fix the issue and ensure all tests pass.`;
 			// Generate Cursor deeplink (prompt format)
 			// Format: cursor://anysphere.cursor-deeplink/prompt?text=<encoded>
 			// See: https://cursor.com/docs/integrations/deeplinks
-			const encodedPrompt = encodeURIComponent(cursorPrompt);
+			// Use shorter prompt for deeplink to stay under 8000 char limit
+			const encodedPrompt = encodeURIComponent(deeplinkPrompt);
 			const cursorDeeplink = `cursor://anysphere.cursor-deeplink/prompt?text=${encodedPrompt}`;
+
+			// Check if deeplink is too long (warn but don't fail)
+			if (cursorDeeplink.length > 8000) {
+				console.warn(
+					`Deeplink is ${cursorDeeplink.length} chars, may exceed Cursor's 8000 char limit`
+				);
+			}
 
 			// Generate background agent data for Cloud Agents API
 			// See: https://cursor.com/docs/cloud-agent/api/endpoints
