@@ -24,7 +24,7 @@ export default function CoverageTreePage() {
 						Hierarchical view of code coverage for source files (test files excluded)
 					</CardDescription>
 				</CardHeader>
-				<CardContent>
+				<CardContent className="p-6">
 					{treeData && treeData.length > 0 ? (
 						<div className="space-y-1">
 							{treeData.map((node) => (
