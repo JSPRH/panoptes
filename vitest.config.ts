@@ -12,5 +12,10 @@ export default defineConfig({
 				ci: process.env.CI === "true",
 			}),
 		],
+		coverage: {
+			provider: "v8",
+			reporter: ["json", "text"],
+			reportsDirectory: "./coverage",
+		},
 	},
 });

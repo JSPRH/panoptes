@@ -18,6 +18,8 @@
 		"format": "biome format --write .",
 		"typecheck": "bun run --cwd apps/web typecheck",
 		"test": "bun test",
+		"test:vitest": "bunx vitest run",
+		"test:coverage": "bunx vitest run --coverage",
 		"ci": "bun run lint && bun run typecheck && bun run test && bun run build",
 		"prepare": "bun run install-git-hooks",
 		"install-git-hooks": "cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"
@@ -25,6 +27,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^1.8.0",
 		"@types/node": "^20.10.0",
+		"@vitest/coverage-v8": "^4.0.18",
 		"convex": "^1.12.0",
 		"typescript": "^5.3.3",
 		"vitest": "^4.0.18"
