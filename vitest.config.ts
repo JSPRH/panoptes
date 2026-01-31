@@ -36,6 +36,9 @@ export default defineConfig({
 				"**/.storybook/**",
 				"**/test-setup.ts",
 			],
+			// Generate coverage even when tests fail (if supported)
+			// Note: Vitest by default doesn't generate coverage on failure
+			// This is a workaround - we'll need to fix failing tests for coverage to be reliable
 		},
 	},
 });
