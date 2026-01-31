@@ -22,7 +22,7 @@ function getCommitSha(): string | undefined {
 	// Try to get from git in local environment
 	// Note: This requires git to be available and may fail silently
 	try {
-		const { execSync } = require("child_process");
+		const { execSync } = require("node:child_process");
 		return execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
 	} catch {
 		// Git not available or not in a git repo
@@ -45,16 +45,19 @@ export default class PanoptesReporter implements Reporter {
 		};
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: Playwright reporter interface doesn't provide strict types
 	onBegin(config: any, suite: any) {
 		this.startTime = Date.now();
 		this.tests = [];
 		this.suites.clear();
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: Playwright reporter interface doesn't provide strict types
 	onTestBegin(test: any) {
 		// Test is starting, we'll capture result in onTestEnd
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: Playwright reporter interface doesn't provide strict types
 	onTestEnd(test: any, result: any) {
 		const testResult: TestResult = {
 			name: test.title,
@@ -86,9 +89,10 @@ export default class PanoptesReporter implements Reporter {
 				tests: [],
 			});
 		}
-		this.suites.get(suiteName)!.tests.push(testResult);
+		this.suites.get(suiteName)?.tests.push(testResult);
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: Playwright reporter interface doesn't provide strict types
 	async onEnd(result: any) {
 		const endTime = Date.now();
 		const duration = endTime - this.startTime;

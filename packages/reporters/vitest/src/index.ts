@@ -22,7 +22,7 @@ function getCommitSha(): string | undefined {
 	// Try to get from git in local environment
 	// Note: This requires git to be available and may fail silently
 	try {
-		const { execSync } = require("child_process");
+		const { execSync } = require("node:child_process");
 		return execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
 	} catch {
 		// Git not available or not in a git repo
@@ -54,6 +54,7 @@ export default class PanoptesReporter implements Reporter {
 		this.suites.clear();
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: Vitest reporter interface doesn't provide strict types
 	onTestCaseResult(test: any) {
 		const testResult: TestResult = {
 			name: test.name || test.title || "Unknown test",
@@ -85,7 +86,7 @@ export default class PanoptesReporter implements Reporter {
 					tests: [],
 				});
 			}
-			this.suites.get(suiteKey)!.tests.push(testResult);
+			this.suites.get(suiteKey)?.tests.push(testResult);
 		}
 	}
 

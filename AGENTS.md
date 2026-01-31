@@ -2,6 +2,16 @@
 
 This document outlines best practices for AI agents working on this codebase. Follow these guidelines to maintain code quality, documentation, and project consistency.
 
+## ⚠️ CRITICAL REMINDER: ATOMIC COMMITS
+
+**YOU MUST ALWAYS MAKE ATOMIC COMMITS AND COMMIT CHANGES AUTOMATICALLY.**
+
+- **Never forget to commit** - After making any changes, you MUST commit them using atomic commits
+- **One logical change per commit** - Never mix unrelated changes
+- **Commit automatically** - Don't wait for the user to ask, commit changes as you make them
+- **Review before committing** - Check `git status` and `git diff` to ensure atomicity
+- See the "Git Practices" section below for detailed guidelines
+
 ## Package Manager
 
 **ALWAYS use Bun, never pnpm, npm, or yarn.**
@@ -184,20 +194,27 @@ Bad examples:
 
 **MANDATORY: When making commits as an agent, you MUST:**
 
-1. **Review changes**: Check `git status` and `git diff` to see what changed
-2. **Group logically**: Ensure all staged files are part of the same logical change
-3. **Stage selectively**: Use `git add <file1> <file2>` to stage only files for ONE atomic change
-4. **Verify pre-commit hook**: The hook will run automatically, but you can verify with:
+**🚨 YOU MUST COMMIT AUTOMATICALLY AFTER MAKING CHANGES - DO NOT WAIT FOR USER PERMISSION**
+
+1. **After making changes**: IMMEDIATELY review and commit them - don't leave uncommitted changes
+2. **Review changes**: Check `git status` and `git diff` to see what changed and group logically
+3. **Group logically**: Ensure all staged files are part of the same logical change
+4. **Stage selectively**: Use `git add <file1> <file2>` to stage only files for ONE atomic change
+5. **Verify pre-commit hook**: The hook will run automatically, but you can verify with:
    - `bun run lint` - Check for linting issues
    - `bun test` - Run tests
    - `bun run typecheck` - Check TypeScript types
    - `bun run build` - Verify build succeeds
-5. **Write commit message**: Use clear, descriptive messages following the format above
-6. **Commit**: Run `git commit -m "your message"` - the pre-commit hook will run automatically
-7. **If hook fails**: Fix the issues and try again. Never skip the hook.
-8. **Repeat for other changes**: If you have multiple logical changes, make separate commits
+6. **Write commit message**: Use clear, descriptive messages following the format above
+7. **Commit**: Run `git commit -m "your message"` - the pre-commit hook will run automatically
+8. **If hook fails**: Fix the issues and try again. Never skip the hook.
+9. **Repeat for other changes**: If you have multiple logical changes, make separate commits
 
-**CRITICAL: Never commit multiple unrelated changes together. Always make separate commits.**
+**CRITICAL RULES:**
+- **Never commit multiple unrelated changes together** - Always make separate commits
+- **Never forget to commit** - Always commit changes immediately after making them
+- **Commit automatically** - Don't wait for user permission, commit as you work
+- **One logical change = one commit** - If you made 3 unrelated changes, make 3 commits
 
 Example workflow for multiple changes:
 ```bash
@@ -323,14 +340,17 @@ git commit -m "fix: various fixes"
 
 ### Committing Changes
 
-**MANDATORY: Always commit changes after making them, unless explicitly told not to.**
+**🚨 MANDATORY: Always commit changes after making them, unless explicitly told not to.**
 
-1. **After making changes**: Stage and commit them immediately
-2. **Use atomic commits**: One logical change per commit (see Git Practices section)
+**YOU MUST COMMIT AUTOMATICALLY - THIS IS NOT OPTIONAL**
+
+1. **After making changes**: IMMEDIATELY stage and commit them - do not delay
+2. **Use atomic commits**: One logical change per commit (see Git Practices section above)
 3. **Write clear commit messages**: Follow the commit message format
 4. **Verify pre-commit hook passes**: The hook runs automatically, but ensure it passes
+5. **Multiple changes?**: Make multiple atomic commits, one per logical change
 
-**Never forget to commit** - uncommitted changes don't help anyone and can be lost.
+**CRITICAL: Never forget to commit** - uncommitted changes don't help anyone and can be lost. Commit automatically as you work, don't wait for permission.
 
 ## Common Tasks
 
