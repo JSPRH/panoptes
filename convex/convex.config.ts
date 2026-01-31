@@ -10,4 +10,7 @@ const app = defineApp();
 // app.use(aggregate, { name: "testPyramidPassed" });
 // app.use(aggregate, { name: "testPyramidFailed" });
 
+// Cron jobs are automatically registered from scheduled.ts
+// No need to manually register them here - Convex auto-detects cronJobs() exports
+
 export default app;
