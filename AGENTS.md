@@ -88,22 +88,35 @@ This document outlines best practices for AI agents working on this codebase. Fo
 
 ### Atomic Commits
 
-**Always make atomic commits** - each commit should represent a single, complete change.
+**CRITICAL: Always make atomic commits** - each commit must represent a single, complete, logical change.
 
-- **One logical change per commit** - Don't mix unrelated changes
-- **Complete and working** - Each commit should leave the codebase in a working state
-- **Focused scope** - If a change touches multiple areas, consider splitting into multiple commits
-- **Testable** - Each commit should be independently testable
+**MANDATORY RULES:**
+- **One logical change per commit** - Never mix unrelated changes in a single commit
+- **Complete and working** - Each commit must leave the codebase in a working state (builds, tests pass)
+- **Focused scope** - If a change touches multiple areas, split into multiple commits
+- **Testable** - Each commit must be independently testable
+- **Self-contained** - Each commit should make sense on its own when reviewed
+- **No "fixup" commits** - Fix issues in the original commit or create a proper follow-up commit
 
-Examples of good atomic commits:
+**When to split commits:**
+- Fixing bugs vs. adding features → separate commits
+- Code changes vs. documentation updates → separate commits (unless docs are part of the feature)
+- Infrastructure changes (CI, hooks, config) vs. code changes → separate commits
+- Multiple unrelated bug fixes → separate commits
+- Refactoring vs. feature additions → separate commits
+
+**Examples of good atomic commits:**
+- `fix: remove unused React imports from Button and Header components`
+- `fix: handle undefined projectId in getTestPyramidData query`
+- `chore: add build check to pre-commit hook`
 - `feat: add ConvexConfigError component for production deployment`
-- `fix: prevent localhost fallback in production builds`
 - `docs: add Vercel deployment instructions to README`
-- `refactor: improve error handling in App.tsx`
 
-Examples of bad commits (too broad):
-- `fix: various bugs and add new features` ❌
-- `update: changed stuff` ❌
+**Examples of bad commits (violate atomicity):**
+- `fix: various bugs and add new features` ❌ (multiple unrelated changes)
+- `fix: remove unused imports and add build check` ❌ (code fix + infrastructure change)
+- `update: changed stuff` ❌ (unclear, too broad)
+- `WIP: working on things` ❌ (incomplete, not atomic)
 
 ### Pre-commit Hooks
 
@@ -169,25 +182,39 @@ Bad examples:
 
 ### Making Commits
 
-**When making commits as an agent:**
+**MANDATORY: When making commits as an agent, you MUST:**
 
-1. **Stage changes**: Use `git add` to stage only the files related to the current change
-2. **Verify pre-commit hook**: The hook will run automatically, but you can verify with:
+1. **Review changes**: Check `git status` and `git diff` to see what changed
+2. **Group logically**: Ensure all staged files are part of the same logical change
+3. **Stage selectively**: Use `git add <file1> <file2>` to stage only files for ONE atomic change
+4. **Verify pre-commit hook**: The hook will run automatically, but you can verify with:
    - `bun run lint` - Check for linting issues
    - `bun test` - Run tests
    - `bun run typecheck` - Check TypeScript types
-3. **Write commit message**: Use clear, descriptive messages following the format above
-4. **Commit**: Run `git commit -m "your message"` - the pre-commit hook will run automatically
-5. **If hook fails**: Fix the issues and try again. Never skip the hook.
+   - `bun run build` - Verify build succeeds
+5. **Write commit message**: Use clear, descriptive messages following the format above
+6. **Commit**: Run `git commit -m "your message"` - the pre-commit hook will run automatically
+7. **If hook fails**: Fix the issues and try again. Never skip the hook.
+8. **Repeat for other changes**: If you have multiple logical changes, make separate commits
 
-Example workflow:
+**CRITICAL: Never commit multiple unrelated changes together. Always make separate commits.**
+
+Example workflow for multiple changes:
 ```bash
-# Make your changes
-# Stage related files
-git add apps/web/src/App.tsx apps/web/src/components/ConvexConfigError.tsx
+# First change: Fix TypeScript errors
+git add apps/web/src/stories/Button.tsx apps/web/src/stories/Header.tsx convex/tests.ts
+git commit -m "fix: remove unused React imports and fix projectId type error"
 
-# Commit with a good message (pre-commit hook runs automatically)
-git commit -m "feat: add Convex configuration error component for production"
+# Second change: Add build check (separate commit!)
+git add scripts/pre-commit
+git commit -m "chore: add build check to pre-commit hook"
+```
+
+Bad example (violates atomicity):
+```bash
+# ❌ DON'T DO THIS - mixing unrelated changes
+git add apps/web/src/stories/Button.tsx scripts/pre-commit
+git commit -m "fix: various fixes"
 ```
 
 ### Branching

@@ -21,11 +21,14 @@ for file in $STAGED_FILES; do
 	fi
 done
 
+# Only format if we have files to format
 if [ ${#FILE_ARRAY[@]} -gt 0 ]; then
 	echo "📝 Formatting staged files..."
-	bunx biome format --write "${FILE_ARRAY[@]}" 2>/dev/null || true
+	bunx biome format --write "${FILE_ARRAY[@]}" || true
 	# Stage formatted files (in case formatting changed them)
 	git add "${FILE_ARRAY[@]}" || true
+else
+	echo "ℹ️  No TypeScript/JavaScript files to format"
 fi
 
 # Lint staged files (only TypeScript/JavaScript/JSON files, exclude markdown)
@@ -36,12 +39,15 @@ for file in "${FILE_ARRAY[@]}"; do
 	fi
 done
 
+# Only lint if we have files to lint
 if [ ${#LINT_FILES[@]} -gt 0 ]; then
 	echo "🔎 Linting staged files..."
-	if ! bunx biome check "${LINT_FILES[@]}" 2>/dev/null; then
+	if ! bunx biome check "${LINT_FILES[@]}"; then
 		echo "❌ Linting failed. Please fix the errors above."
 		exit 1
 	fi
+else
+	echo "ℹ️  No TypeScript/JavaScript files to lint"
 fi
 
 # Run tests (skip if no tests found)
