@@ -10,6 +10,7 @@ export default defineSchema({
 		updatedAt: v.number(),
 	}),
 
+	// Test run = one batch of test executions (e.g. CI ran all unit tests). See docs/TERMINOLOGY.md.
 	testRuns: defineTable({
 		projectId: v.id("projects"),
 		framework: v.union(
@@ -48,6 +49,7 @@ export default defineSchema({
 		.index("by_project_and_type", ["projectId", "testType"])
 		.index("by_started_at", ["startedAt"]),
 
+	// Test execution = one specific time a test was run. See docs/TERMINOLOGY.md.
 	tests: defineTable({
 		testRunId: v.id("testRuns"),
 		projectId: v.id("projects"),
