@@ -118,6 +118,9 @@ export const _updateCIRun = internalMutation({
 		htmlUrl: v.string(),
 	},
 	handler: async (ctx, args) => {
+		const previousRun = await ctx.db.get(args.runId);
+		const wasFailed = previousRun?.conclusion === "failure" && previousRun?.status === "completed";
+
 		await ctx.db.patch(args.runId, {
 			status: args.status as "queued" | "in_progress" | "completed" | "waiting",
 			conclusion: args.conclusion as
@@ -136,6 +139,24 @@ export const _updateCIRun = internalMutation({
 			completedAt: args.completedAt,
 			htmlUrl: args.htmlUrl,
 		});
+
+		// Auto-trigger analysis for failed runs
+		const isFailed = args.conclusion === "failure" && args.status === "completed";
+		if (isFailed && !wasFailed) {
+			// Check if analysis already exists
+			const existingAnalysis = await ctx.db
+				.query("ciRunAnalysis")
+				.withIndex("by_ciRun", (q) => q.eq("ciRunId", args.runId))
+				.first();
+
+			// Only schedule if no analysis exists or it's not completed
+			if (!existingAnalysis || existingAnalysis.status !== "completed") {
+				// Schedule the processing action asynchronously
+				await ctx.scheduler.runAfter(0, internal.ciAnalysisActions._processFailedCIRun, {
+					ciRunId: args.runId,
+				});
+			}
+		}
 	},
 });
 
@@ -154,7 +175,7 @@ export const _insertCIRun = internalMutation({
 		htmlUrl: v.string(),
 	},
 	handler: async (ctx, args) => {
-		return await ctx.db.insert("ciRuns", {
+		const runId = await ctx.db.insert("ciRuns", {
 			projectId: args.projectId,
 			workflowId: args.workflowId,
 			workflowName: args.workflowName,
@@ -176,6 +197,17 @@ export const _insertCIRun = internalMutation({
 			completedAt: args.completedAt,
 			htmlUrl: args.htmlUrl,
 		});
+
+		// Auto-trigger analysis for failed runs
+		const isFailed = args.conclusion === "failure" && args.status === "completed";
+		if (isFailed) {
+			// Schedule the processing action asynchronously
+			await ctx.scheduler.runAfter(0, internal.ciAnalysisActions._processFailedCIRun, {
+				ciRunId: runId,
+			});
+		}
+
+		return runId;
 	},
 });
 

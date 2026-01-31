@@ -6,7 +6,7 @@ import { v } from "convex/values";
 import { z } from "zod";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { action } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 
 function getOpenAIApiKey(): string {
 	const key = process.env.OPENAI_API_KEY;
@@ -15,6 +15,106 @@ function getOpenAIApiKey(): string {
 	}
 	return key;
 }
+
+/**
+ * Internal action that processes a failed CI run by fetching logs and analyzing.
+ * This chains the two operations: fetch logs → analyze.
+ */
+export const _processFailedCIRun = internalAction({
+	args: {
+		ciRunId: v.id("ciRuns"),
+	},
+	handler: async (ctx, args) => {
+		try {
+			// Check if analysis already exists and is completed
+			const existingAnalysis = await ctx.runQuery(api.ciAnalysis.getCIRunAnalysis, {
+				ciRunId: args.ciRunId,
+			});
+
+			if (existingAnalysis && existingAnalysis.status === "completed") {
+				// Already analyzed, skip
+				return;
+			}
+
+			// Check if jobs exist
+			const jobs = await ctx.runQuery(api.github.getCIRunJobs, {
+				ciRunId: args.ciRunId,
+			});
+
+			// If no jobs exist, fetch them first
+			if (!jobs || jobs.length === 0) {
+				try {
+					await ctx.runAction(api.github.fetchCIRunJobs, {
+						ciRunId: args.ciRunId,
+					});
+					// Wait a short delay to ensure logs are processed
+					await new Promise((resolve) => setTimeout(resolve, 2000));
+				} catch (error) {
+					console.error(`Failed to fetch jobs for CI run ${args.ciRunId}:`, error);
+					// Continue anyway - analysis might still work with available data
+				}
+			}
+
+			// Trigger analysis
+			await ctx.runAction(api.ciAnalysisActions.analyzeCIRunFailure, {
+				ciRunId: args.ciRunId,
+			});
+		} catch (error) {
+			// Log error but don't throw - we don't want to break the sync process
+			console.error(`Failed to process CI run ${args.ciRunId}:`, error);
+		}
+	},
+});
+
+/**
+ * Batch processing function for scheduled job.
+ * Finds all failed CI runs without completed analysis and processes them.
+ */
+export const _processFailedCIRunsBatch = internalAction({
+	args: {},
+	handler: async (ctx) => {
+		// Get all projects
+		const projects = await ctx.runQuery(api.tests.getProjects);
+
+		if (!projects || projects.length === 0) {
+			return;
+		}
+
+		// Process each project
+		for (const project of projects) {
+			try {
+				// Get failed CI runs for this project
+				const failedRuns = await ctx.runQuery(api.github.getCIRunsForProject, {
+					projectId: project._id,
+					limit: 50, // Process up to 50 runs per project
+				});
+
+				// Filter to failed runs that don't have completed analysis
+				for (const run of failedRuns || []) {
+					if (run.conclusion === "failure" && run.status === "completed") {
+						// Check if analysis exists and is completed
+						const analysis = await ctx.runQuery(api.ciAnalysis.getCIRunAnalysis, {
+							ciRunId: run._id,
+						});
+
+						// Only process if no analysis exists or it's not completed
+						if (!analysis || analysis.status !== "completed") {
+							// Process this run (with a small delay between runs to avoid rate limits)
+							await ctx.runAction(internal.ciAnalysisActions._processFailedCIRun, {
+								ciRunId: run._id,
+							});
+							// Small delay to avoid overwhelming the APIs
+							await new Promise((resolve) => setTimeout(resolve, 1000));
+						}
+					}
+				}
+			} catch (error) {
+				console.error(`Failed to process failed CI runs for project ${project._id}:`, error);
+				// Continue with next project
+			}
+		}
+	},
+});
 
 export const analyzeCIRunFailure = action({
 	args: {
@@ -54,9 +154,27 @@ export const analyzeCIRunFailure = action({
 
 		try {
 			// Get all jobs for this CI run
-			const jobs = await ctx.runQuery(api.github.getCIRunJobs, {
+			let jobs = await ctx.runQuery(api.github.getCIRunJobs, {
 				ciRunId: args.ciRunId,
 			});
+
+			// If no jobs exist, try to fetch them automatically
+			if (!jobs || jobs.length === 0) {
+				try {
+					await ctx.runAction(api.github.fetchCIRunJobs, {
+						ciRunId: args.ciRunId,
+					});
+					// Wait a short delay to ensure logs are processed
+					await new Promise((resolve) => setTimeout(resolve, 2000));
+					// Try again to get jobs
+					jobs = await ctx.runQuery(api.github.getCIRunJobs, {
+						ciRunId: args.ciRunId,
+					});
+				} catch (error) {
+					console.error(`Failed to auto-fetch jobs for CI run ${args.ciRunId}:`, error);
+					// Continue with empty jobs - will fail gracefully below
+				}
+			}
 
 			// Filter to failed jobs
 			const failedJobs = jobs.filter(
