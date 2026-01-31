@@ -297,11 +297,7 @@ ${failedTests.length > 0 ? `Failed Tests (${failedTests.length}):\n` : ""}`;
 				temperature: 0.3,
 			});
 
-			// Generate concise Cursor prompt for deeplink (must be under 8000 chars URL-encoded)
-			// Keep it very short and focused - truncate aggressively to ensure it works
-			const summaryShort = analysisData.summary.substring(0, 300);
-			const rootCauseShort = analysisData.rootCause.substring(0, 300);
-			const fixShort = analysisData.proposedFix.substring(0, 500);
+			// Generate concise Cursor prompt for deeplink
 			const failedTestsList =
 				failedTests.length > 0
 					? failedTests
@@ -310,17 +306,13 @@ ${failedTests.length > 0 ? `Failed Tests (${failedTests.length}):\n` : ""}`;
 							.join(", ")
 					: "";
 
-			const deeplinkPrompt = `Fix CI failure: ${analysisData.title || `${ciRun.workflowName}`}
-
-${summaryShort}
-
-Root cause: ${rootCauseShort}
-
-Fix: ${fixShort}
-
-${failedTestsList ? `Failed: ${failedTestsList}` : ""}
-
-Fix and ensure tests pass.`;
+			const deeplinkPrompt = generateFixPrompt({
+				title: analysisData.title || ciRun.workflowName,
+				summary: analysisData.summary.substring(0, 300),
+				rootCause: analysisData.rootCause.substring(0, 300),
+				suggestedFix: analysisData.proposedFix.substring(0, 500),
+				context: failedTestsList ? `Failed: ${failedTestsList}` : undefined,
+			});
 
 			// Generate full Cursor prompt for background agent (can be longer)
 			const cursorPrompt = `Fix the CI failure in ${ciRun.workflowName} on branch ${ciRun.branch} (commit ${ciRun.commitSha.substring(0, 7)}).
@@ -345,23 +337,8 @@ Proposed Fix: ${analysisData.proposedFix}
 
 Please fix the issue and ensure all tests pass.`;
 
-			// Generate Cursor deeplink (prompt format)
-			// Format: https://cursor.com/link/prompt?text=<encoded> (web format)
-			// See: https://cursor.com/docs/integrations/deeplinks
-			// Use shorter prompt for deeplink to stay under 8000 char limit
-			const encodedPrompt = encodeURIComponent(deeplinkPrompt);
-			let cursorDeeplink = `https://cursor.com/link/prompt?text=${encodedPrompt}`;
-
-			// Check if deeplink is too long and truncate if needed
-			if (cursorDeeplink.length > 8000) {
-				console.warn(
-					`Deeplink is ${cursorDeeplink.length} chars, exceeds Cursor's 8000 char limit. Using ultra-short version.`
-				);
-				// Ultra-short version with minimal content
-				const ultraShortPrompt = `Fix CI failure: ${analysisData.title || ciRun.workflowName}\n\n${summaryShort}\n\nFix: ${fixShort}`;
-				const ultraShortEncoded = encodeURIComponent(ultraShortPrompt);
-				cursorDeeplink = `https://cursor.com/link/prompt?text=${ultraShortEncoded}`;
-			}
+			// Generate Cursor deeplink using shared utility
+			const cursorDeeplink = generateCursorDeeplink(deeplinkPrompt);
 
 			// Generate background agent data for Cloud Agents API
 			// See: https://cursor.com/docs/cloud-agent/api/endpoints
