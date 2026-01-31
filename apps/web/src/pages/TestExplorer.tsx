@@ -1,7 +1,7 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
 import type { Doc } from "@convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -9,13 +9,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 type Test = Doc<"tests">;
 
 const ITEMS_PER_PAGE = 20;
+const PAGINATION_PAGE_SIZE = 100; // Load 100 tests per page from Convex
 
 export default function TestExplorer() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [statusFilter, setStatusFilter] = useState<string>("all");
 	const [currentPage, setCurrentPage] = useState(1);
 
-	const tests = useQuery(api.tests.getTests, {});
+	const {
+		results: tests,
+		status,
+		loadMore,
+	} = usePaginatedQuery(api.tests.getTestsPaginated, {}, { initialNumItems: PAGINATION_PAGE_SIZE });
 	const seedFailingTest = useMutation(api.tests.seedFailingTest);
 
 	const filteredTests = useMemo(() => {
@@ -123,6 +128,9 @@ export default function TestExplorer() {
 					<CardDescription>
 						{filteredTests?.length || 0} test
 						{filteredTests?.length !== 1 ? "s" : ""} found
+						{status === "CanLoadMore" && (
+							<> (loaded {tests?.length || 0} of many - load more to see all)</>
+						)}
 						{filteredTests && filteredTests.length > ITEMS_PER_PAGE && (
 							<>
 								{" "}
@@ -178,56 +186,77 @@ export default function TestExplorer() {
 									</div>
 								))}
 							</div>
-							{totalPages > 1 && (
-								<div className="flex items-center justify-between mt-6 pt-4 border-t">
-									<div className="text-sm text-muted-foreground">
-										Page {currentPage} of {totalPages}
-									</div>
-									<div className="flex items-center gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-											disabled={currentPage === 1}
-										>
-											Previous
-										</Button>
-										<div className="flex items-center gap-1">
-											{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-												let pageNum: number;
-												if (totalPages <= 5) {
-													pageNum = i + 1;
-												} else if (currentPage <= 3) {
-													pageNum = i + 1;
-												} else if (currentPage >= totalPages - 2) {
-													pageNum = totalPages - 4 + i;
-												} else {
-													pageNum = currentPage - 2 + i;
-												}
-												return (
-													<Button
-														key={pageNum}
-														variant={currentPage === pageNum ? "default" : "outline"}
-														size="sm"
-														onClick={() => setCurrentPage(pageNum)}
-														className="min-w-[2.5rem]"
-													>
-														{pageNum}
-													</Button>
-												);
-											})}
+							<div className="flex flex-col gap-4 mt-6 pt-4 border-t">
+								{totalPages > 1 && (
+									<div className="flex items-center justify-between">
+										<div className="text-sm text-muted-foreground">
+											Page {currentPage} of {totalPages}
 										</div>
+										<div className="flex items-center gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+												disabled={currentPage === 1}
+											>
+												Previous
+											</Button>
+											<div className="flex items-center gap-1">
+												{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+													let pageNum: number;
+													if (totalPages <= 5) {
+														pageNum = i + 1;
+													} else if (currentPage <= 3) {
+														pageNum = i + 1;
+													} else if (currentPage >= totalPages - 2) {
+														pageNum = totalPages - 4 + i;
+													} else {
+														pageNum = currentPage - 2 + i;
+													}
+													return (
+														<Button
+															key={pageNum}
+															variant={currentPage === pageNum ? "default" : "outline"}
+															size="sm"
+															onClick={() => setCurrentPage(pageNum)}
+															className="min-w-[2.5rem]"
+														>
+															{pageNum}
+														</Button>
+													);
+												})}
+											</div>
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+												disabled={currentPage === totalPages}
+											>
+												Next
+											</Button>
+										</div>
+									</div>
+								)}
+								{status === "CanLoadMore" && (
+									<div className="flex justify-center">
 										<Button
 											variant="outline"
 											size="sm"
-											onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-											disabled={currentPage === totalPages}
+											onClick={() => loadMore(PAGINATION_PAGE_SIZE)}
+											disabled={false}
 										>
-											Next
+											Load More Tests
 										</Button>
 									</div>
-								</div>
-							)}
+								)}
+								{(status === "LoadingMore" || status === "LoadingFirstPage") && (
+									<div className="flex justify-center">
+										<Button variant="outline" size="sm" disabled={true}>
+											Loading...
+										</Button>
+									</div>
+								)}
+							</div>
 						</>
 					) : (
 						<p className="text-muted-foreground">

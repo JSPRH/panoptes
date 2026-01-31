@@ -1,5 +1,6 @@
 // Aggregates temporarily disabled to unblock - will re-enable once components are working
 // import { TableAggregate } from "@convex-dev/aggregate";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 // import { components } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -226,6 +227,45 @@ export const getTests = query({
 		}
 		const query = ctx.db.query("tests");
 		return args.limit ? await query.take(args.limit) : await query.collect();
+	},
+});
+
+export const getTestsPaginated = query({
+	args: {
+		paginationOpts: paginationOptsValidator,
+		testRunId: v.optional(v.id("testRuns")),
+		projectId: v.optional(v.id("projects")),
+		status: v.optional(
+			v.union(v.literal("passed"), v.literal("failed"), v.literal("skipped"), v.literal("running"))
+		),
+	},
+	handler: async (ctx, args) => {
+		if (args.testRunId !== undefined) {
+			const testRunId = args.testRunId;
+			return await ctx.db
+				.query("tests")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunId))
+				.order("desc")
+				.paginate(args.paginationOpts);
+		}
+		if (args.projectId !== undefined) {
+			const projectId = args.projectId;
+			return await ctx.db
+				.query("tests")
+				.withIndex("by_project", (q) => q.eq("projectId", projectId))
+				.order("desc")
+				.paginate(args.paginationOpts);
+		}
+		if (args.status !== undefined) {
+			const status = args.status;
+			return await ctx.db
+				.query("tests")
+				.withIndex("by_status", (q) => q.eq("status", status))
+				.order("desc")
+				.paginate(args.paginationOpts);
+		}
+		// Order by _id descending for consistent pagination
+		return await ctx.db.query("tests").order("desc").paginate(args.paginationOpts);
 	},
 });
 
