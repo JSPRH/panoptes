@@ -343,18 +343,83 @@ Please fix the issue and ensure all tests pass.`;
 export const triggerCursorCloudAgent = action({
 	args: {
 		ciRunId: v.id("ciRuns"),
+		actionType: v.optional(
+			v.union(v.literal("restart_ci"), v.literal("fix_test"), v.literal("fix_bug"))
+		),
 	},
-	handler: async (ctx, args) => {
+	handler: async (
+		ctx,
+		args
+	): Promise<
+		| { success: true; action: "restart_ci"; message: string }
+		| { agentId: string; agentUrl: string; prUrl?: string; action: string }
+	> => {
 		const analysis = await ctx.runQuery(api.ciAnalysis.getCIRunAnalysis, {
 			ciRunId: args.ciRunId,
 		});
 
-		if (!analysis || !analysis.analysis?.cursorBackgroundAgentData) {
-			throw new Error("Analysis not found or background agent data not available");
+		if (!analysis || !analysis.analysis) {
+			throw new Error("Analysis not found");
 		}
 
-		const { repository, ref, prompt } = analysis.analysis.cursorBackgroundAgentData;
+		// If flaky and actionType is restart_ci, use GitHub API directly
+		if (analysis.analysis.isFlaky && args.actionType === "restart_ci") {
+			const rerunResult = await ctx.runAction(api.github.rerunCIRun, {
+				ciRunId: args.ciRunId,
+			});
+			return {
+				success: true,
+				action: "restart_ci" as const,
+				message: rerunResult.message,
+			} as const;
+		}
+
+		if (!analysis.analysis.cursorBackgroundAgentData) {
+			throw new Error("Background agent data not available");
+		}
+
+		const { repository, ref } = analysis.analysis.cursorBackgroundAgentData;
 		const apiKey = getCursorApiKey();
+
+		// Build prompt based on action type
+		let prompt = analysis.analysis.cursorBackgroundAgentData.prompt;
+
+		if (args.actionType === "fix_test") {
+			// Focus on test code, assertions, mocking
+			prompt = `Fix the failing test(s) in the CI failure for ${analysis.analysis.title || "CI Failure"}.
+
+${analysis.analysis.summary}
+
+Root Cause: ${analysis.analysis.rootCause}
+
+Focus on:
+- Fixing test code, assertions, and expectations
+- Updating mocks and test fixtures
+- Correcting test setup/teardown
+- Ensuring tests accurately reflect expected behavior
+
+${analysis.analysis.proposedFix}
+
+Please fix the test(s) and ensure they pass.`;
+		} else if (args.actionType === "fix_bug") {
+			// Focus on production code, logic errors
+			prompt = `Fix the bug causing the CI failure for ${analysis.analysis.title || "CI Failure"}.
+
+${analysis.analysis.summary}
+
+Root Cause: ${analysis.analysis.rootCause}
+
+Focus on:
+- Fixing production code logic errors
+- Correcting business logic issues
+- Fixing API/function implementations
+- Ensuring code correctness and edge case handling
+
+${analysis.analysis.proposedFix}
+
+Please fix the bug and ensure all tests pass.`;
+		}
+		// If no actionType specified, use the default prompt from analysis
 
 		// Call Cursor Cloud Agents API
 		// See: https://cursor.com/docs/cloud-agent/api/endpoints#launch-an-agent
@@ -385,7 +450,7 @@ export const triggerCursorCloudAgent = action({
 			throw new Error(`Cursor Cloud Agents API error: ${response.status} - ${errorText}`);
 		}
 
-		const result = (await response.json()) as {
+		const result: {
 			id: string;
 			name: string;
 			status: string;
@@ -393,7 +458,7 @@ export const triggerCursorCloudAgent = action({
 				url?: string;
 				prUrl?: string;
 			};
-		};
+		} = await response.json();
 
 		// Construct agent URL with agent ID
 		// Format: https://cursor.com/agents?id={agentId}
@@ -445,6 +510,7 @@ export const triggerCursorCloudAgent = action({
 			agentId: result.id,
 			agentUrl,
 			prUrl: result.target?.prUrl,
+			action: args.actionType || "fix_bug",
 		};
 	},
 });

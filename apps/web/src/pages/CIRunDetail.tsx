@@ -325,8 +325,11 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 	const failedTests = allParsedTests?.filter((t) => t.status === "failed");
 	const analyzeFailure = useAction(api.ciAnalysisActions.analyzeCIRunFailure);
 	const triggerCloudAgent = useAction(api.ciAnalysisActions.triggerCursorCloudAgent);
+	const rerunCIRun = useAction(api.github.rerunCIRun);
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
 	const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
+	const [isRestartingCI, setIsRestartingCI] = useState(false);
+	const [selectedActionType, setSelectedActionType] = useState<"fix_test" | "fix_bug">("fix_bug");
 	const [error, setError] = useState<string | null>(null);
 	const [agentResult, setAgentResult] = useState<{ agentUrl?: string; prUrl?: string } | null>(
 		null
@@ -359,19 +362,49 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 		setError(null);
 		setAgentResult(null);
 		try {
-			const result = await triggerCloudAgent({ ciRunId });
-			setAgentResult(result);
-			if (result.prUrl) {
-				// Open PR in new tab
-				window.open(result.prUrl, "_blank");
-			} else if (result.agentUrl) {
-				// Open agent page in new tab
-				window.open(result.agentUrl, "_blank");
+			const result = await triggerCloudAgent({
+				ciRunId,
+				actionType: selectedActionType,
+			});
+			// Handle restart_ci case
+			if ("success" in result && result.success) {
+				// CI restart was successful, no agent URL to set
+				return;
+			}
+			// Handle agent launch case - check for agentId to narrow type
+			if ("agentId" in result) {
+				setAgentResult({
+					agentUrl: result.agentUrl,
+					prUrl: result.prUrl,
+				});
+				if (result.prUrl) {
+					// Open PR in new tab
+					window.open(result.prUrl, "_blank");
+				} else if (result.agentUrl) {
+					// Open agent page in new tab
+					window.open(result.agentUrl, "_blank");
+				}
 			}
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Failed to trigger cloud agent");
 		} finally {
 			setIsTriggeringAgent(false);
+		}
+	};
+
+	const handleRestartCI = async () => {
+		if (isRestartingCI) return;
+		setIsRestartingCI(true);
+		setError(null);
+		try {
+			await rerunCIRun({ ciRunId });
+			// Show success message
+			setError(null);
+			// Optionally refresh the page or show a success notification
+		} catch (e) {
+			setError(e instanceof Error ? e.message : "Failed to restart CI run");
+		} finally {
+			setIsRestartingCI(false);
 		}
 	};
 
@@ -399,20 +432,42 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 								💬 Open Prompt in Cursor
 							</Button>
 						)}
-						{analysis?.analysis?.cursorBackgroundAgentData && (
+						{analysis?.analysis?.isFlaky && (
 							<Button
-								onClick={handleTriggerCloudAgent}
-								disabled={isTriggeringAgent || !!analysis?.analysis?.cursorAgentId}
+								onClick={handleRestartCI}
+								disabled={isRestartingCI}
 								size="sm"
-								variant="default"
+								variant="outline"
 								className="flex-1"
 							>
-								{isTriggeringAgent
-									? "Launching..."
-									: analysis?.analysis?.cursorAgentId
-										? "✅ Agent Launched"
-										: "🚀 Launch Automated Agent"}
+								{isRestartingCI ? "Restarting..." : "🔄 Restart CI"}
 							</Button>
+						)}
+						{analysis?.analysis?.cursorBackgroundAgentData && (
+							<div className="flex gap-2 flex-1">
+								<select
+									value={selectedActionType}
+									onChange={(e) => setSelectedActionType(e.target.value as "fix_test" | "fix_bug")}
+									className="px-3 py-1.5 text-sm border rounded-md bg-background"
+									disabled={isTriggeringAgent || !!analysis?.analysis?.cursorAgentId}
+								>
+									<option value="fix_bug">Fix Bug</option>
+									<option value="fix_test">Fix Test</option>
+								</select>
+								<Button
+									onClick={handleTriggerCloudAgent}
+									disabled={isTriggeringAgent || !!analysis?.analysis?.cursorAgentId}
+									size="sm"
+									variant="default"
+									className="flex-1"
+								>
+									{isTriggeringAgent
+										? "Launching..."
+										: analysis?.analysis?.cursorAgentId
+											? "✅ Agent Launched"
+											: "🚀 Launch Agent"}
+								</Button>
+							</div>
 						)}
 						{analysis?.analysis?.cursorAgentUrl && (
 							<Button

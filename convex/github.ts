@@ -1355,6 +1355,60 @@ export const fetchCIRunJobs = action({
 	},
 });
 
+/**
+ * Rerun a GitHub Actions workflow run.
+ * Uses GitHub API to restart the workflow run.
+ */
+export const rerunCIRun = action({
+	args: {
+		ciRunId: v.id("ciRuns"),
+	},
+	handler: async (ctx, args) => {
+		const ciRun = await ctx.runQuery(internal.github._getCIRunById, {
+			ciRunId: args.ciRunId,
+		});
+
+		if (!ciRun) {
+			throw new Error("CI run not found");
+		}
+
+		const project = await ctx.runQuery(internal.github._getProject, {
+			projectId: ciRun.projectId,
+		});
+
+		if (!project || !project.repository) {
+			throw new Error("Project repository not configured");
+		}
+
+		const repoInfo = parseRepositoryUrl(project.repository);
+		if (!repoInfo) {
+			throw new Error(`Invalid repository URL: ${project.repository}`);
+		}
+
+		const token = getGitHubToken();
+
+		// Call GitHub API to rerun the workflow run
+		// POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun
+		const response = await fetch(
+			`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/actions/runs/${ciRun.runId}/rerun`,
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					Accept: "application/vnd.github.v3+json",
+				},
+			}
+		);
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`GitHub API error: ${response.status} - ${errorText}`);
+		}
+
+		return { success: true, message: "CI run restarted successfully" };
+	},
+});
+
 // Internal query to get CI run by ID
 export const _getCIRunById = internalQuery({
 	args: { ciRunId: v.id("ciRuns") },
