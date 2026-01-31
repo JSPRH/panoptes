@@ -1,4 +1,3 @@
-import PanoptesReporter from "@justinmiehle/reporter-playwright";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -24,7 +23,7 @@ export default defineConfig({
 	reporter: [
 		["list"],
 		[
-			PanoptesReporter,
+			"@justinmiehle/reporter-playwright",
 			{
 				convexUrl: process.env.CONVEX_URL || "http://localhost:3210",
 				projectName: process.env.PANOPTES_PROJECT_NAME || "panoptes-web",
