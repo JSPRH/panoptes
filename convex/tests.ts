@@ -1237,10 +1237,19 @@ async function updateDashboardStats(
 	const testRunCount = statsDoc.testRunCount + 1;
 	const typeKey = args.testType as PyramidType;
 
-	// Batch optimization: Fetch all existing test definitions for this project/type in one query
-	// instead of querying per test to avoid exceeding read limits
-	// Limit to 2000 definitions to stay well under the 4096 read limit
-	const MAX_DEFINITIONS_TO_FETCH = 2000;
+	// For very large test runs, limit processing to avoid exceeding read limits
+	// Limit to 1000 tests max to stay well under 4096 read limit
+	// (1000 definitions fetch + other reads = ~1000-1500 reads, leaving plenty of room)
+	const MAX_TESTS_TO_PROCESS = 1000;
+	const WRITE_BATCH_SIZE = 100; // Write 100 at a time
+
+	// Limit the number of tests we process
+	const testsToProcess = args.tests.slice(0, MAX_TESTS_TO_PROCESS);
+
+	// Fetch all existing definitions for this project/type in one query
+	// This is more efficient than querying per definition key
+	// Limit to 1000 to stay well under read limit
+	const MAX_DEFINITIONS_TO_FETCH = 1000;
 	const existingDefinitions = await ctx.db
 		.query("testDefinitionLatest")
 		.withIndex("by_project_type_key", (q) =>
@@ -1254,67 +1263,73 @@ async function updateDashboardStats(
 		existingDefinitionsMap.set(def.definitionKey, def);
 	}
 
-	// Process tests in batches to avoid too many writes
-	const TEST_BATCH_SIZE = 200; // Process 200 tests at a time
-	const inserts: Array<{
-		projectId: Id<"projects">;
-		testType: "unit" | "integration" | "e2e" | "visual";
-		definitionKey: string;
-		status: TestStatus;
-		lastRunStartedAt: number;
-	}> = [];
-	const patches: Array<{
-		id: Id<"testDefinitionLatest">;
-		status: TestStatus;
-		lastRunStartedAt: number;
-		oldStatus: TestStatus;
-	}> = [];
+	// Process all tests (already limited to MAX_TESTS_TO_PROCESS)
+	// Process in chunks to avoid too many writes at once
+	const TEST_CHUNK_SIZE = 500;
+	for (let chunkStart = 0; chunkStart < testsToProcess.length; chunkStart += TEST_CHUNK_SIZE) {
+		const testChunk = testsToProcess.slice(chunkStart, chunkStart + TEST_CHUNK_SIZE);
 
-	for (const test of args.tests) {
-		const definitionKey = testDefinitionKey(args.projectId, test.name, test.file, test.line);
-		const existing = existingDefinitionsMap.get(definitionKey);
+		// Process this chunk and collect inserts/patches
+		const inserts: Array<{
+			projectId: Id<"projects">;
+			testType: "unit" | "integration" | "e2e" | "visual";
+			definitionKey: string;
+			status: TestStatus;
+			lastRunStartedAt: number;
+		}> = [];
+		const patches: Array<{
+			id: Id<"testDefinitionLatest">;
+			status: TestStatus;
+			lastRunStartedAt: number;
+			oldStatus: TestStatus;
+		}> = [];
 
-		if (!existing) {
-			inserts.push({
-				projectId: args.projectId,
-				testType: args.testType,
-				definitionKey,
-				status: test.status,
-				lastRunStartedAt: args.startedAt,
-			});
-			pyramid[typeKey].total += 1;
-			if (test.status === "passed") pyramid[typeKey].passed += 1;
-			else if (test.status === "failed") pyramid[typeKey].failed += 1;
-		} else if (args.startedAt >= existing.lastRunStartedAt) {
-			if (existing.status === "passed") pyramid[typeKey].passed -= 1;
-			else if (existing.status === "failed") pyramid[typeKey].failed -= 1;
-			patches.push({
-				id: existing._id,
-				status: test.status,
-				lastRunStartedAt: args.startedAt,
-				oldStatus: existing.status,
-			});
-			if (test.status === "passed") pyramid[typeKey].passed += 1;
-			else if (test.status === "failed") pyramid[typeKey].failed += 1;
+		for (const test of testChunk) {
+			const definitionKey = testDefinitionKey(args.projectId, test.name, test.file, test.line);
+			const existing = existingDefinitionsMap.get(definitionKey);
+
+			if (!existing) {
+				inserts.push({
+					projectId: args.projectId,
+					testType: args.testType,
+					definitionKey,
+					status: test.status,
+					lastRunStartedAt: args.startedAt,
+				});
+				pyramid[typeKey].total += 1;
+				if (test.status === "passed") pyramid[typeKey].passed += 1;
+				else if (test.status === "failed") pyramid[typeKey].failed += 1;
+			} else if (args.startedAt >= existing.lastRunStartedAt) {
+				if (existing.status === "passed") pyramid[typeKey].passed -= 1;
+				else if (existing.status === "failed") pyramid[typeKey].failed -= 1;
+				patches.push({
+					id: existing._id,
+					status: test.status,
+					lastRunStartedAt: args.startedAt,
+					oldStatus: existing.status,
+				});
+				if (test.status === "passed") pyramid[typeKey].passed += 1;
+				else if (test.status === "failed") pyramid[typeKey].failed += 1;
+			}
 		}
-	}
 
-	// Execute inserts in batches (atomic per batch)
-	for (let i = 0; i < inserts.length; i += TEST_BATCH_SIZE) {
-		const batch = inserts.slice(i, i + TEST_BATCH_SIZE);
-		for (const insert of batch) {
-			await ctx.db.insert("testDefinitionLatest", insert);
+		// Execute inserts in batches (atomic per batch)
+		for (let i = 0; i < inserts.length; i += WRITE_BATCH_SIZE) {
+			const batch = inserts.slice(i, i + WRITE_BATCH_SIZE);
+			for (const insert of batch) {
+				await ctx.db.insert("testDefinitionLatest", insert);
+			}
 		}
-	}
 
-	// Execute patches in batches (atomic per batch)
-	for (let i = 0; i < patches.length; i += TEST_BATCH_SIZE) {
-		const batch = patches.slice(i, i + TEST_BATCH_SIZE);
-		for (const patch of batch) {
-			await ctx.db.patch("testDefinitionLatest", patch.id, {
-				status: patch.status,
-				lastRunStartedAt: patch.lastRunStartedAt,
-			});
+		// Execute patches in batches (atomic per batch)
+		for (let i = 0; i < patches.length; i += WRITE_BATCH_SIZE) {
+			const batch = patches.slice(i, i + WRITE_BATCH_SIZE);
+			for (const patch of batch) {
+				await ctx.db.patch("testDefinitionLatest", patch.id, {
+					status: patch.status,
+					lastRunStartedAt: patch.lastRunStartedAt,
+				});
+			}
 		}
 	}
 
