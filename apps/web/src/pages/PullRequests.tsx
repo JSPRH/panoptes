@@ -3,6 +3,7 @@ import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
@@ -125,7 +126,22 @@ export default function PullRequests() {
 	return (
 		<div className="space-y-8">
 			<div className="flex items-center justify-between">
-				<PageHeader title="Pull Requests" description="Open pull requests from GitHub" />
+				<div className="flex items-center gap-3">
+					<Link
+						to="/"
+						className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
+					>
+						<img
+							src="/panoptes_logo_icon_only.png"
+							alt=""
+							className="h-8 w-auto"
+							aria-hidden="true"
+						/>
+						<span className="font-heading font-semibold text-lg text-foreground">Panoptes</span>
+					</Link>
+					<div className="h-6 w-px bg-border" />
+					<PageHeader title="Pull Requests" description="Open pull requests from GitHub" />
+				</div>
 				{selectedProjectId && (
 					<Button onClick={handleSync} variant="outline" size="sm">
 						Sync GitHub Data
