@@ -1,8 +1,17 @@
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 import PanoptesReporter from "./packages/reporters/vitest/src/index.ts";
 
 export default defineConfig({
+	resolve: {
+		alias: {
+			"@": path.resolve(__dirname, "./apps/web/src"),
+			"@convex": path.resolve(__dirname, "./convex"),
+		},
+	},
 	test: {
+		environment: "jsdom",
+		setupFiles: ["./apps/web/src/test-setup.ts"],
 		reporters: [
 			"default",
 			new PanoptesReporter({
@@ -25,6 +34,7 @@ export default defineConfig({
 				"**/node_modules/**",
 				"**/dist/**",
 				"**/.storybook/**",
+				"**/test-setup.ts",
 			],
 		},
 	},
