@@ -1,6 +1,6 @@
 {
 	"name": "@justinmiehle/reporter-vitest",
-	"version": "0.0.2",
+	"version": "0.0.5",
 	"description": "Panoptes reporter for Vitest test results",
 	"type": "module",
 	"main": "./dist/index.js",
