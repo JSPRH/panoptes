@@ -1,5 +1,12 @@
-import type { TestResult, TestRunIngest } from "@justinmiehle/shared";
-import type { Reporter } from "@playwright/test/reporter";
+import type { TestResult, TestRunIngest } from "@panoptes/shared";
+import type {
+	FullConfig,
+	FullProject,
+	TestResult as PlaywrightTestResult,
+	Reporter,
+	Suite,
+	TestCase,
+} from "@playwright/test/reporter";
 
 interface PanoptesReporterOptions {
 	convexUrl?: string;
@@ -45,23 +52,29 @@ export default class PanoptesReporter implements Reporter {
 		};
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: Playwright reporter interface doesn't provide strict types
-	onBegin(config: any, suite: any) {
+	onBegin(config: FullConfig, suite: Suite) {
 		this.startTime = Date.now();
 		this.tests = [];
 		this.suites.clear();
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: Playwright reporter interface doesn't provide strict types
-	onTestBegin(test: any) {
+	onTestBegin(test: TestCase) {
+		console.log(`[Panoptes] Test begin: ${test.title}`);
 		// Test is starting, we'll capture result in onTestEnd
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: Playwright reporter interface doesn't provide strict types
-	onTestEnd(test: any, result: any) {
+	onTestEnd(test: TestCase, result: PlaywrightTestResult) {
+		console.log(`[Panoptes] Test end: ${test.title}, status: ${result.status}`);
+		// Extract file path - try multiple sources to ensure we capture it
+		const filePath =
+			test.location?.file || test.file || test.titlePath?.slice(-1)[0]?.file || "unknown";
+
+		// Get project name from test's parent suite
+		const project = test.parent?.project();
+		const projectName = project?.name;
 		const testResult: TestResult = {
 			name: test.title,
-			file: test.location?.file || test.file || "unknown",
+			file: filePath,
 			line: test.location?.line,
 			column: test.location?.column,
 			status: this.mapStatus(result.status),
@@ -74,28 +87,34 @@ export default class PanoptesReporter implements Reporter {
 			metadata: {
 				workerIndex: result.workerIndex,
 				retry: result.retry,
-				projectName: test.project()?.name,
+				projectName: projectName,
 			},
 		};
 
 		this.tests.push(testResult);
 
-		// Track suites
-		const suiteName = test.parent?.title || test.location?.file || "unknown";
+		// Track suites - use file path as fallback for suite name
+		const suiteName = test.parent?.title || filePath;
 		if (!this.suites.has(suiteName)) {
 			this.suites.set(suiteName, {
 				name: suiteName,
-				file: test.location?.file || test.file || "unknown",
+				file: filePath,
 				tests: [],
 			});
 		}
 		this.suites.get(suiteName)?.tests.push(testResult);
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: Playwright reporter interface doesn't provide strict types
-	async onEnd(result: any) {
+	async onEnd(result: { status?: "passed" | "failed" | "timedout" }) {
 		const endTime = Date.now();
 		const duration = endTime - this.startTime;
+
+		console.log(`[Panoptes] Reporter onEnd called. Total tests collected: ${this.tests.length}`);
+		if (this.tests.length === 0) {
+			console.warn(
+				"[Panoptes] WARNING: No tests were collected! This might mean tests weren't actually executed."
+			);
+		}
 
 		const passedTests = this.tests.filter((t) => t.status === "passed").length;
 		const failedTests = this.tests.filter((t) => t.status === "failed").length;
@@ -139,6 +158,10 @@ export default class PanoptesReporter implements Reporter {
 			tests: this.tests,
 			suites: suiteData,
 		};
+
+		console.log(
+			`[Panoptes] Sending test run: project=${this.options.projectName}, testType=e2e, totalTests=${this.tests.length}, passed=${passedTests}, failed=${failedTests}, skipped=${skippedTests}`
+		);
 
 		if (!this.options.convexUrl) {
 			console.warn("[Panoptes] CONVEX_URL not set. Test results will not be sent.");
