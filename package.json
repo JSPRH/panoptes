@@ -20,6 +20,8 @@
 		"test": "bun test tests apps/web/src",
 		"test:vitest": "bunx vitest run",
 		"test:coverage": "bunx vitest run --coverage",
+		"test:e2e": "bun run --cwd apps/web test:e2e",
+		"test:e2e:ui": "bun run --cwd apps/web test:e2e:ui",
 		"ci": "bun run lint && bun run typecheck && bun run test && bun run build",
 		"prepare": "bun run install-git-hooks",
 		"install-git-hooks": "cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"
@@ -42,6 +44,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/openai": "^3.0.23",
+		"@playwright/test": "^1.58.1",
 		"ai": "^6.0.64",
 		"zod": "^4.3.6"
 	}

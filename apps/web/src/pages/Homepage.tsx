@@ -9,9 +9,13 @@ export default function Homepage() {
 			<section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-primary/5 py-20 lg:py-32">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="mx-auto max-w-4xl text-center">
-						<h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-							Panoptes
-						</h1>
+						<div className="flex justify-center mb-8">
+							<img
+								src="/panoptes_logo_horizontal.png"
+								alt="Panoptes"
+								className="h-16 md:h-20 lg:h-24 w-auto"
+							/>
+						</div>
 						<p className="mt-6 text-lg leading-8 text-muted-foreground sm:text-xl md:text-2xl">
 							Visualize your testing pyramid. Gain insights into your test coverage. Make
 							data-driven decisions about your test suite.
@@ -60,8 +64,12 @@ export default function Homepage() {
 									</CardDescription>
 								</CardHeader>
 								<CardContent>
-									<div className="aspect-video rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-										<span className="text-4xl">📊</span>
+									<div className="aspect-video rounded-lg overflow-hidden border border-border">
+										<img
+											src="/panoptes_viz_test_pyramid.png"
+											alt="Test Pyramid Visualization"
+											className="w-full h-full object-cover"
+										/>
 									</div>
 								</CardContent>
 							</Card>
@@ -75,8 +83,12 @@ export default function Homepage() {
 									</CardDescription>
 								</CardHeader>
 								<CardContent>
-									<div className="aspect-video rounded-lg bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center">
-										<span className="text-4xl">🔄</span>
+									<div className="aspect-video rounded-lg overflow-hidden border border-border">
+										<img
+											src="/panoptes_viz_ci_pipeline.png"
+											alt="CI Pipeline Visualization"
+											className="w-full h-full object-cover"
+										/>
 									</div>
 								</CardContent>
 							</Card>
@@ -90,8 +102,12 @@ export default function Homepage() {
 									</CardDescription>
 								</CardHeader>
 								<CardContent>
-									<div className="aspect-video rounded-lg bg-gradient-to-br from-info/20 to-info/5 flex items-center justify-center">
-										<span className="text-4xl">🔍</span>
+									<div className="aspect-video rounded-lg overflow-hidden border border-border">
+										<img
+											src="/panoptes_viz_test_success.png"
+											alt="Test Success Visualization"
+											className="w-full h-full object-cover"
+										/>
 									</div>
 								</CardContent>
 							</Card>
@@ -105,8 +121,12 @@ export default function Homepage() {
 									</CardDescription>
 								</CardHeader>
 								<CardContent>
-									<div className="aspect-video rounded-lg bg-gradient-to-br from-warning/20 to-warning/5 flex items-center justify-center">
-										<span className="text-4xl">📈</span>
+									<div className="aspect-video rounded-lg overflow-hidden border border-border">
+										<img
+											src="/panoptes_viz_code_coverage.png"
+											alt="Code Coverage Visualization"
+											className="w-full h-full object-cover"
+										/>
 									</div>
 								</CardContent>
 							</Card>
@@ -120,8 +140,12 @@ export default function Homepage() {
 									</CardDescription>
 								</CardHeader>
 								<CardContent>
-									<div className="aspect-video rounded-lg bg-gradient-to-br from-error/20 to-error/5 flex items-center justify-center">
-										<span className="text-4xl">🤖</span>
+									<div className="aspect-video rounded-lg overflow-hidden border border-border">
+										<img
+											src="/panoptes_viz_anomaly_detection.png"
+											alt="Anomaly Detection Visualization"
+											className="w-full h-full object-cover"
+										/>
 									</div>
 								</CardContent>
 							</Card>
@@ -139,6 +163,91 @@ export default function Homepage() {
 										<span className="text-4xl">🔧</span>
 									</div>
 								</CardContent>
+							</Card>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Visual Showcase Section */}
+			<section className="bg-muted/30 py-20 lg:py-32">
+				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
+					<div className="mx-auto max-w-2xl text-center mb-16">
+						<h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+							See Panoptes in Action
+						</h2>
+						<p className="mt-4 text-lg text-muted-foreground">
+							Get a glimpse of the powerful visualizations and insights Panoptes provides.
+						</p>
+					</div>
+
+					<div className="mx-auto max-w-6xl">
+						<div className="grid gap-8 md:grid-cols-2">
+							<Card className="overflow-hidden">
+								<CardContent className="p-0">
+									<img
+										src="/panoptes_viz_test_pyramid.png"
+										alt="Test Pyramid Visualization"
+										className="w-full h-auto"
+									/>
+								</CardContent>
+								<CardHeader>
+									<CardTitle>Test Pyramid Overview</CardTitle>
+									<CardDescription>
+										Visualize the distribution of your unit, integration, and E2E tests at a glance.
+									</CardDescription>
+								</CardHeader>
+							</Card>
+
+							<Card className="overflow-hidden">
+								<CardContent className="p-0">
+									<img
+										src="/panoptes_viz_ci_pipeline.png"
+										alt="CI Pipeline Visualization"
+										className="w-full h-auto"
+									/>
+								</CardContent>
+								<CardHeader>
+									<CardTitle>CI Pipeline Integration</CardTitle>
+									<CardDescription>
+										Track your CI runs, pull requests, and test results seamlessly integrated with
+										GitHub Actions.
+									</CardDescription>
+								</CardHeader>
+							</Card>
+
+							<Card className="overflow-hidden">
+								<CardContent className="p-0">
+									<img
+										src="/panoptes_viz_code_coverage.png"
+										alt="Code Coverage Visualization"
+										className="w-full h-auto"
+									/>
+								</CardContent>
+								<CardHeader>
+									<CardTitle>Code Coverage Analysis</CardTitle>
+									<CardDescription>
+										Explore your code coverage with interactive visualizations to identify gaps and
+										improve test quality.
+									</CardDescription>
+								</CardHeader>
+							</Card>
+
+							<Card className="overflow-hidden">
+								<CardContent className="p-0">
+									<img
+										src="/panoptes_viz_anomaly_detection.png"
+										alt="Anomaly Detection Visualization"
+										className="w-full h-auto"
+									/>
+								</CardContent>
+								<CardHeader>
+									<CardTitle>AI-Powered Anomaly Detection</CardTitle>
+									<CardDescription>
+										Automatically detect flaky tests, performance regressions, and unusual patterns
+										in your test suite.
+									</CardDescription>
+								</CardHeader>
 							</Card>
 						</div>
 					</div>
@@ -171,7 +280,7 @@ export default function Homepage() {
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="grid gap-8 md:grid-cols-4">
 						<div className="md:col-span-2">
-							<h3 className="font-heading text-lg font-semibold">Panoptes</h3>
+							<img src="/panoptes_logo_horizontal.png" alt="Panoptes" className="h-8 mb-4" />
 							<p className="mt-2 text-sm text-muted-foreground">
 								A test visualization platform that helps you understand and improve your testing
 								strategy.
