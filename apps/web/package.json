@@ -8,7 +8,10 @@
 		"build": "tsc && vite build",
 		"preview": "vite preview",
 		"lint": "biome check .",
-		"typecheck": "bunx tsc --noEmit"
+		"typecheck": "bunx tsc --noEmit",
+		"storybook": "storybook dev -p 6006",
+		"build-storybook": "storybook build",
+		"test-storybook": "test-storybook"
 	},
 	"dependencies": {
 		"convex": "^1.12.0",
@@ -20,13 +23,26 @@
 		"tailwind-merge": "^2.1.0"
 	},
 	"devDependencies": {
+		"@chromatic-com/storybook": "^5.0.0",
+		"@panoptes/reporter-playwright": "../../packages/reporters/playwright",
+		"@storybook/addon-a11y": "^10.2.3",
+		"@storybook/addon-docs": "^10.2.3",
+		"@storybook/addon-onboarding": "^10.2.3",
+		"@storybook/addon-vitest": "^10.2.3",
+		"@storybook/react-vite": "^10.2.3",
+		"@storybook/test-runner": "^0.24.2",
 		"@types/react": "^18.2.43",
 		"@types/react-dom": "^18.2.17",
 		"@vitejs/plugin-react": "^4.2.1",
+		"@vitest/browser-playwright": "^4.0.18",
+		"@vitest/coverage-v8": "^4.0.18",
 		"autoprefixer": "^10.4.16",
+		"playwright": "^1.58.1",
 		"postcss": "^8.4.32",
+		"storybook": "^10.2.3",
 		"tailwindcss": "^3.3.6",
 		"typescript": "^5.3.3",
-		"vite": "^5.0.8"
+		"vite": "^5.0.8",
+		"vitest": "^4.0.18"
 	}
 }
