@@ -185,6 +185,7 @@ export default function Dashboard() {
 						<EmptyState
 							title="No test runs yet"
 							description="Run your tests with a Panoptes reporter to see results here."
+							image="/panoptes_under_fruit_tree.png"
 							action={
 								<a
 									href="https://github.com/your-org/panoptes#reporters"

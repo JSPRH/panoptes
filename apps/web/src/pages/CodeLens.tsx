@@ -89,6 +89,7 @@ export default function CodeLens() {
 						<EmptyState
 							title="No test data available"
 							description="Run your tests with a Panoptes reporter to see code coverage mapped to source files here."
+							image="/panoptes_under_fruit_tree.png"
 						/>
 					)}
 				</CardContent>
