@@ -1,5 +1,12 @@
+// Aggregates temporarily disabled to unblock - will re-enable once components are working
+// import { TableAggregate } from "@convex-dev/aggregate";
 import { v } from "convex/values";
+// import { components } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
+
+// Aggregates temporarily commented out - causing deployment issues
+// Will re-enable once basic functions are working
 
 export const ingestTestRun = mutation({
 	args: {
@@ -113,6 +120,14 @@ export const ingestTestRun = mutation({
 			metadata: args.metadata,
 		});
 
+		// Aggregates temporarily disabled - will re-enable once components are working
+		// const testRunDoc = await ctx.db.get(testRunId);
+		// if (testRunDoc) {
+		// 	await testPyramidTotalAggregate.insert(ctx, testRunDoc);
+		// 	await testPyramidPassedAggregate.insert(ctx, testRunDoc);
+		// 	await testPyramidFailedAggregate.insert(ctx, testRunDoc);
+		// }
+
 		// Insert test suites
 		if (args.suites) {
 			for (const suite of args.suites) {
@@ -164,19 +179,19 @@ export const getTestRuns = query({
 		limit: v.optional(v.number()),
 	},
 	handler: async (ctx, args) => {
-		const runs = args.projectId
-			? await ctx.db
-					.query("testRuns")
-					.withIndex("by_project", (q) => q.eq("projectId", args.projectId!))
-					.order("desc")
-					.take(args.limit || 50)
-			: await ctx.db
-					.query("testRuns")
-					.withIndex("by_started_at")
-					.order("desc")
-					.take(args.limit || 50);
-
-		return runs;
+		if (args.projectId !== undefined) {
+			const projectId = args.projectId;
+			return await ctx.db
+				.query("testRuns")
+				.withIndex("by_project", (q) => q.eq("projectId", projectId))
+				.order("desc")
+				.take(args.limit || 50);
+		}
+		return await ctx.db
+			.query("testRuns")
+			.withIndex("by_started_at")
+			.order("desc")
+			.take(args.limit || 50);
 	},
 });
 
@@ -190,26 +205,28 @@ export const getTests = query({
 		limit: v.optional(v.number()),
 	},
 	handler: async (ctx, args) => {
-		let tests;
-		if (args.testRunId) {
-			tests = await ctx.db
+		if (args.testRunId !== undefined) {
+			const testRunId = args.testRunId;
+			return await ctx.db
 				.query("tests")
-				.withIndex("by_test_run", (q) => q.eq("testRunId", args.testRunId!))
+				.withIndex("by_test_run", (q) => q.eq("testRunId", testRunId))
 				.take(args.limit || 100);
-		} else if (args.projectId) {
-			tests = await ctx.db
-				.query("tests")
-				.withIndex("by_project", (q) => q.eq("projectId", args.projectId!))
-				.take(args.limit || 100);
-		} else if (args.status) {
-			tests = await ctx.db
-				.query("tests")
-				.withIndex("by_status", (q) => q.eq("status", args.status!))
-				.take(args.limit || 100);
-		} else {
-			tests = await ctx.db.query("tests").take(args.limit || 100);
 		}
-		return tests;
+		if (args.projectId !== undefined) {
+			const projectId = args.projectId;
+			return await ctx.db
+				.query("tests")
+				.withIndex("by_project", (q) => q.eq("projectId", projectId))
+				.take(args.limit || 100);
+		}
+		if (args.status !== undefined) {
+			const status = args.status;
+			return await ctx.db
+				.query("tests")
+				.withIndex("by_status", (q) => q.eq("status", status))
+				.take(args.limit || 100);
+		}
+		return await ctx.db.query("tests").take(args.limit || 100);
 	},
 });
 
@@ -224,11 +241,14 @@ export const getTestPyramidData = query({
 		projectId: v.optional(v.id("projects")),
 	},
 	handler: async (ctx, args) => {
-		const query = args.projectId
-			? ctx.db.query("testRuns").withIndex("by_project", (q) => q.eq("projectId", args.projectId!))
-			: ctx.db.query("testRuns");
-
-		const runs = await query.collect();
+		// Temporarily simplified - query directly from testRuns instead of using aggregates
+		// This unblocks us while aggregates are being set up
+		const testRuns = args.projectId
+			? await ctx.db
+					.query("testRuns")
+					.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+					.collect()
+			: await ctx.db.query("testRuns").collect();
 
 		const pyramid = {
 			unit: { total: 0, passed: 0, failed: 0 },
@@ -237,7 +257,7 @@ export const getTestPyramidData = query({
 			visual: { total: 0, passed: 0, failed: 0 },
 		};
 
-		for (const run of runs) {
+		for (const run of testRuns) {
 			const type = run.testType;
 			if (type in pyramid) {
 				pyramid[type as keyof typeof pyramid].total += run.totalTests;
@@ -247,5 +267,126 @@ export const getTestPyramidData = query({
 		}
 
 		return pyramid;
+	},
+});
+
+// Seed mutation to insert a sample failing test for demonstration
+export const seedFailingTest = mutation({
+	args: {},
+	handler: async (ctx) => {
+		try {
+			const now = Date.now();
+			console.log("Starting seed mutation...");
+
+			// Get or create a demo project
+			const existingProject = await ctx.db
+				.query("projects")
+				.filter((q) => q.eq(q.field("name"), "panoptes"))
+				.first();
+
+			let projectId: Id<"projects">;
+			if (!existingProject) {
+				console.log("Creating new project...");
+				projectId = await ctx.db.insert("projects", {
+					name: "panoptes",
+					description: "Panoptes test visualization platform",
+					createdAt: now,
+					updatedAt: now,
+				});
+			} else {
+				console.log("Updating existing project...");
+				await ctx.db.patch(existingProject._id, {
+					updatedAt: now,
+				});
+				projectId = existingProject._id;
+			}
+
+			console.log("Project ID:", projectId);
+
+			// Create a test run with a failing test
+			console.log("Creating test run...");
+			const testRunId = await ctx.db.insert("testRuns", {
+				projectId,
+				framework: "vitest",
+				testType: "unit",
+				status: "failed",
+				startedAt: now - 5000,
+				completedAt: now,
+				duration: 5000,
+				totalTests: 3,
+				passedTests: 2,
+				failedTests: 1,
+				skippedTests: 0,
+				environment: "local",
+				ci: false,
+			});
+
+			console.log("Test run ID:", testRunId);
+
+			// Aggregates temporarily disabled - will re-enable once components are working
+			// const testRunDoc = await ctx.db.get(testRunId);
+			// if (testRunDoc) {
+			// 	console.log("Updating aggregates...");
+			// 	try {
+			// 		await testPyramidTotalAggregate.insert(ctx, testRunDoc);
+			// 		await testPyramidPassedAggregate.insert(ctx, testRunDoc);
+			// 		await testPyramidFailedAggregate.insert(ctx, testRunDoc);
+			// 	} catch (aggregateError) {
+			// 		console.error("Error updating aggregates:", aggregateError);
+			// 		// Continue even if aggregates fail
+			// 	}
+			// }
+
+			// Insert the failing test
+			console.log("Inserting failing test...");
+			const failingTestId = await ctx.db.insert("tests", {
+				testRunId,
+				projectId,
+				name: "should calculate total correctly",
+				file: "convex/tests.ts",
+				line: 42,
+				column: 5,
+				status: "failed",
+				duration: 150,
+				error: "AssertionError: expected 5 to equal 6",
+				errorDetails: "Expected: 6\nReceived: 5\n\nat Object.<anonymous> (convex/tests.ts:42:15)",
+				suite: "Calculator",
+				tags: ["unit", "math"],
+			});
+
+			console.log("Failing test ID:", failingTestId);
+
+			// Insert passing tests
+			console.log("Inserting passing tests...");
+			await ctx.db.insert("tests", {
+				testRunId,
+				projectId,
+				name: "should add two numbers",
+				file: "convex/tests.ts",
+				line: 10,
+				status: "passed",
+				duration: 50,
+				suite: "Calculator",
+				tags: ["unit", "math"],
+			});
+
+			await ctx.db.insert("tests", {
+				testRunId,
+				projectId,
+				name: "should subtract two numbers",
+				file: "convex/tests.ts",
+				line: 20,
+				status: "passed",
+				duration: 45,
+				suite: "Calculator",
+				tags: ["unit", "math"],
+			});
+
+			console.log("Seed mutation completed successfully");
+			return { testRunId, projectId, failingTestId };
+		} catch (error) {
+			console.error("Error in seedFailingTest mutation:", error);
+			throw error;
+		}
 	},
 });

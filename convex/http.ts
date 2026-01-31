@@ -1,5 +1,6 @@
 import { httpRouter } from "convex/server";
 import { api } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 
 const http = httpRouter();
@@ -34,7 +35,7 @@ http.route({
 				retries?: number;
 				suite?: string;
 				tags?: string[];
-				metadata?: any;
+				metadata?: unknown;
 			}>;
 			suites?: Array<{
 				name: string;
@@ -46,12 +47,12 @@ http.route({
 				failedTests: number;
 				skippedTests: number;
 			}>;
-			metadata?: any;
+			metadata?: unknown;
 		};
 
 		// Validate and call the mutation
 		const result = await ctx.runMutation(api.tests.ingestTestRun, {
-			projectId: data.projectId as any,
+			projectId: data.projectId as Id<"projects"> | undefined,
 			projectName: data.projectName,
 			framework: data.framework,
 			testType: data.testType,

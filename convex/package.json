@@ -4,9 +4,12 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"codegen": "convex codegen"
+		"codegen": "convex codegen",
+		"dev": "node node_modules/.bin/convex dev"
 	},
 	"dependencies": {
+		"@convex-dev/action-cache": "^0.3.0",
+		"@convex-dev/aggregate": "^0.2.1",
 		"convex": "^1.12.0"
 	},
 	"devDependencies": {
