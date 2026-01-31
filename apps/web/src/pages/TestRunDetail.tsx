@@ -31,6 +31,21 @@ function getStatusVariant(status: string): "success" | "error" | "info" | "neutr
 	return "neutral";
 }
 
+function getCIStatusVariant(
+	status: string,
+	conclusion?: string
+): "success" | "error" | "info" | "neutral" {
+	if (conclusion === "success") return "success";
+	if (conclusion === "failure") return "error";
+	if (status === "in_progress" || status === "queued") return "info";
+	return "neutral";
+}
+
+function getCIStatusLabel(status: string, conclusion?: string) {
+	if (conclusion) return conclusion;
+	return status;
+}
+
 export default function TestRunDetail() {
 	const { runId } = useParams<{ runId: string }>();
 	const run = useQuery(api.tests.getTestRun, runId ? { runId: runId as Id<"testRuns"> } : "skip");
@@ -38,6 +53,7 @@ export default function TestRunDetail() {
 		api.tests.getTests,
 		runId ? { testRunId: runId as Id<"testRuns"> } : "skip"
 	);
+	const ciRun = useQuery(api.github.getCIRun, run?.ciRunId ? { runId: run.ciRunId } : "skip");
 
 	if (runId === undefined) {
 		return (
@@ -120,6 +136,54 @@ export default function TestRunDetail() {
 					</div>
 				</CardContent>
 			</Card>
+
+			{ciRun && (
+				<Card>
+					<CardHeader>
+						<CardTitle>CI Run Details</CardTitle>
+						<CardDescription>
+							{ciRun.workflowName} • Branch: {ciRun.branch}
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div>
+							<div className="text-sm font-medium mb-1">Workflow</div>
+							<div className="text-sm text-muted-foreground">{ciRun.workflowName}</div>
+						</div>
+						<div>
+							<div className="text-sm font-medium mb-1">Status</div>
+							<Badge variant={getCIStatusVariant(ciRun.status, ciRun.conclusion || undefined)}>
+								{getCIStatusLabel(ciRun.status, ciRun.conclusion || undefined)}
+							</Badge>
+						</div>
+						<div>
+							<div className="text-sm font-medium mb-1">Branch</div>
+							<div className="text-sm text-muted-foreground">{ciRun.branch}</div>
+						</div>
+						<div>
+							<div className="text-sm font-medium mb-1">Commit</div>
+							<div className="text-sm font-mono text-muted-foreground">{ciRun.commitSha}</div>
+						</div>
+						{ciRun.commitMessage && (
+							<div>
+								<div className="text-sm font-medium mb-1">Commit Message</div>
+								<div className="text-sm text-muted-foreground">{ciRun.commitMessage}</div>
+							</div>
+						)}
+						<div>
+							<div className="text-sm font-medium mb-1">GitHub</div>
+							<a
+								href={ciRun.htmlUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-sm text-primary hover:underline"
+							>
+								View on GitHub →
+							</a>
+						</div>
+					</CardContent>
+				</Card>
+			)}
 
 			<Card>
 				<CardHeader>

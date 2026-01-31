@@ -347,6 +347,18 @@ export const getTestRun = query({
 	},
 });
 
+export const getTestRunsByCIRunId = query({
+	args: {
+		ciRunId: v.id("ciRuns"),
+	},
+	handler: async (ctx, args) => {
+		// Query all test runs and filter by ciRunId
+		// Note: This could be optimized with an index if needed
+		const allRuns = await ctx.db.query("testRuns").collect();
+		return allRuns.filter((run) => run.ciRunId === args.ciRunId);
+	},
+});
+
 export const getTestExecution = query({
 	args: {
 		testId: v.id("tests"),

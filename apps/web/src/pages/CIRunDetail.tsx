@@ -2,7 +2,8 @@
 import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
@@ -43,7 +44,19 @@ function getStatusLabel(status: string, conclusion?: string) {
 
 export default function CIRunDetail() {
 	const { runId } = useParams<{ runId: string }>();
+	const navigate = useNavigate();
 	const run = useQuery(api.github.getCIRun, runId ? { runId: runId as Id<"ciRuns"> } : "skip");
+	const testRuns = useQuery(
+		api.tests.getTestRunsByCIRunId,
+		runId ? { ciRunId: runId as Id<"ciRuns"> } : "skip"
+	);
+
+	// Redirect to first test run if available
+	useEffect(() => {
+		if (testRuns && testRuns.length > 0) {
+			navigate(`/runs/${testRuns[0]._id}`, { replace: true });
+		}
+	}, [testRuns, navigate]);
 
 	if (runId === undefined) {
 		return (
@@ -80,7 +93,27 @@ export default function CIRunDetail() {
 		);
 	}
 
+	// Show loading while checking for test runs
+	if (testRuns === undefined) {
+		return (
+			<div className="space-y-8">
+				<PageHeader title="CI Run" description="View a single CI run" />
+				<p className="text-muted-foreground">Loading…</p>
+			</div>
+		);
+	}
+
 	const selectedRun = run as CIRun;
+
+	// If test runs exist, we'll redirect, but show a message in case redirect fails
+	if (testRuns && testRuns.length > 0) {
+		return (
+			<div className="space-y-8">
+				<PageHeader title="CI Run" description="Redirecting to test run..." />
+				<p className="text-muted-foreground">Redirecting to test run...</p>
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-8">
@@ -91,6 +124,14 @@ export default function CIRunDetail() {
 				</Link>
 				{" → Run details"}
 			</p>
+			{testRuns && testRuns.length === 0 && (
+				<div className="rounded-lg border border-border bg-card p-4">
+					<p className="text-sm text-muted-foreground">
+						No test runs are linked to this CI run. Test runs will appear here once tests are
+						executed with the Panoptes reporter.
+					</p>
+				</div>
+			)}
 
 			<Card>
 				<CardHeader>
