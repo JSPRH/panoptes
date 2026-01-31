@@ -319,8 +319,13 @@ export default function TestExecutionDetail() {
 					{(isAnalyzing || analysis?.status === "pending") && (
 						<Card>
 							<CardContent className="pt-6">
-								<div className="flex items-center gap-2">
-									<div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+								<div className="flex items-center gap-3">
+									<img
+										src="/panoptes_loading_spinner_transparent.png"
+										alt=""
+										className="h-6 w-6 animate-spin"
+										aria-hidden="true"
+									/>
 									<p className="text-sm text-muted-foreground">
 										{isAnalyzing ? "Starting analysis..." : "Analyzing test failure with AI..."}
 									</p>

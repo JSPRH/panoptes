@@ -81,7 +81,15 @@ export default function TestSuggestions({ suggestions, loading, error }: TestSug
 					<CardDescription>Generating test suggestions...</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<div className="text-center text-muted-foreground py-8">Loading...</div>
+					<div className="flex flex-col items-center justify-center py-8 gap-3">
+						<img
+							src="/panoptes_loading_spinner_transparent.png"
+							alt=""
+							className="h-12 w-12 animate-spin"
+							aria-hidden="true"
+						/>
+						<p className="text-sm text-muted-foreground">Loading...</p>
+					</div>
 				</CardContent>
 			</Card>
 		);
