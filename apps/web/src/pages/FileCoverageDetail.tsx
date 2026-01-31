@@ -50,6 +50,10 @@ export default function FileCoverageDetail() {
 	);
 	const getFileContent = useAction(api.github.getFileContent);
 	const generateTestSuggestions = useAction(api.testSuggestionsActions.generateTestSuggestions);
+	const triggerCloudAgentForTestCoverage = useAction(
+		api.testSuggestionsActions.triggerCloudAgentForTestCoverage
+	);
+	const projects = useQuery(api.tests.getProjects);
 
 	const [fileLines, setFileLines] = useState<string[]>([]);
 	const [loadingContent, setLoadingContent] = useState(false);
@@ -59,6 +63,11 @@ export default function FileCoverageDetail() {
 	const [coverageViewType, setCoverageViewType] = useState<"line" | "statement">("line");
 	const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 	const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
+	const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
+	const [agentError, setAgentError] = useState<string | null>(null);
+	const [agentResult, setAgentResult] = useState<{ agentUrl?: string; prUrl?: string } | null>(
+		null
+	);
 
 	const fileCoverage = fileCoverageData
 		? {
@@ -293,40 +302,112 @@ export default function FileCoverageDetail() {
 									<Badge variant={getCoverageVariant(coverage)} className="text-lg px-4 py-2">
 										{coverage.toFixed(1)}%
 									</Badge>
-									{cursorLink && (
-										<Button
-											onClick={() => {
-												window.location.href = cursorLink;
-											}}
-											variant="default"
-											size="sm"
-										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												width="16"
-												height="16"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												strokeWidth="2"
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												className="mr-2"
-												aria-hidden="true"
+									<div className="flex gap-2">
+										{cursorLink && (
+											<Button
+												onClick={() => {
+													window.location.href = cursorLink;
+												}}
+												variant="outline"
+												size="sm"
 											>
-												<title>Cursor</title>
-												<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-												<polyline points="10 17 15 12 10 7" />
-												<line x1="15" y1="12" x2="3" y2="12" />
-											</svg>
-											Open in Cursor
-											{lineDetails && lineDetails.uncovered.length > 0 && (
-												<span className="ml-2 text-xs opacity-80">
-													({lineDetails.uncovered.length} uncovered)
-												</span>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="16"
+													height="16"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													strokeWidth="2"
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													className="mr-2"
+													aria-hidden="true"
+												>
+													<title>Cursor</title>
+													<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+													<polyline points="10 17 15 12 10 7" />
+													<line x1="15" y1="12" x2="3" y2="12" />
+												</svg>
+												💬 Open in Cursor
+												{lineDetails && lineDetails.uncovered.length > 0 && (
+													<span className="ml-2 text-xs opacity-80">
+														({lineDetails.uncovered.length} uncovered)
+													</span>
+												)}
+											</Button>
+										)}
+										{fileCoverage &&
+											projects &&
+											projects.find((p) => p._id === fileCoverage.projectId)?.repository && (
+												<Button
+													onClick={async () => {
+														if (isTriggeringAgent || !fileCoverage) return;
+														setIsTriggeringAgent(true);
+														setAgentError(null);
+														setAgentResult(null);
+														try {
+															const uncoveredLines = lineDetails?.uncovered || [];
+															const result = await triggerCloudAgentForTestCoverage({
+																file: decodedFilePath,
+																projectId: fileCoverage.projectId,
+																uncoveredLines,
+																commitSha: fileCoverageData?.testRun?.commitSha,
+															});
+															setAgentResult(result);
+															if (result.prUrl) {
+																window.open(result.prUrl, "_blank");
+															} else if (result.agentUrl) {
+																window.open(result.agentUrl, "_blank");
+															}
+														} catch (e) {
+															setAgentError(
+																e instanceof Error ? e.message : "Failed to trigger cloud agent"
+															);
+														} finally {
+															setIsTriggeringAgent(false);
+														}
+													}}
+													disabled={isTriggeringAgent}
+													variant="default"
+													size="sm"
+												>
+													{isTriggeringAgent ? "Launching..." : "🚀 Launch Agent"}
+												</Button>
 											)}
-										</Button>
+									</div>
+									{agentResult && (
+										<div className="mt-2 p-2 bg-muted rounded text-sm">
+											{agentResult.prUrl ? (
+												<div>
+													✅ Cloud agent launched!{" "}
+													<a
+														href={agentResult.prUrl}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-primary hover:underline"
+													>
+														View Pull Request →
+													</a>
+												</div>
+											) : agentResult.agentUrl ? (
+												<div>
+													✅ Cloud agent launched!{" "}
+													<a
+														href={agentResult.agentUrl}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-primary hover:underline"
+													>
+														View Agent →
+													</a>
+												</div>
+											) : (
+												<div>✅ Cloud agent launched!</div>
+											)}
+										</div>
 									)}
+									{agentError && <div className="mt-2 text-sm text-destructive">{agentError}</div>}
 								</div>
 							</div>
 						</CardHeader>

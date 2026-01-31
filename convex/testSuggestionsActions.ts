@@ -213,3 +213,101 @@ Generate 3-7 test suggestions, prioritizing high-value tests that cover critical
 		return created;
 	},
 });
+
+/**
+ * Trigger a Cursor Cloud Agent to add test coverage for a file.
+ * This calls the Cursor Cloud Agents API to launch an agent.
+ * See: https://cursor.com/docs/cloud-agent/api/endpoints
+ */
+export const triggerCloudAgentForTestCoverage = action({
+	args: {
+		file: v.string(),
+		projectId: v.id("projects"),
+		uncoveredLines: v.array(v.number()),
+		commitSha: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		// Get project for repository info
+		const project = await ctx
+			.runQuery(api.tests.getProjects)
+			.then((projects) => projects.find((p) => p._id === args.projectId));
+
+		if (!project || !project.repository) {
+			throw new Error("Project repository not configured");
+		}
+
+		// Build prompt for adding test coverage
+		const uncoveredLinesList =
+			args.uncoveredLines.length > 0
+				? args.uncoveredLines.slice(0, 20).join(", ") +
+					(args.uncoveredLines.length > 20 ? ` and ${args.uncoveredLines.length - 20} more` : "")
+				: "all lines";
+
+		const prompt = `Add test coverage for ${args.file}. 
+
+The following lines are currently uncovered: ${uncoveredLinesList}
+
+Please:
+1. Open the file: ${args.file}
+2. Review the uncovered lines
+3. Add appropriate test cases to cover these lines
+4. Ensure the tests follow the existing test patterns in the codebase
+
+Focus on covering the uncovered lines listed above.`;
+
+		const apiKey = process.env.CURSOR_API_KEY;
+		if (!apiKey) {
+			throw new Error("CURSOR_API_KEY not configured in Convex secrets");
+		}
+
+		// Determine branch/ref to use
+		const ref = args.commitSha || "main";
+
+		// Call Cursor Cloud Agents API
+		const response = await fetch("https://api.cursor.com/v0/agents", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`,
+			},
+			body: JSON.stringify({
+				prompt: {
+					text: prompt,
+				},
+				source: {
+					repository: project.repository,
+					ref,
+				},
+				target: {
+					autoCreatePr: true,
+					openAsCursorGithubApp: false,
+					skipReviewerRequest: false,
+				},
+			}),
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`Cursor Cloud Agents API error: ${response.status} - ${errorText}`);
+		}
+
+		const result = (await response.json()) as {
+			id: string;
+			name: string;
+			status: string;
+			target?: {
+				url?: string;
+				prUrl?: string;
+			};
+		};
+
+		// Construct agent URL with agent ID
+		const agentUrl = result.target?.url || `https://cursor.com/agents?id=${result.id}`;
+
+		return {
+			agentId: result.id,
+			agentUrl,
+			prUrl: result.target?.prUrl,
+		};
+	},
+});
