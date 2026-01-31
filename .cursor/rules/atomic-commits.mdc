@@ -1,0 +1,89 @@
+---
+description: "CRITICAL: Always make atomic commits and commit changes automatically. Never leave uncommitted changes."
+alwaysApply: true
+---
+
+# Atomic Commits - CRITICAL RULE
+
+**🚨 YOU MUST ALWAYS MAKE ATOMIC COMMITS AND COMMIT CHANGES AUTOMATICALLY**
+
+## Mandatory Rules
+
+1. **Never forget to commit** - After making ANY changes, you MUST commit them immediately using atomic commits
+2. **One logical change per commit** - Never mix unrelated changes in a single commit
+3. **Commit automatically** - Don't wait for user permission, commit changes as you make them
+4. **Review before committing** - Always check `git status` and `git diff` to ensure atomicity
+
+## What Makes a Commit Atomic?
+
+- **One logical change** - Fixing a bug, adding a feature, updating docs, etc. - ONE thing per commit
+- **Complete and working** - Each commit must leave the codebase in a working state (builds, tests pass)
+- **Self-contained** - The commit should make sense on its own when reviewed
+- **Testable** - Each commit must be independently testable
+
+## When to Split Commits
+
+- Fixing bugs vs. adding features → separate commits
+- Code changes vs. documentation updates → separate commits (unless docs are part of the feature)
+- Infrastructure changes (CI, hooks, config) vs. code changes → separate commits
+- Multiple unrelated bug fixes → separate commits
+- Refactoring vs. feature additions → separate commits
+
+## Commit Workflow
+
+**MANDATORY STEPS - DO NOT SKIP:**
+
+1. **After making changes**: IMMEDIATELY review and commit them
+2. **Check git status**: `git status` to see what changed
+3. **Review changes**: `git diff` to understand what you're committing
+4. **Group logically**: Ensure all staged files are part of the same logical change
+5. **Stage selectively**: Use `git add <file1> <file2>` to stage only files for ONE atomic change
+6. **Write commit message**: Use format `<type>: <subject>` (e.g., `fix: handle undefined projectId`)
+7. **Commit**: `git commit -m "your message"` - pre-commit hook will run automatically
+8. **If hook fails**: Fix issues and try again. Never skip the hook.
+9. **Repeat**: If you have multiple logical changes, make separate commits
+
+## Commit Message Format
+
+```
+<type>: <subject>
+
+<optional body>
+```
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+
+## Examples
+
+**Good atomic commits:**
+- `fix: remove unused React imports from Button component`
+- `feat: add ConvexConfigError component for production deployment`
+- `docs: add Vercel deployment instructions to README`
+- `chore: add build check to pre-commit hook`
+
+**Bad commits (violate atomicity):**
+- `fix: various bugs and add new features` ❌
+- `fix: remove unused imports and add build check` ❌
+- `update: changed stuff` ❌
+- `WIP: working on things` ❌
+
+## Critical Reminders
+
+- **Never commit multiple unrelated changes together** - Always make separate commits
+- **Never forget to commit** - Always commit changes immediately after making them
+- **Commit automatically** - Don't wait for user permission, commit as you work
+- **One logical change = one commit** - If you made 3 unrelated changes, make 3 commits
+
+## Pre-commit Hook
+
+The pre-commit hook runs automatically and checks:
+- Formatting (Biome)
+- Linting (Biome)
+- Tests
+- Build
+
+**Never use `--no-verify` to skip hooks** unless absolutely necessary (and document why).
+
+---
+
+**Remember: Uncommitted changes don't help anyone and can be lost. Commit automatically as you work!**
