@@ -58,6 +58,19 @@
       - Format: `https://github.com/owner/repo` or `owner/repo`
    
    See [GITHUB_INTEGRATION.md](GITHUB_INTEGRATION.md) for detailed instructions.
+
+5. **Configure OpenAI API Key (Optional, for CI failure analysis)**:
+   
+   To enable AI-powered analysis of CI run failures:
+   
+   a. Get an OpenAI API key from https://platform.openai.com/api-keys
+   
+   b. Add it to Convex secrets:
+      - Go to Convex Dashboard → Settings → Environment Variables
+      - Add secret: `OPENAI_API_KEY`
+      - Paste your OpenAI API key
+   
+   **Note**: This is optional. CI runs will still work without it, but AI analysis of failures will not be available.
    
    **Important**: Keep `bun run dev:convex` (or `bun run dev` from the convex directory) running in a terminal - it watches for changes and generates types.
 

@@ -1,0 +1,93 @@
+import { v } from "convex/values";
+import { internalMutation, query } from "./_generated/server";
+
+export const getCIRunAnalysis = query({
+	args: {
+		ciRunId: v.id("ciRuns"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("ciRunAnalysis")
+			.withIndex("by_ciRun", (q) => q.eq("ciRunId", args.ciRunId))
+			.first();
+	},
+});
+
+export const _createCIRunAnalysis = internalMutation({
+	args: {
+		ciRunId: v.id("ciRuns"),
+		status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
+	},
+	handler: async (ctx, args) => {
+		// Check if analysis already exists
+		const existing = await ctx.db
+			.query("ciRunAnalysis")
+			.withIndex("by_ciRun", (q) => q.eq("ciRunId", args.ciRunId))
+			.first();
+
+		if (existing) {
+			return existing._id;
+		}
+
+		return await ctx.db.insert("ciRunAnalysis", {
+			ciRunId: args.ciRunId,
+			status: args.status,
+			analysis: {
+				summary: "",
+				rootCause: "",
+				proposedFix: "",
+				proposedTest: "",
+				isFlaky: false,
+				confidence: 0,
+			},
+			analyzedAt: Date.now(),
+			model: "",
+		});
+	},
+});
+
+export const _updateCIRunAnalysis = internalMutation({
+	args: {
+		analysisId: v.id("ciRunAnalysis"),
+		status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
+		analysis: v.optional(
+			v.object({
+				summary: v.string(),
+				rootCause: v.string(),
+				proposedFix: v.string(),
+				proposedTest: v.string(),
+				isFlaky: v.boolean(),
+				confidence: v.number(),
+			})
+		),
+		model: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const updateData: {
+			status: "pending" | "completed" | "failed";
+			analyzedAt: number;
+			analysis?: {
+				summary: string;
+				rootCause: string;
+				proposedFix: string;
+				proposedTest: string;
+				isFlaky: boolean;
+				confidence: number;
+			};
+			model?: string;
+		} = {
+			status: args.status,
+			analyzedAt: Date.now(),
+		};
+
+		if (args.analysis) {
+			updateData.analysis = args.analysis;
+		}
+
+		if (args.model) {
+			updateData.model = args.model;
+		}
+
+		await ctx.db.patch(args.analysisId, updateData);
+	},
+});

@@ -84,8 +84,8 @@ export default function Anomalies() {
 				<CardHeader>
 					<CardTitle>All Anomalies</CardTitle>
 					<CardDescription>
-						{anomalies?.length || 0} unresolved anomaly
-						{anomalies?.length !== 1 ? "ies" : ""}
+						{anomalies?.length || 0} unresolved anomal
+						{anomalies?.length !== 1 ? "ies" : "y"}
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

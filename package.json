@@ -39,5 +39,10 @@
 	},
 	"engines": {
 		"bun": ">=1.0.0"
+	},
+	"dependencies": {
+		"@ai-sdk/openai": "^3.0.23",
+		"ai": "^6.0.64",
+		"zod": "^4.3.6"
 	}
 }

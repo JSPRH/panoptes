@@ -158,6 +158,64 @@ export default defineSchema({
 		.index("by_commit", ["commitSha"])
 		.index("by_status", ["status"]),
 
+	ciRunJobs: defineTable({
+		ciRunId: v.id("ciRuns"),
+		jobId: v.number(),
+		name: v.string(),
+		status: v.union(
+			v.literal("queued"),
+			v.literal("in_progress"),
+			v.literal("completed"),
+			v.literal("waiting")
+		),
+		conclusion: v.optional(
+			v.union(
+				v.literal("success"),
+				v.literal("failure"),
+				v.literal("cancelled"),
+				v.literal("skipped"),
+				v.literal("neutral")
+			)
+		),
+		startedAt: v.number(),
+		completedAt: v.optional(v.number()),
+		runnerName: v.optional(v.string()),
+		workflowName: v.string(),
+	}).index("by_ciRun", ["ciRunId"]),
+
+	ciRunJobSteps: defineTable({
+		jobId: v.id("ciRunJobs"),
+		stepNumber: v.number(),
+		name: v.string(),
+		status: v.union(v.literal("queued"), v.literal("in_progress"), v.literal("completed")),
+		conclusion: v.optional(
+			v.union(
+				v.literal("success"),
+				v.literal("failure"),
+				v.literal("cancelled"),
+				v.literal("skipped")
+			)
+		),
+		startedAt: v.number(),
+		completedAt: v.optional(v.number()),
+		logs: v.string(),
+	}).index("by_job", ["jobId"]),
+
+	ciRunAnalysis: defineTable({
+		ciRunId: v.id("ciRuns"),
+		status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
+		analysis: v.object({
+			summary: v.string(),
+			rootCause: v.string(),
+			proposedFix: v.string(),
+			proposedTest: v.string(),
+			isFlaky: v.boolean(),
+			confidence: v.number(),
+		}),
+		analyzedAt: v.number(),
+		model: v.string(),
+	}).index("by_ciRun", ["ciRunId"]),
+
 	pullRequests: defineTable({
 		projectId: v.id("projects"),
 		prNumber: v.number(),

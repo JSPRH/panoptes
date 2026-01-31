@@ -41,6 +41,27 @@ interface GitHubFileContent {
 	encoding: string;
 }
 
+interface GitHubJob {
+	id: number;
+	name: string;
+	status: "queued" | "in_progress" | "completed" | "waiting";
+	conclusion: "success" | "failure" | "cancelled" | "skipped" | "neutral" | null;
+	started_at: string;
+	completed_at: string | null;
+	runner_name: string | null;
+	workflow_name: string;
+	steps: GitHubJobStep[];
+}
+
+interface GitHubJobStep {
+	name: string;
+	status: "queued" | "in_progress" | "completed";
+	conclusion: "success" | "failure" | "cancelled" | "skipped" | null;
+	number: number;
+	started_at: string | null;
+	completed_at: string | null;
+}
+
 function getGitHubToken(): string {
 	const token = process.env.GITHUB_ACCESS_TOKEN;
 	if (!token) {
@@ -771,6 +792,305 @@ export const getCIRun = query({
 	},
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.runId);
+	},
+});
+
+// Internal mutations for CI run jobs and steps
+export const _insertCIRunJob = internalMutation({
+	args: {
+		ciRunId: v.id("ciRuns"),
+		jobId: v.number(),
+		name: v.string(),
+		status: v.string(),
+		conclusion: v.optional(v.string()),
+		startedAt: v.number(),
+		completedAt: v.optional(v.number()),
+		runnerName: v.optional(v.string()),
+		workflowName: v.string(),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.insert("ciRunJobs", {
+			ciRunId: args.ciRunId,
+			jobId: args.jobId,
+			name: args.name,
+			status: args.status as "queued" | "in_progress" | "completed" | "waiting",
+			conclusion: args.conclusion as
+				| "success"
+				| "failure"
+				| "cancelled"
+				| "skipped"
+				| "neutral"
+				| undefined,
+			startedAt: args.startedAt,
+			completedAt: args.completedAt,
+			runnerName: args.runnerName,
+			workflowName: args.workflowName,
+		});
+	},
+});
+
+export const _insertCIRunJobStep = internalMutation({
+	args: {
+		jobId: v.id("ciRunJobs"),
+		stepNumber: v.number(),
+		name: v.string(),
+		status: v.string(),
+		conclusion: v.optional(v.string()),
+		startedAt: v.number(),
+		completedAt: v.optional(v.number()),
+		logs: v.string(),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.insert("ciRunJobSteps", {
+			jobId: args.jobId,
+			stepNumber: args.stepNumber,
+			name: args.name,
+			status: args.status as "queued" | "in_progress" | "completed",
+			conclusion: args.conclusion as "success" | "failure" | "cancelled" | "skipped" | undefined,
+			startedAt: args.startedAt,
+			completedAt: args.completedAt,
+			logs: args.logs,
+		});
+	},
+});
+
+export const _getExistingCIRunJob = internalQuery({
+	args: { ciRunId: v.id("ciRuns"), jobId: v.number() },
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("ciRunJobs")
+			.withIndex("by_ciRun", (q) => q.eq("ciRunId", args.ciRunId))
+			.filter((q) => q.eq(q.field("jobId"), args.jobId))
+			.first();
+	},
+});
+
+// Parse GitHub Actions logs to extract step information
+function parseGitHubLogs(logs: string): Array<{ name: string; logs: string; stepNumber: number }> {
+	const steps: Array<{ name: string; logs: string; stepNumber: number }> = [];
+	const lines = logs.split("\n");
+	let currentStep: { name: string; logs: string[]; stepNumber: number } | null = null;
+	let stepNumber = 0;
+
+	for (const line of lines) {
+		// GitHub Actions log format: ##[group]Step name
+		if (line.startsWith("##[group]")) {
+			// Save previous step if exists
+			if (currentStep) {
+				steps.push({
+					name: currentStep.name,
+					logs: currentStep.logs.join("\n"),
+					stepNumber: currentStep.stepNumber,
+				});
+			}
+			// Start new step
+			const stepName = line.replace("##[group]", "").trim();
+			stepNumber++;
+			currentStep = { name: stepName, logs: [], stepNumber };
+		} else if (line.startsWith("##[endgroup]")) {
+			// End of step group
+			if (currentStep) {
+				steps.push({
+					name: currentStep.name,
+					logs: currentStep.logs.join("\n"),
+					stepNumber: currentStep.stepNumber,
+				});
+				currentStep = null;
+			}
+		} else if (currentStep) {
+			// Add line to current step (remove GitHub log markers)
+			const cleanLine = line
+				.replace(/^##\[command\]/, "")
+				.replace(/^##\[error\]/, "")
+				.replace(/^##\[warning\]/, "");
+			currentStep.logs.push(cleanLine);
+		}
+	}
+
+	// Save last step if exists
+	if (currentStep) {
+		steps.push({
+			name: currentStep.name,
+			logs: currentStep.logs.join("\n"),
+			stepNumber: currentStep.stepNumber,
+		});
+	}
+
+	// If no steps found, treat entire log as one step
+	if (steps.length === 0) {
+		steps.push({
+			name: "All Steps",
+			logs: logs,
+			stepNumber: 1,
+		});
+	}
+
+	return steps;
+}
+
+export const fetchCIRunJobs = action({
+	args: {
+		ciRunId: v.id("ciRuns"),
+	},
+	handler: async (ctx, args) => {
+		const ciRun = await ctx.runQuery(internal.github._getCIRunById, {
+			ciRunId: args.ciRunId,
+		});
+
+		if (!ciRun) {
+			throw new Error("CI run not found");
+		}
+
+		const project = await ctx.runQuery(internal.github._getProject, {
+			projectId: ciRun.projectId,
+		});
+
+		if (!project || !project.repository) {
+			throw new Error("Project repository not configured");
+		}
+
+		const repoInfo = parseRepositoryUrl(project.repository);
+		if (!repoInfo) {
+			throw new Error(`Invalid repository URL: ${project.repository}`);
+		}
+
+		const token = getGitHubToken();
+
+		// Fetch jobs for the workflow run
+		const jobsResponse = await fetch(
+			`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/actions/runs/${ciRun.runId}/jobs`,
+			{
+				headers: {
+					Authorization: `Bearer ${token}`,
+					Accept: "application/vnd.github.v3+json",
+				},
+			}
+		);
+
+		if (!jobsResponse.ok) {
+			const error = await jobsResponse.text();
+			throw new Error(`GitHub API error: ${jobsResponse.status} - ${error}`);
+		}
+
+		const jobsData = (await jobsResponse.json()) as { jobs: GitHubJob[] };
+		const jobs = jobsData.jobs || [];
+
+		const storedJobIds: Id<"ciRunJobs">[] = [];
+
+		// Process each job
+		for (const job of jobs) {
+			try {
+				// Check if job already exists
+				const existing = await ctx.runQuery(internal.github._getExistingCIRunJob, {
+					ciRunId: args.ciRunId,
+					jobId: job.id,
+				});
+
+				const jobData = {
+					ciRunId: args.ciRunId,
+					jobId: job.id,
+					name: job.name,
+					status: job.status,
+					conclusion: job.conclusion || undefined,
+					startedAt: new Date(job.started_at).getTime(),
+					completedAt: job.completed_at ? new Date(job.completed_at).getTime() : undefined,
+					runnerName: job.runner_name || undefined,
+					workflowName: job.workflow_name,
+				};
+
+				let jobRecordId: Id<"ciRunJobs">;
+				if (existing) {
+					// Update existing job (we'll add update mutation if needed)
+					jobRecordId = existing._id;
+				} else {
+					jobRecordId = await ctx.runMutation(internal.github._insertCIRunJob, jobData);
+				}
+
+				storedJobIds.push(jobRecordId);
+
+				// Fetch logs for this job
+				const logsResponse = await fetch(
+					`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/actions/jobs/${job.id}/logs`,
+					{
+						headers: {
+							Authorization: `Bearer ${token}`,
+							Accept: "application/vnd.github.v3+json",
+						},
+					}
+				);
+
+				if (logsResponse.ok) {
+					const logsText = await logsResponse.text();
+					// Truncate logs if too long (max 100KB per step)
+					const maxLogSize = 100 * 1024;
+					const truncatedLogs =
+						logsText.length > maxLogSize
+							? `${logsText.substring(0, maxLogSize)}\n... (truncated)`
+							: logsText;
+
+					// Parse logs into steps
+					const parsedSteps = parseGitHubLogs(truncatedLogs);
+
+					// Store steps, matching with GitHub API step data if available
+					for (const parsedStep of parsedSteps) {
+						const githubStep = job.steps.find((s) => s.number === parsedStep.stepNumber);
+
+						await ctx.runMutation(internal.github._insertCIRunJobStep, {
+							jobId: jobRecordId,
+							stepNumber: parsedStep.stepNumber,
+							name: parsedStep.name || githubStep?.name || `Step ${parsedStep.stepNumber}`,
+							status: githubStep?.status || "completed",
+							conclusion: githubStep?.conclusion || undefined,
+							startedAt: githubStep?.started_at
+								? new Date(githubStep.started_at).getTime()
+								: new Date(job.started_at).getTime(),
+							completedAt: githubStep?.completed_at
+								? new Date(githubStep.completed_at).getTime()
+								: undefined,
+							logs: parsedStep.logs,
+						});
+					}
+				}
+			} catch (error) {
+				console.error(`Failed to process job ${job.id}:`, error);
+				// Continue with other jobs
+			}
+		}
+
+		return { success: true, jobCount: storedJobIds.length };
+	},
+});
+
+// Internal query to get CI run by ID
+export const _getCIRunById = internalQuery({
+	args: { ciRunId: v.id("ciRuns") },
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.ciRunId);
+	},
+});
+
+export const getCIRunJobs = query({
+	args: {
+		ciRunId: v.id("ciRuns"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("ciRunJobs")
+			.withIndex("by_ciRun", (q) => q.eq("ciRunId", args.ciRunId))
+			.collect();
+	},
+});
+
+export const getCIRunJobSteps = query({
+	args: {
+		jobId: v.id("ciRunJobs"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("ciRunJobSteps")
+			.withIndex("by_job", (q) => q.eq("jobId", args.jobId))
+			.order("asc")
+			.collect();
 	},
 });
 
