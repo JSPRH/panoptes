@@ -16,6 +16,7 @@ import type * as ciAnalysisActions from "../ciAnalysisActions.js";
 import type * as codebaseAnalysis from "../codebaseAnalysis.js";
 import type * as codebaseAnalysisActions from "../codebaseAnalysisActions.js";
 import type * as features from "../features.js";
+import type * as featuresActions from "../featuresActions.js";
 import type * as github from "../github.js";
 import type * as http from "../http.js";
 import type * as scheduled from "../scheduled.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   codebaseAnalysis: typeof codebaseAnalysis;
   codebaseAnalysisActions: typeof codebaseAnalysisActions;
   features: typeof features;
+  featuresActions: typeof featuresActions;
   github: typeof github;
   http: typeof http;
   scheduled: typeof scheduled;

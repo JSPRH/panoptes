@@ -1,9 +1,10 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { CloudAgentButton } from "../components/CloudAgentButton";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { PageHeader } from "../components/PageHeader";
@@ -63,6 +64,10 @@ export default function FeatureDetail() {
 
 	// biome-ignore lint/suspicious/noExplicitAny: API types not generated yet for new tables
 	const featuresApi = (api as any).features;
+	const triggerCloudAgentForFeature = useAction(
+		// biome-ignore lint/suspicious/noExplicitAny: API types not generated yet for new actions
+		(api as any).featuresActions?.triggerCloudAgentForFeature
+	);
 
 	const featureWithTests = useQuery(
 		featuresApi?.getFeatureWithTests,
@@ -232,27 +237,46 @@ Generate comprehensive test cases that would increase confidence in this feature
 								)}
 							</div>
 						</div>
-						<Button onClick={handleEnhanceCoverage} variant="default" size="sm">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								className="mr-2"
-								aria-hidden="true"
-							>
-								<title>Cursor</title>
-								<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-								<polyline points="10 17 15 12 10 7" />
-								<line x1="15" y1="12" x2="3" y2="12" />
-							</svg>
-							Enhance Test Coverage with Cursor
-						</Button>
+						<div className="flex gap-2">
+							<Button onClick={handleEnhanceCoverage} variant="outline" size="sm">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									className="mr-2"
+									aria-hidden="true"
+								>
+									<title>Cursor</title>
+									<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+									<polyline points="10 17 15 12 10 7" />
+									<line x1="15" y1="12" x2="3" y2="12" />
+								</svg>
+								💬 Open Prompt in Cursor
+							</Button>
+							{featureId && triggerCloudAgentForFeature && (
+								<CloudAgentButton
+									onTrigger={async () => {
+										const result = await triggerCloudAgentForFeature({
+											featureId: featureId as Id<"features">,
+										});
+										return {
+											agentUrl: result.agentUrl,
+											prUrl: result.prUrl,
+										};
+									}}
+									actionType="enhance_coverage"
+									size="sm"
+								>
+									🚀 Launch Agent
+								</CloudAgentButton>
+							)}
+						</div>
 					</div>
 				</CardHeader>
 				<CardContent>

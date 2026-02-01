@@ -4,6 +4,7 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useAction, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { CloudAgentButton } from "../components/CloudAgentButton";
 import CodeSnippet from "../components/CodeSnippet";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
@@ -107,12 +108,8 @@ export default function TestExecutionDetail() {
 		api.testFailureAnalysisActions.triggerCloudAgentForTest
 	);
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
-	const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
 	const [selectedActionType, setSelectedActionType] = useState<"fix_test" | "fix_bug">("fix_bug");
 	const [analysisError, setAnalysisError] = useState<string | null>(null);
-	const [agentResult, setAgentResult] = useState<{ agentUrl?: string; prUrl?: string } | null>(
-		null
-	);
 
 	useEffect(() => {
 		if (!executionId) {
@@ -369,17 +366,33 @@ export default function TestExecutionDetail() {
 										</CardDescription>
 									</div>
 									<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-										{analysis.summary && analysis.rootCause && analysis.suggestedFix && (
+										{(analysis?.summary && analysis.rootCause && analysis.suggestedFix) ||
+										selectedExecution.status === "failed" ? (
 											<Button
 												onClick={() => {
-													// Generate deeplink dynamically from analysis data
-													const deeplink = generateCursorDeeplinkFromAnalysis(
-														analysis,
-														selectedExecution.name,
-														selectedExecution.file,
-														selectedExecution.line
-													);
-													window.open(deeplink, "_blank");
+													if (analysis?.summary && analysis.rootCause && analysis.suggestedFix) {
+														// Generate deeplink dynamically from analysis data
+														const deeplink = generateCursorDeeplinkFromAnalysis(
+															analysis,
+															selectedExecution.name,
+															selectedExecution.file,
+															selectedExecution.line
+														);
+														window.open(deeplink, "_blank");
+													} else if (selectedExecution.status === "failed") {
+														// Build prompt from test data if no analysis
+														const prompt = `Fix the failing test "${selectedExecution.name}" in file ${selectedExecution.file}${selectedExecution.line ? `:${selectedExecution.line}` : ""}.
+
+${selectedExecution.error ? `Error: ${selectedExecution.error}` : "Test failed"}
+
+${selectedExecution.errorDetails ? `Error Details:\n${selectedExecution.errorDetails}` : ""}
+
+Please analyze the test failure, identify the root cause, and fix the issue. Ensure the test passes after your changes.`;
+
+														const encodedPrompt = encodeURIComponent(prompt);
+														const deeplink = `https://cursor.com/link/prompt?text=${encodedPrompt}`;
+														window.open(deeplink, "_blank");
+													}
 												}}
 												size="sm"
 												variant="outline"
@@ -387,86 +400,31 @@ export default function TestExecutionDetail() {
 											>
 												💬 Open Prompt in Cursor
 											</Button>
-										)}
+										) : null}
 										{project?.repository && selectedExecution.status === "failed" && (
-											<div className="flex gap-2 flex-1">
-												<select
-													value={selectedActionType}
-													onChange={(e) =>
-														setSelectedActionType(e.target.value as "fix_test" | "fix_bug")
+											<CloudAgentButton
+												onTrigger={async (actionType) => {
+													if (!executionId) {
+														throw new Error("No execution ID available");
 													}
-													className="px-3 py-1.5 text-sm border rounded-md bg-background"
-													disabled={isTriggeringAgent}
-												>
-													<option value="fix_bug">Fix Bug</option>
-													<option value="fix_test">Fix Test</option>
-												</select>
-												<Button
-													onClick={async () => {
-														if (isTriggeringAgent || !executionId) return;
-														setIsTriggeringAgent(true);
-														setAnalysisError(null);
-														setAgentResult(null);
-														try {
-															const result = await triggerCloudAgentForTest({
-																testId: executionId as Id<"tests">,
-																actionType: selectedActionType,
-															});
-															setAgentResult(result);
-															if (result.prUrl) {
-																window.open(result.prUrl, "_blank");
-															} else if (result.agentUrl) {
-																window.open(result.agentUrl, "_blank");
-															}
-														} catch (e) {
-															setAnalysisError(
-																e instanceof Error ? e.message : "Failed to trigger cloud agent"
-															);
-														} finally {
-															setIsTriggeringAgent(false);
-														}
-													}}
-													disabled={isTriggeringAgent}
-													size="sm"
-													variant="default"
-													className="flex-1"
-												>
-													{isTriggeringAgent ? "Launching..." : "🚀 Launch Agent"}
-												</Button>
-											</div>
+													const result = await triggerCloudAgentForTest({
+														testId: executionId as Id<"tests">,
+														actionType:
+															(actionType as "fix_test" | "fix_bug") || selectedActionType,
+													});
+													return {
+														agentUrl: result.agentUrl,
+														prUrl: result.prUrl,
+													};
+												}}
+												actionType={selectedActionType}
+												showActionSelector={true}
+												className="flex-1"
+											>
+												🚀 Launch Agent
+											</CloudAgentButton>
 										)}
 									</div>
-									{agentResult && (
-										<div className="mt-2 p-2 bg-muted rounded text-sm">
-											{agentResult.prUrl ? (
-												<div>
-													✅ Cloud agent launched!{" "}
-													<a
-														href={agentResult.prUrl}
-														target="_blank"
-														rel="noopener noreferrer"
-														className="text-primary hover:underline"
-													>
-														View Pull Request →
-													</a>
-												</div>
-											) : agentResult.agentUrl ? (
-												<div>
-													✅ Cloud agent launched!{" "}
-													<a
-														href={agentResult.agentUrl}
-														target="_blank"
-														rel="noopener noreferrer"
-														className="text-primary hover:underline"
-													>
-														View Agent →
-													</a>
-												</div>
-											) : (
-												<div>✅ Cloud agent launched!</div>
-											)}
-										</div>
-									)}
 									{analysisError && (
 										<div className="mt-2 text-sm text-destructive">{analysisError}</div>
 									)}
