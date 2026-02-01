@@ -79,8 +79,9 @@ if [ -d "$E2E_TEST_DIR" ]; then
 	mv "$E2E_TEST_DIR" "$TEMP_E2E_TEST_DIR"
 fi
 
-# Run bun test and capture both output and exit code
-TEST_OUTPUT=$(bun run test 2>&1)
+# Run bun test only on tests directory (exclude hook tests that require vitest/jsdom)
+# Explicitly cd into tests directory to avoid bun scanning the workspace
+TEST_OUTPUT=$(cd tests && bun test . 2>&1)
 TEST_EXIT_CODE=$?
 
 # Restore React component tests immediately after test run

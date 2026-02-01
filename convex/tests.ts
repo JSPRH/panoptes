@@ -1640,7 +1640,7 @@ export const seedHistoricalCoverage = mutation({
 		const oneMonthAgo = now - 30 * 24 * 60 * 60 * 1000;
 		const oneYearAgo = now - 365 * 24 * 60 * 60 * 1000;
 
-		// Sample files with different coverage scenarios
+		// Sample files with different coverage scenarios, organized by package/directory
 		const sampleFiles = [
 			{
 				file: "src/utils.ts",
@@ -1700,24 +1700,48 @@ export const seedHistoricalCoverage = mutation({
 			},
 		];
 
-		// Historical periods with different coverage percentages (showing improvement over time)
-		const periods = [
-			{
-				name: "1 year ago",
-				startedAt: oneYearAgo,
-				multiplier: 0.6, // Lower coverage (60% of current)
-			},
-			{
-				name: "1 month ago",
-				startedAt: oneMonthAgo,
-				multiplier: 0.8, // Medium coverage (80% of current)
-			},
-			{
-				name: "1 week ago",
-				startedAt: oneWeekAgo,
-				multiplier: 0.95, // High coverage (95% of current)
-			},
-		];
+		// Create multiple historical periods with gradual improvement over time
+		// Generate runs over the past year: weekly for last month, monthly for last 6 months, then quarterly
+		const periods: Array<{ name: string; startedAt: number; multiplier: number }> = [];
+
+		// Last 4 weeks (weekly runs)
+		for (let i = 0; i < 4; i++) {
+			const daysAgo = 7 * (i + 1);
+			const startedAt = now - daysAgo * 24 * 60 * 60 * 1000;
+			const multiplier = 0.85 + i * 0.05; // 85% to 100% over 4 weeks
+			periods.push({
+				name: `${daysAgo} days ago`,
+				startedAt,
+				multiplier: Math.min(1.0, multiplier),
+			});
+		}
+
+		// Last 6 months (monthly runs)
+		for (let i = 1; i <= 6; i++) {
+			const monthsAgo = i;
+			const startedAt = now - monthsAgo * 30 * 24 * 60 * 60 * 1000;
+			const multiplier = 0.5 + i * 0.05; // 55% to 80% over 6 months
+			periods.push({
+				name: `${monthsAgo} month${monthsAgo > 1 ? "s" : ""} ago`,
+				startedAt,
+				multiplier: Math.min(0.85, multiplier),
+			});
+		}
+
+		// Last year (quarterly runs)
+		for (let i = 3; i <= 12; i += 3) {
+			const monthsAgo = i;
+			const startedAt = now - monthsAgo * 30 * 24 * 60 * 60 * 1000;
+			const multiplier = 0.4 + i * 0.02; // 46% to 64% over a year
+			periods.push({
+				name: `${monthsAgo} months ago`,
+				startedAt,
+				multiplier: Math.min(0.65, multiplier),
+			});
+		}
+
+		// Sort by startedAt (oldest first)
+		periods.sort((a, b) => a.startedAt - b.startedAt);
 
 		const createdRuns: Id<"testRuns">[] = [];
 
@@ -2048,6 +2072,207 @@ export const getCoverageHistory = query({
 				totalFunctionsTotal,
 			};
 		});
+	},
+});
+
+/**
+ * Get coverage data grouped by package/directory over time
+ * Returns coverage metrics per package for each test run
+ */
+export const getCoverageByPackage = query({
+	args: {
+		projectId: v.optional(v.id("projects")),
+		startTimestamp: v.optional(v.number()),
+		limit: v.optional(v.number()),
+		useStatementCoverage: v.optional(v.boolean()),
+		maxPackages: v.optional(v.number()), // Limit number of packages to return
+	},
+	handler: async (ctx, args) => {
+		const limit = args.limit ?? 100;
+		const startTimestamp = args.startTimestamp ?? Date.now() - 30 * 24 * 60 * 60 * 1000; // Default 30 days
+		const useStatementCoverage = args.useStatementCoverage ?? false;
+		const maxPackages = args.maxPackages ?? 10; // Top 10 packages by default
+
+		// Find test runs with coverage within the time period
+		let testRuns: Doc<"testRuns">[];
+		if (args.projectId !== undefined) {
+			const projectId = args.projectId;
+			testRuns = await ctx.db
+				.query("testRuns")
+				.withIndex("by_project", (q) => q.eq("projectId", projectId))
+				.order("desc")
+				.take(limit * 2); // Get more runs to filter by coverage
+		} else {
+			testRuns = await ctx.db
+				.query("testRuns")
+				.withIndex("by_started_at")
+				.order("desc")
+				.take(limit * 2);
+		}
+
+		// Filter by time and find runs with coverage
+		const runsWithCoverage: Array<{ run: Doc<"testRuns">; coverage: Doc<"fileCoverage">[] }> = [];
+
+		for (const run of testRuns) {
+			if (run.startedAt < startTimestamp) break;
+
+			const coverage = await ctx.db
+				.query("fileCoverage")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+				.take(COVERAGE_PER_RUN_LIMIT);
+
+			if (coverage.length > 0) {
+				runsWithCoverage.push({ run, coverage });
+			}
+
+			if (runsWithCoverage.length >= limit) break;
+		}
+
+		// Sort by startedAt ascending for chronological order
+		runsWithCoverage.sort((a, b) => a.run.startedAt - b.run.startedAt);
+
+		// Group coverage by package (top-level directory)
+		// Track all packages across all runs to determine top packages
+		const packageStats = new Map<
+			string,
+			{
+				totalLinesCovered: number;
+				totalLinesTotal: number;
+				totalStatementsCovered: number;
+				totalStatementsTotal: number;
+			}
+		>();
+
+		// First pass: aggregate stats per package across all runs
+		for (const { coverage } of runsWithCoverage) {
+			for (const fc of coverage) {
+				const segments = splitPath(fc.file);
+				if (segments.length === 0) continue;
+
+				// Use first segment as package name (e.g., "src", "packages")
+				const packageName = segments[0];
+
+				if (!packageStats.has(packageName)) {
+					packageStats.set(packageName, {
+						totalLinesCovered: 0,
+						totalLinesTotal: 0,
+						totalStatementsCovered: 0,
+						totalStatementsTotal: 0,
+					});
+				}
+
+				const stats = packageStats.get(packageName);
+				if (stats) {
+					stats.totalLinesCovered += fc.linesCovered;
+					stats.totalLinesTotal += fc.linesTotal;
+					if (fc.statementsCovered !== undefined && fc.statementsTotal !== undefined) {
+						stats.totalStatementsCovered += fc.statementsCovered;
+						stats.totalStatementsTotal += fc.statementsTotal;
+					}
+				}
+			}
+		}
+
+		// Select top packages by total lines
+		const topPackages = Array.from(packageStats.entries())
+			.sort((a, b) => b[1].totalLinesTotal - a[1].totalLinesTotal)
+			.slice(0, maxPackages)
+			.map(([name]) => name);
+
+		// Second pass: aggregate coverage per package per run
+		const result: Array<{
+			date: number;
+			packages: Record<
+				string,
+				{
+					coverage: number;
+					linesCovered: number;
+					linesTotal: number;
+					fileCount: number;
+				}
+			>;
+		}> = [];
+
+		for (const { run, coverage } of runsWithCoverage) {
+			const packageData: Record<
+				string,
+				{
+					linesCovered: number;
+					linesTotal: number;
+					statementsCovered: number;
+					statementsTotal: number;
+					fileCount: number;
+				}
+			> = {};
+
+			// Initialize packages
+			for (const pkg of topPackages) {
+				packageData[pkg] = {
+					linesCovered: 0,
+					linesTotal: 0,
+					statementsCovered: 0,
+					statementsTotal: 0,
+					fileCount: 0,
+				};
+			}
+
+			// Aggregate coverage per package
+			for (const fc of coverage) {
+				const segments = splitPath(fc.file);
+				if (segments.length === 0) continue;
+
+				const packageName = segments[0];
+				if (!topPackages.includes(packageName)) continue;
+
+				const pkg = packageData[packageName];
+				pkg.linesCovered += fc.linesCovered;
+				pkg.linesTotal += fc.linesTotal;
+				if (fc.statementsCovered !== undefined && fc.statementsTotal !== undefined) {
+					pkg.statementsCovered += fc.statementsCovered;
+					pkg.statementsTotal += fc.statementsTotal;
+				}
+				pkg.fileCount++;
+			}
+
+			// Convert to result format
+			const packages: Record<
+				string,
+				{
+					coverage: number;
+					linesCovered: number;
+					linesTotal: number;
+					fileCount: number;
+				}
+			> = {};
+
+			for (const [pkgName, data] of Object.entries(packageData)) {
+				if (data.linesTotal === 0) continue;
+
+				const coverage = useStatementCoverage
+					? data.statementsTotal > 0
+						? (data.statementsCovered / data.statementsTotal) * 100
+						: data.linesTotal > 0
+							? (data.linesCovered / data.linesTotal) * 100
+							: 0
+					: (data.linesCovered / data.linesTotal) * 100;
+
+				packages[pkgName] = {
+					coverage,
+					linesCovered: data.linesCovered,
+					linesTotal: data.linesTotal,
+					fileCount: data.fileCount,
+				};
+			}
+
+			if (Object.keys(packages).length > 0) {
+				result.push({
+					date: run.startedAt,
+					packages,
+				});
+			}
+		}
+
+		return result;
 	},
 });
 
