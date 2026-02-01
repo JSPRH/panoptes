@@ -19,15 +19,15 @@ When you change code in a **published** package (one that is not `"private": tru
 
 We use **0.x** versions. Treat the last number as **patch** and the middle as **minor**:
 
-- **Patch** (e.g. 0.0.6 → 0.0.9): Backward-compatible fixes, additive types/schemas, new optional fields, bug fixes.
-- **Minor** (e.g. 0.0.9 → 0.1.0): New features or behavior that remain backward compatible.
+- **Patch** (e.g. 0.0.6 → 0.0.10): Backward-compatible fixes, additive types/schemas, new optional fields, bug fixes.
+- **Minor** (e.g. 0.0.10 → 0.1.0): New features or behavior that remain backward compatible.
 - **Major** (e.g. 0.1.0 → 1.0.0): Breaking API or behavior changes (rare before 1.0).
 
 When in doubt, use **patch** for additive or fix-only changes.
 
 ## Dependency Order
 
-If **shared** is bumped, any published package that depends on it (e.g. reporters) should usually be bumped in the same release so consumers get a consistent set. Use the same patch/minor bump for the release (e.g. shared 0.0.9, reporters 0.0.9).
+If **shared** is bumped, any published package that depends on it (e.g. reporters) should usually be bumped in the same release so consumers get a consistent set. Use the same patch/minor bump for the release (e.g. shared 0.0.10, reporters 0.0.10).
 
 ## Checklist
 
