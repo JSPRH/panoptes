@@ -1,38 +1,27 @@
-// This file contains Playwright e2e tests
-// It is skipped when running with bun test - use `bun run test:e2e` to run these tests
+import { expect, test } from "@playwright/test";
 
-// @ts-ignore - Check if running with bun test
-if (typeof Bun === "undefined") {
-	// Only execute when NOT running with bun test (i.e., with Playwright)
-	const setupTests = async () => {
-		const { expect, test } = await import("@playwright/test");
+test.describe("Navigation", () => {
+	test("should navigate to test pyramid page", async ({ page }) => {
+		await page.goto("/");
+		await page.goto("/pyramid");
+		await expect(page).toHaveURL(/.*pyramid/);
+	});
 
-		test.describe("Navigation", () => {
-			test("should navigate to test pyramid page", async ({ page }) => {
-				await page.goto("/");
-				await page.goto("/pyramid");
-				await expect(page).toHaveURL(/.*pyramid/);
-			});
+	test("should navigate to test explorer page", async ({ page }) => {
+		await page.goto("/");
+		await page.goto("/explorer");
+		await expect(page).toHaveURL(/.*explorer/);
+	});
 
-			test("should navigate to test explorer page", async ({ page }) => {
-				await page.goto("/");
-				await page.goto("/explorer");
-				await expect(page).toHaveURL(/.*explorer/);
-			});
+	test("should navigate to test runs page", async ({ page }) => {
+		await page.goto("/");
+		await page.goto("/runs");
+		await expect(page).toHaveURL(/.*runs/);
+	});
 
-			test("should navigate to test runs page", async ({ page }) => {
-				await page.goto("/");
-				await page.goto("/runs");
-				await expect(page).toHaveURL(/.*runs/);
-			});
-
-			test("should navigate to anomalies page", async ({ page }) => {
-				await page.goto("/");
-				await page.goto("/anomalies");
-				await expect(page).toHaveURL(/.*anomalies/);
-			});
-		});
-	};
-
-	setupTests();
-}
+	test("should navigate to anomalies page", async ({ page }) => {
+		await page.goto("/");
+		await page.goto("/anomalies");
+		await expect(page).toHaveURL(/.*anomalies/);
+	});
+});

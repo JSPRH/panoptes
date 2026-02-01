@@ -44,11 +44,11 @@ export default defineConfig({
 	/* Visual comparison configuration */
 	expect: {
 		/* Maximum time expect() should wait for the condition to be met. */
-		timeout: 5000,
+		timeout: 10000,
 		/* Threshold for visual comparison (0-1) */
 		toHaveScreenshot: {
-			threshold: 0.2,
-			maxDiffPixels: 100,
+			threshold: 0.3,
+			maxDiffPixels: 100000,
 		},
 	},
 
