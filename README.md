@@ -74,7 +74,7 @@ Panoptes is an **AI-powered test intelligence platform** that centralizes all yo
 For a team of 10 developers:
 - **Time Saved**: 2 hours/week per developer on test debugging = **20 hours/week** = **1,040 hours/year**
 - **Bug Prevention**: 5 production bugs prevented/year × 8 hours to fix = **40 hours/year**
-- **CI Optimization**: 30% reduction in CI time = **$X,XXX/year** in compute costs
+- **CI Optimization**: 30% reduction in CI time → saves in compute cost
 - **Total Value**: **1,080+ hours/year** + cost savings = **$100K+ annual value**
 
 ---
@@ -344,17 +344,6 @@ Configure GitHub Actions to automatically send test results to Panoptes.
 - [Integration Testing](INTEGRATION_TESTING.md) - Testing guide
 - [Terminology](docs/TERMINOLOGY.md) - Key concepts explained
 
----
-
-## 🤝 Contributing
-
-We welcome contributions! See our [Contributing Guidelines](CONTRIBUTING.md) (coming soon) or open an issue to discuss your ideas.
-
----
-
-## 📄 License
-
-[Add your license here]
 
 ---
 
