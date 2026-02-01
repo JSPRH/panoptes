@@ -352,6 +352,7 @@ Please fix the bug and ensure the test passes.`;
 					openAsCursorGithubApp: false,
 					skipReviewerRequest: false,
 				},
+				model: "composer-1",
 			}),
 		});
 

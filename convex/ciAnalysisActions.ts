@@ -469,6 +469,7 @@ Please fix the bug and ensure all tests pass.`;
 					openAsCursorGithubApp: false,
 					skipReviewerRequest: false,
 				},
+				model: "composer-1",
 			}),
 		});
 
