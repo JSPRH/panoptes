@@ -14,6 +14,7 @@ const navItems = [
 	{ path: "/coverage-tree", label: "Coverage Tree" },
 	{ path: "/anomalies", label: "Anomalies" },
 	{ path: "/ci-runs", label: "CI Runs" },
+	{ path: "/main-branch", label: "Main Branch" },
 	{ path: "/pull-requests", label: "Pull Requests" },
 	{ path: "/api-docs", label: "API Docs" },
 ];

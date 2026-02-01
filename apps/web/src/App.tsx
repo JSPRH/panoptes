@@ -16,6 +16,7 @@ import FeatureExplorer from "./pages/FeatureExplorer";
 import FileCoverageDetail from "./pages/FileCoverageDetail";
 import Homepage from "./pages/Homepage";
 import Imprint from "./pages/Imprint";
+import MainBranch from "./pages/MainBranch";
 import Privacy from "./pages/Privacy";
 import PullRequestDetail from "./pages/PullRequestDetail";
 import PullRequests from "./pages/PullRequests";
@@ -87,6 +88,7 @@ function App() {
 							<Route path="/anomalies" element={<Anomalies />} />
 							<Route path="/ci-runs" element={<CIRuns />} />
 							<Route path="/ci-runs/:runId" element={<CIRunDetail />} />
+							<Route path="/main-branch" element={<MainBranch />} />
 							<Route path="/pull-requests" element={<PullRequests />} />
 							<Route path="/pull-requests/:projectId/:prNumber" element={<PullRequestDetail />} />
 							<Route path="/api-docs" element={<APIDocs />} />
