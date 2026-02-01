@@ -12,14 +12,19 @@ test.describe("Dashboard", () => {
 		await expect(header).toBeVisible();
 	});
 
-	// Skip navigation test - nav visibility depends on viewport size and responsive design
-	// Navigation functionality is tested through navigation.spec.ts
-	test.skip("should have navigation links", async ({ page }) => {
+	test("should have navigation links", async ({ page }) => {
+		// Ensure viewport is large enough for desktop navigation (lg breakpoint is 1024px)
+		await page.setViewportSize({ width: 1280, height: 720 });
 		await page.goto("/dashboard");
 		await page.waitForLoadState("networkidle");
 		// Navigation is in an aside (desktop) or header (mobile)
-		// Look for either the aside sidebar or header with nav
-		const nav = page.locator("aside nav, header nav").first();
+		// On desktop (lg+), the aside nav should be visible (aside has "hidden lg:flex")
+		// On mobile, the header nav should be visible (header has "lg:hidden")
+		// Wait for the aside to be visible first (ensures CSS has loaded)
+		const aside = page.locator("aside");
+		await expect(aside).toBeVisible({ timeout: 5000 });
+		// Then check the nav inside the aside
+		const nav = page.locator("aside nav");
 		await expect(nav).toBeVisible({ timeout: 5000 });
 	});
 });
