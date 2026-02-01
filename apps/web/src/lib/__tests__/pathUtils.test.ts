@@ -255,4 +255,124 @@ describe("buildTree", () => {
 		expect(tree[0].name).toBe("file1.ts");
 		expect(tree[1].name).toBe("file2.ts");
 	});
+
+	it("should handle very deep nested paths", () => {
+		const files = [
+			{
+				file: "a/b/c/d/e/f/g/h/i/j/k/file.ts",
+				linesCovered: 10,
+				linesTotal: 20,
+			},
+		];
+
+		const tree = buildTree(files);
+		expect(tree).toHaveLength(1);
+		expect(tree[0].name).toBe("a");
+		expect(tree[0].type).toBe("directory");
+	});
+
+	it("should handle files with same name in different directories", () => {
+		const files = [
+			{ file: "src/utils/file.ts", linesCovered: 10, linesTotal: 20 },
+			{ file: "src/components/file.ts", linesCovered: 5, linesTotal: 10 },
+		];
+
+		const tree = buildTree(files);
+		expect(tree).toHaveLength(1);
+		expect(tree[0].name).toBe("src");
+		const children = tree[0].children || [];
+		expect(children).toHaveLength(2);
+		expect(children[0].name).toBe("components");
+		expect(children[1].name).toBe("utils");
+	});
+
+	it("should handle Windows-style paths", () => {
+		const files = [
+			{ file: "src\\components\\Button.tsx", linesCovered: 10, linesTotal: 20 },
+			{ file: "src\\utils\\helpers.ts", linesCovered: 5, linesTotal: 10 },
+		];
+
+		const tree = buildTree(files);
+		expect(tree).toHaveLength(1);
+		expect(tree[0].name).toBe("src");
+		expect(tree[0].children).toHaveLength(2);
+	});
+
+	it("should handle mixed Unix and Windows paths", () => {
+		const files = [
+			{ file: "src/components/Button.tsx", linesCovered: 10, linesTotal: 20 },
+			{ file: "src\\utils\\helpers.ts", linesCovered: 5, linesTotal: 10 },
+		];
+
+		const tree = buildTree(files);
+		expect(tree).toHaveLength(1);
+		expect(tree[0].name).toBe("src");
+		expect(tree[0].children).toHaveLength(2);
+	});
+
+	it("should handle files with special characters in names", () => {
+		const files = [
+			{ file: "src/file-name.ts", linesCovered: 10, linesTotal: 20 },
+			{ file: "src/file_name.ts", linesCovered: 5, linesTotal: 10 },
+			{ file: "src/file.name.ts", linesCovered: 3, linesTotal: 5 },
+		];
+
+		const tree = buildTree(files);
+		expect(tree).toHaveLength(1);
+		expect(tree[0].children).toHaveLength(3);
+	});
+
+	it("should handle empty path segments", () => {
+		const files = [
+			{ file: "src//components//Button.tsx", linesCovered: 10, linesTotal: 20 },
+		];
+
+		const tree = buildTree(files);
+		expect(tree).toHaveLength(1);
+		expect(tree[0].name).toBe("src");
+		expect(tree[0].children?.[0].name).toBe("components");
+	});
+
+	it("should aggregate coverage correctly for complex nested structure", () => {
+		const files = [
+			{ file: "src/a/file1.ts", linesCovered: 10, linesTotal: 20 },
+			{ file: "src/a/file2.ts", linesCovered: 20, linesTotal: 40 },
+			{ file: "src/b/file3.ts", linesCovered: 30, linesTotal: 60 },
+			{ file: "src/b/file4.ts", linesCovered: 40, linesTotal: 80 },
+		];
+
+		const tree = buildTree(files);
+		expect(tree).toHaveLength(1);
+		expect(tree[0].linesCovered).toBe(100);
+		expect(tree[0].linesTotal).toBe(200);
+		expect(tree[0].coverage).toBe(50);
+
+		const children = tree[0].children || [];
+		expect(children[0].linesCovered).toBe(30);
+		expect(children[0].linesTotal).toBe(60);
+		expect(children[1].linesCovered).toBe(70);
+		expect(children[1].linesTotal).toBe(140);
+	});
+
+	it("should handle files with no coverage (all zeros)", () => {
+		const files = [
+			{ file: "src/file1.ts", linesCovered: 0, linesTotal: 100 },
+			{ file: "src/file2.ts", linesCovered: 0, linesTotal: 50 },
+		];
+
+		const tree = buildTree(files);
+		expect(tree[0].linesCovered).toBe(0);
+		expect(tree[0].linesTotal).toBe(150);
+		expect(tree[0].coverage).toBe(0);
+	});
+
+	it("should handle files with 100% coverage", () => {
+		const files = [
+			{ file: "src/file1.ts", linesCovered: 100, linesTotal: 100 },
+			{ file: "src/file2.ts", linesCovered: 50, linesTotal: 50 },
+		];
+
+		const tree = buildTree(files);
+		expect(tree[0].coverage).toBe(100);
+	});
 });
