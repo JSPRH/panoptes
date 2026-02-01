@@ -57,8 +57,8 @@ describe("PageHeader Component", () => {
 		render(<PageHeader title="Test Title" description="" />);
 
 		const description = screen.queryByText("");
-		// Empty string description should still render (but may not be visible)
-		expect(description).toBeInTheDocument();
+		// Empty string description should not render (falsy value)
+		expect(description).not.toBeInTheDocument();
 	});
 
 	it("should handle long title text", () => {
