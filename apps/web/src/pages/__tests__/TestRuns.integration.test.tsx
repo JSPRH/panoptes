@@ -59,27 +59,9 @@ testSuite("TestRuns Integration Tests", () => {
 		queryResults.clear();
 	});
 
-	it.skip("should render test runs page", async () => {
-		render(
-			<BrowserRouter>
-				<TestRuns />
-			</BrowserRouter>
-		);
-
-		await waitFor(() => {
-			expect(screen.getByText(/Test Runs/i)).toBeInTheDocument();
-		});
-	});
-
-	it.skip("should display test runs when they exist", async () => {
+	it("should render test runs page", async () => {
 		if (!testInstance) throw new Error("testInstance not initialized");
-		const projectId = await setupTestProject(testInstance);
-		await createTestRun(testInstance, projectId, {
-			testType: "unit",
-			passedTests: 5,
-			failedTests: 1,
-		});
-
+		// Pre-populate with empty data
 		const projects = await testInstance.query(api.tests.getProjects);
 		const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 100 });
 
@@ -87,6 +69,8 @@ testSuite("TestRuns Integration Tests", () => {
 			JSON.stringify({ query: queryToString(api.tests.getProjects), args: undefined }),
 			projects || []
 		);
+		// The component calls getTestRuns with various filter combinations
+		// Pre-populate the most common one (no filters, just limit)
 		queryResults.set(
 			JSON.stringify({ query: queryToString(api.tests.getTestRuns), args: { limit: 100 } }),
 			testRuns || []
@@ -99,7 +83,50 @@ testSuite("TestRuns Integration Tests", () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByText(/Test Runs/i)).toBeInTheDocument();
+			const headings = screen.getAllByRole("heading", { name: /Test Runs/i });
+			expect(headings.length).toBeGreaterThan(0);
+			expect(headings[0]).toBeInTheDocument();
+		});
+	});
+
+	it("should display test runs when they exist", async () => {
+		if (!testInstance) throw new Error("testInstance not initialized");
+		const projectId = await setupTestProject(testInstance);
+		await createTestRun(testInstance, projectId, {
+			testType: "unit",
+			passedTests: 5,
+			failedTests: 1,
+		});
+
+		const projects = await testInstance.query(api.tests.getProjects);
+		const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 100 });
+		const testRunHistory = await testInstance.query(api.tests.getTestRunHistory, { limit: 500 });
+
+		queryResults.set(
+			JSON.stringify({ query: queryToString(api.tests.getProjects), args: undefined }),
+			projects || []
+		);
+		// The component calls getTestRuns with various filter combinations
+		// Pre-populate multiple variations to cover the component's queries
+		queryResults.set(
+			JSON.stringify({ query: queryToString(api.tests.getTestRuns), args: { limit: 100 } }),
+			testRuns || []
+		);
+		queryResults.set(
+			JSON.stringify({ query: queryToString(api.tests.getTestRunHistory), args: { limit: 500 } }),
+			testRunHistory || []
+		);
+
+		render(
+			<BrowserRouter>
+				<TestRuns />
+			</BrowserRouter>
+		);
+
+		await waitFor(() => {
+			const headings = screen.getAllByRole("heading", { name: /Test Runs/i });
+			expect(headings.length).toBeGreaterThan(0);
+			expect(headings[0]).toBeInTheDocument();
 		});
 	});
 });
