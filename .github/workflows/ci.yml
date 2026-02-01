@@ -91,6 +91,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Build reporter packages
+        run: bun run build:reporters
+
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps
 
