@@ -49,27 +49,32 @@ export default function TestRuns() {
 
 	// Get historical data
 	const startTimestamp = getPeriodStartTimestamp(period);
-	const testRunHistory = useQuery(
-		api.tests.getTestRunHistory,
-		selectedProjectId
-			? {
-					projectId: selectedProjectId,
-					testType:
-						urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
-							? (urlTestType as "unit" | "integration" | "e2e" | "visual")
-							: undefined,
-					startTimestamp: startTimestamp ?? undefined,
-					limit: 500,
-				}
-			: {
-					testType:
-						urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
-							? (urlTestType as "unit" | "integration" | "e2e" | "visual")
-							: undefined,
-					startTimestamp: startTimestamp ?? undefined,
-					limit: 500,
-				}
-	);
+	const testRunHistoryArgs = useMemo(() => {
+		const args: {
+			projectId?: Id<"projects">;
+			testType?: "unit" | "integration" | "e2e" | "visual";
+			startTimestamp?: number;
+			limit: number;
+		} = {
+			limit: 500,
+		};
+
+		if (selectedProjectId) {
+			args.projectId = selectedProjectId;
+		}
+
+		if (urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)) {
+			args.testType = urlTestType as "unit" | "integration" | "e2e" | "visual";
+		}
+
+		if (startTimestamp !== null) {
+			args.startTimestamp = startTimestamp;
+		}
+
+		return args;
+	}, [selectedProjectId, urlTestType, startTimestamp]);
+
+	const testRunHistory = useQuery(api.tests.getTestRunHistory, testRunHistoryArgs);
 
 	// Prepare chart data
 	const passRateData = useMemo(() => {
