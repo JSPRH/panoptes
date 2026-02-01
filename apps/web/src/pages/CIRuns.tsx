@@ -2,23 +2,31 @@
 import { api } from "@convex/_generated/api.js";
 import type { Doc } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { GitHubPageHeader } from "../components/GitHubPageHeader";
 import { ProjectSelector } from "../components/ProjectSelector";
 import { RepositoryConfig } from "../components/RepositoryConfig";
+import { ChartCard, HistoricalLineChart } from "../components/charts";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { useGitHubSync } from "../hooks/useGitHubSync";
 import { useProjectSelection } from "../hooks/useProjectSelection";
+import {
+	chartColors,
+	formatDuration,
+	formatPercentage,
+	getPeriodStartTimestamp,
+} from "../lib/chartUtils";
 
 type CIRun = Doc<"ciRuns">;
 
 export default function CIRuns() {
 	const [statusFilter, setStatusFilter] = useState<string>("all");
 	const [showRepoConfig, setShowRepoConfig] = useState(false);
+	const [period, setPeriod] = useState("30d");
 
 	const { selectedProjectId, setSelectedProjectId, selectedProject } = useProjectSelection();
 	const { handleSync } = useGitHubSync({
@@ -30,6 +38,36 @@ export default function CIRuns() {
 		api.github.getCIRunsForProject,
 		selectedProjectId ? { projectId: selectedProjectId, limit: 50 } : "skip"
 	);
+
+	// Get historical data
+	const startTimestamp = getPeriodStartTimestamp(period);
+	const ciRunHistory = useQuery(
+		api.github.getCIRunHistory,
+		selectedProjectId && startTimestamp
+			? { projectId: selectedProjectId, startTimestamp, limit: 500 }
+			: selectedProjectId
+				? { projectId: selectedProjectId, limit: 500 }
+				: "skip"
+	);
+
+	// Prepare chart data
+	const successRateData = useMemo(() => {
+		if (!ciRunHistory) return [];
+		return ciRunHistory.map((point) => ({
+			date: point.date,
+			value: point.successRate,
+		}));
+	}, [ciRunHistory]);
+
+	const durationData = useMemo(() => {
+		if (!ciRunHistory) return [];
+		return ciRunHistory
+			.filter((point) => point.duration > 0)
+			.map((point) => ({
+				date: point.date,
+				value: point.duration / 1000, // Convert to seconds
+			}));
+	}, [ciRunHistory]);
 
 	const filteredRuns = ciRuns?.filter((run: CIRun) => {
 		if (statusFilter === "all") return true;
@@ -96,6 +134,44 @@ export default function CIRuns() {
 							</select>
 						</CardContent>
 					</Card>
+
+					{ciRunHistory && ciRunHistory.length > 0 && (
+						<div className="grid gap-5 md:grid-cols-2">
+							<ChartCard
+								title="CI Success Rate"
+								description="Workflow success/failure rate over time"
+								selectedPeriod={period}
+								onPeriodChange={setPeriod}
+							>
+								<HistoricalLineChart
+									data={successRateData}
+									yAxisLabel="Success Rate (%)"
+									valueFormatter={formatPercentage}
+									showArea
+									color={chartColors.success}
+									height={250}
+								/>
+							</ChartCard>
+
+							{durationData.length > 0 && (
+								<ChartCard
+									title="Build Duration Trend"
+									description="Average CI build duration over time"
+									selectedPeriod={period}
+									onPeriodChange={setPeriod}
+								>
+									<HistoricalLineChart
+										data={durationData}
+										yAxisLabel="Duration (s)"
+										valueFormatter={(v) => formatDuration(v * 1000)}
+										showArea
+										color={chartColors.info}
+										height={250}
+									/>
+								</ChartCard>
+							)}
+						</div>
+					)}
 
 					<Card>
 						<CardHeader>

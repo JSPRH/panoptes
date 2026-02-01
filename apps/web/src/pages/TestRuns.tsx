@@ -6,8 +6,15 @@ import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import { ChartCard, HistoricalLineChart } from "../components/charts";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import {
+	chartColors,
+	formatDuration,
+	formatPercentage,
+	getPeriodStartTimestamp,
+} from "../lib/chartUtils";
 
 type TestRun = Doc<"testRuns">;
 type Project = Doc<"projects">;
@@ -19,15 +26,10 @@ function formatTime(ts: number): string {
 	});
 }
 
-function formatDuration(ms: number | undefined): string {
-	if (ms == null) return "—";
-	if (ms < 1000) return `${ms}ms`;
-	return `${(ms / 1000).toFixed(1)}s`;
-}
-
 export default function TestRuns() {
 	const [searchParams] = useSearchParams();
 	const urlTestType = searchParams.get("testType");
+	const [period, setPeriod] = useState("30d");
 
 	const [selectedProjectId, setSelectedProjectId] = useState<Id<"projects"> | null>(null);
 	const [sourceFilter, setSourceFilter] = useState<string>("all");
@@ -44,6 +46,66 @@ export default function TestRuns() {
 		triggeredBy: runnerFilter === "all" ? undefined : runnerFilter,
 		limit: 100,
 	});
+
+	// Get historical data
+	const startTimestamp = getPeriodStartTimestamp(period);
+	const testRunHistory = useQuery(
+		api.tests.getTestRunHistory,
+		selectedProjectId && startTimestamp
+			? {
+					projectId: selectedProjectId,
+					testType:
+						urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
+							? (urlTestType as "unit" | "integration" | "e2e" | "visual")
+							: undefined,
+					startTimestamp,
+					limit: 500,
+				}
+			: startTimestamp
+				? {
+						testType:
+							urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
+								? (urlTestType as "unit" | "integration" | "e2e" | "visual")
+								: undefined,
+						startTimestamp,
+						limit: 500,
+					}
+				: selectedProjectId
+					? {
+							projectId: selectedProjectId,
+							testType:
+								urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
+									? (urlTestType as "unit" | "integration" | "e2e" | "visual")
+									: undefined,
+							limit: 500,
+						}
+					: {
+							testType:
+								urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
+									? (urlTestType as "unit" | "integration" | "e2e" | "visual")
+									: undefined,
+							limit: 500,
+						}
+	);
+
+	// Prepare chart data
+	const passRateData = useMemo(() => {
+		if (!testRunHistory) return [];
+		return testRunHistory.map((point) => ({
+			date: point.date,
+			value: point.passRate,
+		}));
+	}, [testRunHistory]);
+
+	const durationData = useMemo(() => {
+		if (!testRunHistory) return [];
+		return testRunHistory
+			.filter((point) => point.duration > 0)
+			.map((point) => ({
+				date: point.date,
+				value: point.duration / 1000, // Convert to seconds
+			}));
+	}, [testRunHistory]);
 
 	// Derive distinct runners from current runs (for dropdown; only truthy triggeredBy)
 	const distinctRunners = useMemo(() => {
@@ -174,6 +236,44 @@ export default function TestRuns() {
 					</div>
 				</CardContent>
 			</Card>
+
+			{testRunHistory && testRunHistory.length > 0 && (
+				<div className="grid gap-5 md:grid-cols-2">
+					<ChartCard
+						title="Pass Rate Over Time"
+						description="Test pass rate trend for selected filters"
+						selectedPeriod={period}
+						onPeriodChange={setPeriod}
+					>
+						<HistoricalLineChart
+							data={passRateData}
+							yAxisLabel="Pass Rate (%)"
+							valueFormatter={formatPercentage}
+							showArea
+							color={chartColors.success}
+							height={250}
+						/>
+					</ChartCard>
+
+					{durationData.length > 0 && (
+						<ChartCard
+							title="Duration Trend"
+							description="Average test run duration over time"
+							selectedPeriod={period}
+							onPeriodChange={setPeriod}
+						>
+							<HistoricalLineChart
+								data={durationData}
+								yAxisLabel="Duration (s)"
+								valueFormatter={(v) => formatDuration(v * 1000)}
+								showArea
+								color={chartColors.info}
+								height={250}
+							/>
+						</ChartCard>
+					)}
+				</div>
+			)}
 
 			<Card>
 				<CardHeader>

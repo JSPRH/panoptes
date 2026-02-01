@@ -2,23 +2,43 @@
 import { api } from "@convex/_generated/api.js";
 import type { Doc } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import { ChartCard, HistoricalBarChart, HistoricalLineChart } from "../components/charts";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
+import { chartColors, formatPercentage, getPeriodStartTimestamp } from "../lib/chartUtils";
 
 type TestRun = Doc<"testRuns">;
 type Project = Doc<"projects">;
 
 export default function Dashboard() {
+	const [period, setPeriod] = useState("30d");
 	const dashboardStats = useQuery(api.tests.getDashboardStats);
 	const projects = useQuery(api.tests.getProjects);
 	const testRuns = useQuery(api.tests.getTestRuns, { limit: 10 });
 
 	// Get CI runs and PRs for the first project with a repository
 	const projectWithRepo = projects?.find((p: Project) => p.repository);
+
+	// Get historical data
+	const startTimestamp = getPeriodStartTimestamp(period);
+	const testRunHistory = useQuery(
+		api.tests.getTestRunHistory,
+		startTimestamp ? { startTimestamp, limit: 500 } : { limit: 500 }
+	);
+	const ciRunHistory = useQuery(
+		api.github.getCIRunHistory,
+		projectWithRepo && startTimestamp
+			? { projectId: projectWithRepo._id, startTimestamp, limit: 500 }
+			: projectWithRepo
+				? { projectId: projectWithRepo._id, limit: 500 }
+				: "skip"
+	);
+
 	const ciRuns = useQuery(
 		api.github.getCIRunsForProject,
 		projectWithRepo ? { projectId: projectWithRepo._id, limit: 5 } : "skip"
@@ -27,6 +47,45 @@ export default function Dashboard() {
 		api.github.getPRsForProject,
 		projectWithRepo ? { projectId: projectWithRepo._id, state: "open" } : "skip"
 	);
+
+	// Prepare chart data
+	const passRateData = useMemo(() => {
+		if (!testRunHistory) return [];
+		return testRunHistory.map((point) => ({
+			date: point.date,
+			value: point.passRate,
+		}));
+	}, [testRunHistory]);
+
+	const testRunsByTypeData = useMemo(() => {
+		if (!testRunHistory) return [];
+		// Group by test type
+		const byType = new Map<
+			"unit" | "integration" | "e2e" | "visual",
+			{ passed: number; failed: number; skipped: number }
+		>();
+		for (const point of testRunHistory) {
+			const existing = byType.get(point.testType) || { passed: 0, failed: 0, skipped: 0 };
+			existing.passed += point.passed;
+			existing.failed += point.failed;
+			existing.skipped += point.skipped;
+			byType.set(point.testType, existing);
+		}
+		return Array.from(byType.entries()).map(([type, counts]) => ({
+			label: type.charAt(0).toUpperCase() + type.slice(1),
+			passed: counts.passed,
+			failed: counts.failed,
+			skipped: counts.skipped,
+		}));
+	}, [testRunHistory]);
+
+	const ciSuccessRateData = useMemo(() => {
+		if (!ciRunHistory) return [];
+		return ciRunHistory.map((point) => ({
+			date: point.date,
+			value: point.successRate,
+		}));
+	}, [ciRunHistory]);
 
 	if (dashboardStats === undefined || projects === undefined || testRuns === undefined) {
 		return (
@@ -142,6 +201,50 @@ export default function Dashboard() {
 					</>
 				)}
 			</div>
+
+			{testRunHistory && testRunHistory.length > 0 && (
+				<div className="grid gap-5 md:grid-cols-2">
+					<ChartCard
+						title="Pass Rate Trend"
+						description="Overall test pass rate over time"
+						selectedPeriod={period}
+						onPeriodChange={setPeriod}
+					>
+						<HistoricalLineChart
+							data={passRateData}
+							yAxisLabel="Pass Rate (%)"
+							valueFormatter={formatPercentage}
+							showArea
+							color={chartColors.success}
+							height={250}
+						/>
+					</ChartCard>
+
+					{testRunsByTypeData.length > 0 && (
+						<ChartCard title="Test Runs by Type" description="Total test executions by test type">
+							<HistoricalBarChart data={testRunsByTypeData} stacked height={250} />
+						</ChartCard>
+					)}
+				</div>
+			)}
+
+			{projectWithRepo && ciRunHistory && ciRunHistory.length > 0 && (
+				<ChartCard
+					title="CI Success Rate"
+					description="GitHub Actions workflow success rate over time"
+					selectedPeriod={period}
+					onPeriodChange={setPeriod}
+				>
+					<HistoricalLineChart
+						data={ciSuccessRateData}
+						yAxisLabel="Success Rate (%)"
+						valueFormatter={formatPercentage}
+						showArea
+						color={chartColors.success}
+						height={250}
+					/>
+				</ChartCard>
+			)}
 
 			<Card>
 				<CardHeader>

@@ -6,8 +6,10 @@ import { useMemo } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import { ChartCard, HistoricalBarChart, SparklineChart } from "../components/charts";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { formatDuration, getPeriodStartTimestamp } from "../lib/chartUtils";
 
 type TestExecution = Doc<"tests"> & { ci?: boolean; commitSha?: string; runStartedAt?: number };
 
@@ -16,12 +18,6 @@ function formatTime(ts: number): string {
 		dateStyle: "short",
 		timeStyle: "short",
 	});
-}
-
-function formatDuration(ms: number | undefined): string {
-	if (ms == null) return "—";
-	if (ms < 1000) return `${ms}ms`;
-	return `${(ms / 1000).toFixed(1)}s`;
 }
 
 function getStatusVariant(status: string): "success" | "error" | "info" | "neutral" {
@@ -50,6 +46,22 @@ export default function TestDetail() {
 			: "skip"
 	);
 
+	// Get historical data for charts
+	const startTimestamp = getPeriodStartTimestamp("90d"); // Use 90 days for test detail
+	const testHistory = useQuery(
+		api.tests.getTestDefinitionHistory,
+		projectId && name && file
+			? {
+					projectId: projectId as Id<"projects">,
+					name: decodeURIComponent(name),
+					file: decodeURIComponent(file),
+					line,
+					startTimestamp: startTimestamp ?? undefined,
+					limit: 100,
+				}
+			: "skip"
+	);
+
 	const stats = useMemo(() => {
 		if (!executions) return null;
 		const total = executions.length;
@@ -60,6 +72,25 @@ export default function TestDetail() {
 		const successRate = total > 0 ? (passed / total) * 100 : 0;
 		return { total, passed, failed, skipped, avgDuration, successRate };
 	}, [executions]);
+
+	// Prepare chart data
+	const executionHistoryData = useMemo(() => {
+		if (!testHistory || testHistory.length === 0) return [];
+		// Take last 20 executions for the bar chart
+		const recent = testHistory.slice(-20);
+		return recent.map((point, index) => ({
+			label: `#${testHistory.length - recent.length + index + 1}`,
+			date: point.date,
+			passed: point.passed,
+			failed: point.failed,
+			skipped: point.skipped,
+		}));
+	}, [testHistory]);
+
+	const durationSparklineData = useMemo(() => {
+		if (!testHistory) return [];
+		return testHistory.map((point) => point.duration / 1000); // Convert to seconds
+	}, [testHistory]);
 
 	if (projectId === undefined || name === undefined || file === undefined) {
 		return (
@@ -116,9 +147,12 @@ export default function TestDetail() {
 									<span className="text-sm text-muted-foreground">Success Rate: </span>
 									<span className="font-medium">{stats.successRate.toFixed(1)}%</span>
 								</div>
-								<div>
+								<div className="flex items-center gap-2">
 									<span className="text-sm text-muted-foreground">Avg Duration: </span>
 									<span className="font-medium">{formatDuration(stats.avgDuration)}</span>
+									{durationSparklineData.length > 0 && (
+										<SparklineChart data={durationSparklineData} width={100} height={24} />
+									)}
 								</div>
 							</div>
 							<div className="flex flex-wrap items-center gap-2">
@@ -130,6 +164,12 @@ export default function TestDetail() {
 					)}
 				</CardContent>
 			</Card>
+
+			{executionHistoryData.length > 0 && (
+				<ChartCard title="Execution History" description="Pass/fail status for recent executions">
+					<HistoricalBarChart data={executionHistoryData} stacked height={250} />
+				</ChartCard>
+			)}
 
 			<Card>
 				<CardHeader>
