@@ -16,7 +16,8 @@ test.describe("Dashboard", () => {
 	test("should have navigation links", async ({ page }) => {
 		await page.goto("/dashboard");
 		// Check for navigation elements - these should be visible in the layout
-		const nav = page.locator("nav");
+		// Use first() since there are two nav elements (mobile and desktop), but only one is visible at a time
+		const nav = page.locator("nav").first();
 		await expect(nav).toBeVisible();
 	});
 });
