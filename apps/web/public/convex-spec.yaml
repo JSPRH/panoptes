@@ -1130,6 +1130,130 @@ paths:
               schema:
                 $ref: "#/components/schemas/FailedResponse"
 
+  /api/run/tests/getTestRunsForPR:
+    post:
+      summary: Calls a query at the path tests.js:getTestRunsForPR
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestRunsForPR"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestRunsForPR"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getCoverageComparisonForPR:
+    post:
+      summary: Calls a query at the path tests.js:getCoverageComparisonForPR
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getCoverageComparisonForPR"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getCoverageComparisonForPR"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestsForPR:
+    post:
+      summary: Calls a query at the path tests.js:getTestsForPR
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestsForPR"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestsForPR"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getNewFailingTestsForPR:
+    post:
+      summary: Calls a query at the path tests.js:getNewFailingTestsForPR
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getNewFailingTestsForPR"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getNewFailingTestsForPR"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
   /api/run/tests/getTestExecution:
     post:
       summary: Calls a query at the path tests.js:getTestExecution
@@ -4652,6 +4776,144 @@ components:
               description: ID from table "ciRuns"
 
     Response_tests.getTestRunsByCIRunId:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestRunsForPR:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - branch
+            - projectId
+          properties:
+            branch:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_tests.getTestRunsForPR:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getCoverageComparisonForPR:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - baseBranch
+            - prBranch
+            - projectId
+          properties:
+            baseBranch:
+              type: string
+            prBranch:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_tests.getCoverageComparisonForPR:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestsForPR:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - branch
+            - projectId
+          properties:
+            branch:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_tests.getTestsForPR:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getNewFailingTestsForPR:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - baseBranch
+            - prBranch
+            - projectId
+          properties:
+            baseBranch:
+              type: string
+            prBranch:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_tests.getNewFailingTestsForPR:
       type: object
       required:
         - status

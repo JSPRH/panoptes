@@ -935,6 +935,212 @@ export const getTestRunsByCIRunId = query({
 	},
 });
 
+/**
+ * Get all test runs for CI runs associated with a PR
+ */
+export const getTestRunsForPR = query({
+	args: {
+		projectId: v.id("projects"),
+		branch: v.string(),
+	},
+	handler: async (ctx, args) => {
+		// Get all CI runs for the PR branch
+		const ciRuns = await ctx.db
+			.query("ciRuns")
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.collect();
+		const prCIRuns = ciRuns.filter((run) => run.branch === args.branch);
+
+		// Get all test runs linked to these CI runs
+		const allTestRuns = await ctx.db.query("testRuns").collect();
+		const prTestRuns = allTestRuns.filter(
+			(run) => run.ciRunId && prCIRuns.some((ciRun) => ciRun._id === run.ciRunId)
+		);
+
+		return prTestRuns;
+	},
+});
+
+/**
+ * Get coverage comparison between PR branch and base branch
+ */
+export const getCoverageComparisonForPR = query({
+	args: {
+		projectId: v.id("projects"),
+		prBranch: v.string(),
+		baseBranch: v.string(),
+	},
+	handler: async (ctx, args) => {
+		// Get latest test run with coverage for PR branch
+		const prTestRuns = await ctx.db
+			.query("testRuns")
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.collect();
+		const prBranchRuns = prTestRuns
+			.filter((run) => run.branch === args.prBranch)
+			.sort((a, b) => b.startedAt - a.startedAt);
+
+		let prCoverage: { linesCovered: number; linesTotal: number } | null = null;
+		for (const run of prBranchRuns) {
+			const coverage = await ctx.db
+				.query("fileCoverage")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+				.collect();
+			if (coverage.length > 0) {
+				const totalLinesCovered = coverage.reduce((sum, c) => sum + c.linesCovered, 0);
+				const totalLinesTotal = coverage.reduce((sum, c) => sum + c.linesTotal, 0);
+				prCoverage = { linesCovered: totalLinesCovered, linesTotal: totalLinesTotal };
+				break;
+			}
+		}
+
+		// Get latest test run with coverage for base branch
+		const baseBranchRuns = prTestRuns
+			.filter((run) => run.branch === args.baseBranch)
+			.sort((a, b) => b.startedAt - a.startedAt);
+
+		let baseCoverage: { linesCovered: number; linesTotal: number } | null = null;
+		for (const run of baseBranchRuns) {
+			const coverage = await ctx.db
+				.query("fileCoverage")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+				.collect();
+			if (coverage.length > 0) {
+				const totalLinesCovered = coverage.reduce((sum, c) => sum + c.linesCovered, 0);
+				const totalLinesTotal = coverage.reduce((sum, c) => sum + c.linesTotal, 0);
+				baseCoverage = { linesCovered: totalLinesCovered, linesTotal: totalLinesTotal };
+				break;
+			}
+		}
+
+		if (!prCoverage || !baseCoverage) {
+			return null;
+		}
+
+		const prPercentage = (prCoverage.linesCovered / prCoverage.linesTotal) * 100;
+		const basePercentage = (baseCoverage.linesCovered / baseCoverage.linesTotal) * 100;
+		const change = prPercentage - basePercentage;
+
+		return {
+			pr: prCoverage,
+			base: baseCoverage,
+			prPercentage,
+			basePercentage,
+			change,
+		};
+	},
+});
+
+/**
+ * Get all tests from test runs associated with a PR (aggregated from all test runs)
+ */
+export const getTestsForPR = query({
+	args: {
+		projectId: v.id("projects"),
+		branch: v.string(),
+	},
+	handler: async (ctx, args) => {
+		// Get all test runs for the PR branch
+		const prTestRuns = await ctx.db
+			.query("testRuns")
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.collect();
+		const prBranchRuns = prTestRuns
+			.filter((run) => run.branch === args.branch)
+			.sort((a, b) => b.startedAt - a.startedAt);
+
+		if (prBranchRuns.length === 0) {
+			return [];
+		}
+
+		// Get all tests from all PR test runs, keeping the latest status for each test
+		const testMap = new Map<string, Doc<"tests">>();
+		for (const run of prBranchRuns) {
+			const tests = await ctx.db
+				.query("tests")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+				.collect();
+			for (const test of tests) {
+				const key = `${test.name}:${test.file}`;
+				// Only update if we haven't seen this test yet (keep latest run's status)
+				if (!testMap.has(key)) {
+					testMap.set(key, test);
+				}
+			}
+		}
+
+		return Array.from(testMap.values());
+	},
+});
+
+/**
+ * Get new failing tests - tests that failed in PR but passed in base branch
+ */
+export const getNewFailingTestsForPR = query({
+	args: {
+		projectId: v.id("projects"),
+		prBranch: v.string(),
+		baseBranch: v.string(),
+	},
+	handler: async (ctx, args) => {
+		// Get test runs for PR branch
+		const prTestRuns = await ctx.db
+			.query("testRuns")
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.collect();
+		const prBranchRuns = prTestRuns
+			.filter((run) => run.branch === args.prBranch)
+			.sort((a, b) => b.startedAt - a.startedAt);
+
+		// Get test runs for base branch
+		const baseBranchRuns = prTestRuns
+			.filter((run) => run.branch === args.baseBranch)
+			.sort((a, b) => b.startedAt - a.startedAt);
+
+		if (prBranchRuns.length === 0 || baseBranchRuns.length === 0) {
+			return [];
+		}
+
+		// Get latest PR test run
+		const latestPRRun = prBranchRuns[0];
+		const prTests = await ctx.db
+			.query("tests")
+			.withIndex("by_test_run", (q) => q.eq("testRunId", latestPRRun._id))
+			.collect();
+
+		// Get latest base test run
+		const latestBaseRun = baseBranchRuns[0];
+		const baseTests = await ctx.db
+			.query("tests")
+			.withIndex("by_test_run", (q) => q.eq("testRunId", latestBaseRun._id))
+			.collect();
+
+		// Create a map of test name+file -> status for base branch
+		const baseTestMap = new Map<string, "passed" | "failed" | "skipped">();
+		for (const test of baseTests) {
+			const key = `${test.name}:${test.file}`;
+			if (test.status === "passed" || test.status === "failed") {
+				baseTestMap.set(key, test.status);
+			}
+		}
+
+		// Find tests that failed in PR but passed in base
+		const newFailures: Doc<"tests">[] = [];
+		for (const test of prTests) {
+			if (test.status === "failed") {
+				const key = `${test.name}:${test.file}`;
+				const baseStatus = baseTestMap.get(key);
+				if (baseStatus === "passed" || baseStatus === undefined) {
+					// Either passed in base or didn't exist in base (new test that failed)
+					newFailures.push(test);
+				}
+			}
+		}
+
+		return newFailures;
+	},
+});
+
 export const getTestExecution = query({
 	args: {
 		testId: v.id("tests"),
@@ -1487,9 +1693,10 @@ export const getTestPyramidData = query({
 				.take(PYRAMID_TESTS_PER_RUN_LIMIT);
 			for (const test of tests) {
 				const key = testDefinitionKey(test.projectId, test.name, test.file, test.line);
-				if (!map.has(key)) {
-					map.set(key, test.status);
-				}
+				// Always update status to get the latest (since runs are sorted newest first)
+				// For tests that run multiple times in the same run (e.g., across browsers),
+				// we'll use the last status we encounter, which should be representative
+				map.set(key, test.status);
 			}
 		}
 
