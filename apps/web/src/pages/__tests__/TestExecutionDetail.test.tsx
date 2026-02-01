@@ -2175,6 +2175,514 @@ testSuite("TestExecutionDetail", () => {
 		});
 	});
 
+	describe("Edge Cases - Missing Data", () => {
+		it("should handle missing testRun gracefully", async () => {
+			if (!testInstance) throw new Error("testInstance not initialized");
+
+			const projectId = await setupTestProject(testInstance);
+			const now = Date.now();
+			const testRunId = await testInstance.mutation(api.tests.ingestTestRun, {
+				projectId,
+				projectName: "Test Project",
+				framework: "vitest",
+				testType: "unit",
+				startedAt: now,
+				completedAt: now + 1000,
+				duration: 1000,
+				totalTests: 1,
+				passedTests: 1,
+				failedTests: 0,
+				skippedTests: 0,
+				tests: [
+					{
+						name: "Test",
+						file: "test.test.ts",
+						status: "passed",
+						duration: 100,
+					},
+				],
+			});
+
+			const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 1 });
+			const execution = testRuns?.[0]?.tests?.[0];
+			if (!execution) throw new Error("No execution found");
+
+			const executionId = execution._id;
+
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestExecution),
+					args: { testId: executionId },
+				}),
+				execution
+			);
+
+			// TestRun query returns null
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestRun),
+					args: { runId: testRunId },
+				}),
+				null
+			);
+
+			const projects = await testInstance.query(api.tests.getProjects);
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getProjects),
+					args: undefined,
+				}),
+				projects
+			);
+
+			render(
+				<MemoryRouter initialEntries={[`/executions/${executionId}`]}>
+					<TestExecutionDetail />
+				</MemoryRouter>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByText("Execution Summary")).toBeInTheDocument();
+			});
+
+			// Should render without test run section
+			expect(screen.queryByText("Test Run")).not.toBeInTheDocument();
+		});
+
+		it("should handle missing project gracefully", async () => {
+			if (!testInstance) throw new Error("testInstance not initialized");
+
+			const projectId = await setupTestProject(testInstance);
+			const now = Date.now();
+			const testRunId = await testInstance.mutation(api.tests.ingestTestRun, {
+				projectId,
+				projectName: "Test Project",
+				framework: "vitest",
+				testType: "unit",
+				startedAt: now,
+				completedAt: now + 1000,
+				duration: 1000,
+				totalTests: 1,
+				passedTests: 1,
+				failedTests: 0,
+				skippedTests: 0,
+				tests: [
+					{
+						name: "Test",
+						file: "test.test.ts",
+						status: "passed",
+						duration: 100,
+					},
+				],
+			});
+
+			const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 1 });
+			const execution = testRuns?.[0]?.tests?.[0];
+			if (!execution) throw new Error("No execution found");
+
+			const executionId = execution._id;
+
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestExecution),
+					args: { testId: executionId },
+				}),
+				execution
+			);
+
+			const testRun = await testInstance.query(api.tests.getTestRun, {
+				runId: testRunId,
+			});
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestRun),
+					args: { runId: testRunId },
+				}),
+				testRun
+			);
+
+			// Projects query returns empty array or project not found
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getProjects),
+					args: undefined,
+				}),
+				[]
+			);
+
+			render(
+				<MemoryRouter initialEntries={[`/executions/${executionId}`]}>
+					<TestExecutionDetail />
+				</MemoryRouter>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByText("Execution Summary")).toBeInTheDocument();
+			});
+
+			// Should render without crashing
+			expect(screen.getByText("passed")).toBeInTheDocument();
+		});
+
+		it("should handle missing code snippet gracefully", async () => {
+			if (!testInstance) throw new Error("testInstance not initialized");
+
+			const projectId = await setupTestProject(testInstance);
+			const now = Date.now();
+			const testRunId = await testInstance.mutation(api.tests.ingestTestRun, {
+				projectId,
+				projectName: "Test Project",
+				framework: "vitest",
+				testType: "unit",
+				startedAt: now,
+				completedAt: now + 1000,
+				duration: 1000,
+				totalTests: 1,
+				passedTests: 1,
+				failedTests: 0,
+				skippedTests: 0,
+				tests: [
+					{
+						name: "Test",
+						file: "test.test.ts",
+						status: "passed",
+						duration: 100,
+					},
+				],
+			});
+
+			const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 1 });
+			const execution = testRuns?.[0]?.tests?.[0];
+			if (!execution) throw new Error("No execution found");
+
+			const executionId = execution._id;
+
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestExecution),
+					args: { testId: executionId },
+				}),
+				execution
+			);
+
+			const testRun = await testInstance.query(api.tests.getTestRun, {
+				runId: testRunId,
+			});
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestRun),
+					args: { runId: testRunId },
+				}),
+				testRun
+			);
+
+			const projects = await testInstance.query(api.tests.getProjects);
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getProjects),
+					args: undefined,
+				}),
+				projects
+			);
+
+			// Code snippet query returns null
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.github.getCodeSnippetForTest),
+					args: { testId: executionId },
+				}),
+				null
+			);
+
+			render(
+				<MemoryRouter initialEntries={[`/executions/${executionId}`]}>
+					<TestExecutionDetail />
+				</MemoryRouter>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByText("Execution Summary")).toBeInTheDocument();
+			});
+
+			// Should render without code snippet section
+			expect(screen.queryByText(/Code:/)).not.toBeInTheDocument();
+		});
+
+		it("should handle empty attachments array", async () => {
+			if (!testInstance) throw new Error("testInstance not initialized");
+
+			const projectId = await setupTestProject(testInstance);
+			const now = Date.now();
+			const testRunId = await testInstance.mutation(api.tests.ingestTestRun, {
+				projectId,
+				projectName: "Test Project",
+				framework: "vitest",
+				testType: "unit",
+				startedAt: now,
+				completedAt: now + 1000,
+				duration: 1000,
+				totalTests: 1,
+				passedTests: 1,
+				failedTests: 0,
+				skippedTests: 0,
+				tests: [
+					{
+						name: "Test",
+						file: "test.test.ts",
+						status: "passed",
+						duration: 100,
+					},
+				],
+			});
+
+			const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 1 });
+			const execution = testRuns?.[0]?.tests?.[0];
+			if (!execution) throw new Error("No execution found");
+
+			const executionId = execution._id;
+
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestExecution),
+					args: { testId: executionId },
+				}),
+				execution
+			);
+
+			const testRun = await testInstance.query(api.tests.getTestRun, {
+				runId: testRunId,
+			});
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestRun),
+					args: { runId: testRunId },
+				}),
+				testRun
+			);
+
+			const projects = await testInstance.query(api.tests.getProjects);
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getProjects),
+					args: undefined,
+				}),
+				projects
+			);
+
+			// Mock attachments action returns empty array
+			actionResults.set(
+				queryToString(api.tests.getTestAttachmentsWithUrls),
+				async () => []
+			);
+
+			render(
+				<MemoryRouter initialEntries={[`/executions/${executionId}`]}>
+					<TestExecutionDetail />
+				</MemoryRouter>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByText("Execution Summary")).toBeInTheDocument();
+			});
+
+			// Should not show attachments section
+			expect(screen.queryByText("Attachments")).not.toBeInTheDocument();
+		});
+
+		it("should handle partial analysis data", async () => {
+			if (!testInstance) throw new Error("testInstance not initialized");
+
+			const projectId = await setupTestProject(testInstance);
+			const now = Date.now();
+			const testRunId = await testInstance.mutation(api.tests.ingestTestRun, {
+				projectId,
+				projectName: "Test Project",
+				framework: "vitest",
+				testType: "unit",
+				startedAt: now,
+				completedAt: now + 1000,
+				duration: 1000,
+				totalTests: 1,
+				passedTests: 0,
+				failedTests: 1,
+				skippedTests: 0,
+				tests: [
+					{
+						name: "Failing Test",
+						file: "failing.test.ts",
+						status: "failed",
+						duration: 50,
+						error: "Test failed",
+						line: 42,
+					},
+				],
+			});
+
+			const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 1 });
+			const execution = testRuns?.[0]?.tests?.[0];
+			if (!execution) throw new Error("No execution found");
+
+			const executionId = execution._id;
+
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestExecution),
+					args: { testId: executionId },
+				}),
+				execution
+			);
+
+			const testRun = await testInstance.query(api.tests.getTestRun, {
+				runId: testRunId,
+			});
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestRun),
+					args: { runId: testRunId },
+				}),
+				testRun
+			);
+
+			const projects = await testInstance.query(api.tests.getProjects);
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getProjects),
+					args: undefined,
+				}),
+				projects
+			);
+
+			// Analysis with only summary, missing other fields
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.testFailureAnalysis.getTestFailureAnalysis),
+					args: { testId: executionId },
+				}),
+				{
+					_id: "analysis123" as Id<"testFailureAnalysis">,
+					_testId: executionId,
+					status: "completed",
+					confidence: "medium",
+					summary: "Test summary only",
+					// Missing rootCause, suggestedFix, etc.
+				}
+			);
+
+			render(
+				<MemoryRouter initialEntries={[`/executions/${executionId}`]}>
+					<TestExecutionDetail />
+				</MemoryRouter>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByText("AI Analysis")).toBeInTheDocument();
+				expect(screen.getByText("Test summary only")).toBeInTheDocument();
+			});
+
+			// Should render with available data, missing fields should not crash
+			expect(screen.queryByText("Root Cause")).not.toBeInTheDocument();
+			expect(screen.queryByText("Suggested Fix")).not.toBeInTheDocument();
+		});
+
+		it("should handle missing line number in execution", async () => {
+			if (!testInstance) throw new Error("testInstance not initialized");
+
+			const projectId = await setupTestProject(testInstance);
+			const now = Date.now();
+			const testRunId = await testInstance.mutation(api.tests.ingestTestRun, {
+				projectId,
+				projectName: "Test Project",
+				framework: "vitest",
+				testType: "unit",
+				startedAt: now,
+				completedAt: now + 1000,
+				duration: 1000,
+				totalTests: 1,
+				passedTests: 0,
+				failedTests: 1,
+				skippedTests: 0,
+				tests: [
+					{
+						name: "Failing Test",
+						file: "failing.test.ts",
+						status: "failed",
+						duration: 50,
+						error: "Test failed",
+						// No line number
+					},
+				],
+			});
+
+			const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 1 });
+			const execution = testRuns?.[0]?.tests?.[0];
+			if (!execution) throw new Error("No execution found");
+
+			const executionId = execution._id;
+
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestExecution),
+					args: { testId: executionId },
+				}),
+				execution
+			);
+
+			const testRun = await testInstance.query(api.tests.getTestRun, {
+				runId: testRunId,
+			});
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getTestRun),
+					args: { runId: testRunId },
+				}),
+				testRun
+			);
+
+			const projects = await testInstance.query(api.tests.getProjects);
+			const project = projects?.find((p) => p._id === projectId);
+			if (project) {
+				project.repository = "https://github.com/owner/repo";
+			}
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.tests.getProjects),
+					args: undefined,
+				}),
+				projects
+			);
+
+			queryResults.set(
+				JSON.stringify({
+					query: queryToString(api.testFailureAnalysis.getTestFailureAnalysis),
+					args: { testId: executionId },
+				}),
+				{
+					_id: "analysis123" as Id<"testFailureAnalysis">,
+					_testId: executionId,
+					status: "completed",
+					confidence: "high",
+					summary: "Summary",
+					rootCause: "Root cause",
+					suggestedFix: "Fix",
+				}
+			);
+
+			render(
+				<MemoryRouter initialEntries={[`/executions/${executionId}`]}>
+					<TestExecutionDetail />
+				</MemoryRouter>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByText("AI Analysis")).toBeInTheDocument();
+			});
+
+			// Should not show "Open in Cursor" or "View on GitHub" buttons when line is missing
+			expect(screen.queryByText("Open in Cursor")).not.toBeInTheDocument();
+			expect(screen.queryByText("View on GitHub")).not.toBeInTheDocument();
+		});
+	});
+
 	describe("Boundary Conditions", () => {
 		it("should handle very long error messages", async () => {
 			if (!testInstance) throw new Error("testInstance not initialized");
