@@ -195,7 +195,7 @@ describe("PullRequests", () => {
 	});
 
 	it("should not auto-select when multiple projects exist", () => {
-		mockUseQuery.mockImplementation((query, args) => {
+		mockUseQuery.mockImplementation((query) => {
 			if (query === mockApi.tests.getProjects) {
 				return mockProjects;
 			}

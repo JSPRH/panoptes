@@ -7,11 +7,11 @@ import { Link, useParams } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { PageHeader } from "../components/PageHeader";
-import { ChartCard, HistoricalBarChart, SparklineChart } from "../components/charts";
+import { ChartCard, HistoricalBarChart } from "../components/charts";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { formatDuration, getPeriodStartTimestamp, periodOptions } from "../lib/chartUtils";
+import { getPeriodStartTimestamp } from "../lib/chartUtils";
 
 type FeatureWithTests = {
 	feature: Doc<"features">;
@@ -99,17 +99,12 @@ export default function FeatureDetail() {
 		const skippedTests = tests.filter((t) => t.testStatus === "skipped").length;
 		const passRate = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
 
-		// Calculate average duration from history
-		const totalExecutions = testHistory.reduce((sum, h) => sum + h.total, 0);
-		const avgDuration = 0; // We don't have duration in history, would need to query executions
-
 		return {
 			totalTests,
 			passedTests,
 			failedTests,
 			skippedTests,
 			passRate,
-			avgDuration,
 		};
 	}, [featureWithTests, testHistory]);
 
@@ -316,20 +311,8 @@ Generate comprehensive test cases that would increase confidence in this feature
 				<ChartCard
 					title="Test Execution History"
 					description={`Test run results over time (${period})`}
-					actions={
-						<div className="flex gap-2">
-							{periodOptions.map((option) => (
-								<Button
-									key={option.value}
-									variant={period === option.value ? "default" : "outline"}
-									size="sm"
-									onClick={() => setPeriod(option.value)}
-								>
-									{option.label}
-								</Button>
-							))}
-						</div>
-					}
+					selectedPeriod={period}
+					onPeriodChange={setPeriod}
 				>
 					<HistoricalBarChart data={executionHistoryData} stacked height={250} />
 				</ChartCard>
