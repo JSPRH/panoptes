@@ -2,6 +2,11 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 
+type TestExecution = {
+	test: Doc<"tests">;
+	run: Doc<"testRuns"> | null;
+};
+
 // =============================================================================
 // Feature Queries
 // =============================================================================
@@ -281,10 +286,7 @@ export const getFeatureTestHistory = query({
 		if (mappings.length === 0) return [];
 
 		// Get all test executions for mapped tests
-		const allTestExecutions: Array<{
-			test: Doc<"tests">;
-			run: Doc<"testRuns"> | null;
-		}> = [];
+		const allTestExecutions: TestExecution[] = [];
 
 		for (const mapping of mappings) {
 			// Parse test definition key to get test details
