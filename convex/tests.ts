@@ -1184,7 +1184,13 @@ export const getTestDefinitionExecutions = query({
 		const testRuns = await Promise.all(
 			sorted.slice(0, limit).map(async (test) => {
 				const run = await ctx.db.get(test.testRunId);
-				return { ...test, ci: run?.ci, commitSha: run?.commitSha, runStartedAt: run?.startedAt };
+				return {
+					...test,
+					ci: run?.ci,
+					commitSha: run?.commitSha,
+					runStartedAt: run?.startedAt,
+					testType: run?.testType,
+				};
 			})
 		);
 

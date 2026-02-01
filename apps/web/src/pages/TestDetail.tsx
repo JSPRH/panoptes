@@ -15,7 +15,12 @@ type FeatureMapping = Doc<"testFeatureMappings"> & {
 	feature: Doc<"features"> | null;
 };
 
-type TestExecution = Doc<"tests"> & { ci?: boolean; commitSha?: string; runStartedAt?: number };
+type TestExecution = Doc<"tests"> & {
+	ci?: boolean;
+	commitSha?: string;
+	runStartedAt?: number;
+	testType?: "unit" | "integration" | "e2e" | "visual";
+};
 
 function formatTime(ts: number): string {
 	return new Date(ts).toLocaleString(undefined, {
@@ -226,44 +231,64 @@ export default function TestDetail() {
 				<CardContent>
 					{executions && executions.length > 0 ? (
 						<div className="space-y-2">
-							{executions.map((execution: TestExecution) => (
-								<Link
-									key={execution._id}
-									to={`/executions/${execution._id}`}
-									className="block w-full text-left rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/50"
-								>
-									<div className="flex items-center justify-between">
-										<div className="flex-1">
-											<div className="font-medium text-sm">{execution.name}</div>
-											<div className="text-xs text-muted-foreground">
-												{execution.file}
-												{execution.line != null && `:${execution.line}`}
+							{executions.map((execution: TestExecution) => {
+								// Extract browser/project name from metadata for visual and e2e tests
+								const browserName =
+									(execution.testType === "visual" || execution.testType === "e2e") &&
+									execution.metadata &&
+									typeof execution.metadata === "object" &&
+									"projectName" in execution.metadata &&
+									typeof execution.metadata.projectName === "string"
+										? execution.metadata.projectName
+										: null;
+								return (
+									<Link
+										key={execution._id}
+										to={`/executions/${execution._id}`}
+										className="block w-full text-left rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/50"
+									>
+										<div className="flex items-center justify-between">
+											<div className="flex-1">
+												<div className="flex items-center gap-2">
+													<div className="font-medium text-sm">{execution.name}</div>
+													{browserName && (
+														<Badge variant="neutral" className="text-xs">
+															{browserName}
+														</Badge>
+													)}
+												</div>
+												<div className="text-xs text-muted-foreground">
+													{execution.file}
+													{execution.line != null && `:${execution.line}`}
+												</div>
+												{execution.runStartedAt && (
+													<div className="text-xs text-muted-foreground mt-1">
+														{formatTime(execution.runStartedAt)}
+													</div>
+												)}
+												{execution.error && (
+													<div className="text-xs text-destructive mt-1 truncate max-w-full">
+														{execution.error}
+													</div>
+												)}
 											</div>
-											{execution.runStartedAt && (
-												<div className="text-xs text-muted-foreground mt-1">
-													{formatTime(execution.runStartedAt)}
-												</div>
-											)}
-											{execution.error && (
-												<div className="text-xs text-destructive mt-1 truncate max-w-full">
-													{execution.error}
-												</div>
-											)}
-										</div>
-										<div className="flex items-center gap-2">
-											<span className="text-xs text-muted-foreground">
-												{formatDuration(execution.duration)}
-											</span>
-											<Badge variant={getStatusVariant(execution.status)}>{execution.status}</Badge>
-											{execution.ci != null && (
-												<Badge variant={execution.ci ? "info" : "neutral"}>
-													{execution.ci ? "CI" : "Local"}
+											<div className="flex items-center gap-2">
+												<span className="text-xs text-muted-foreground">
+													{formatDuration(execution.duration)}
+												</span>
+												<Badge variant={getStatusVariant(execution.status)}>
+													{execution.status}
 												</Badge>
-											)}
+												{execution.ci != null && (
+													<Badge variant={execution.ci ? "info" : "neutral"}>
+														{execution.ci ? "CI" : "Local"}
+													</Badge>
+												)}
+											</div>
 										</div>
-									</div>
-								</Link>
-							))}
+									</Link>
+								);
+							})}
 						</div>
 					) : (
 						<EmptyState

@@ -204,6 +204,15 @@ export default function TestRunDetail() {
 						<div className="space-y-2">
 							{testsForRun.map((test: Test) => {
 								const testDefinitionPath = `/tests/${encodeURIComponent(test.projectId)}/${encodeURIComponent(test.name)}/${encodeURIComponent(test.file)}${test.line != null ? `?line=${test.line}` : ""}`;
+								// Extract browser/project name from metadata for visual and e2e tests
+								const browserName =
+									(selectedRun.testType === "visual" || selectedRun.testType === "e2e") &&
+									test.metadata &&
+									typeof test.metadata === "object" &&
+									"projectName" in test.metadata &&
+									typeof test.metadata.projectName === "string"
+										? test.metadata.projectName
+										: null;
 								return (
 									<div
 										key={test._id}
@@ -217,6 +226,11 @@ export default function TestRunDetail() {
 												>
 													{test.name}
 												</Link>
+												{browserName && (
+													<Badge variant="neutral" className="text-xs">
+														{browserName}
+													</Badge>
+												)}
 												<Link
 													to={testDefinitionPath}
 													className="text-xs text-muted-foreground hover:text-primary hover:underline"
