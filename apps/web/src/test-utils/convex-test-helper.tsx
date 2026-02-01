@@ -2,6 +2,8 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import schema from "@convex/schema";
 import { convexTest } from "convex-test";
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
 
 import * as generatedApiModule from "@convex/_generated/api";
 import * as generatedServerModule from "@convex/_generated/server";
@@ -41,9 +43,20 @@ const modules: Record<string, () => Promise<unknown>> = {
 	"./_generated/server.ts": () => Promise.resolve(generatedServerModule),
 };
 
-// Helper to create a test instance
+// Helper to create a test instance with aggregate component registered
 export function createTestInstance() {
-	return convexTest(schema, modules);
+	const t = convexTest(schema, modules);
+	// Register the aggregate component - it needs a schema and modules
+	const aggregateSchema = defineSchema({
+		aggregateState: defineTable({
+			namespace: v.string(),
+			key: v.string(),
+			count: v.number(),
+		}),
+	});
+	// Use the same modules so the aggregate can access _generated files
+	t.registerComponent("testDefinitionAggregate", aggregateSchema, modules);
+	return t;
 }
 
 // Helper to set up test data for common scenarios
