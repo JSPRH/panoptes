@@ -1,6 +1,6 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useProjectSelection } from "../useProjectSelection";
 
 // Mock Convex

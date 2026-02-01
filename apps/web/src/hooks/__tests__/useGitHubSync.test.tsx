@@ -1,6 +1,6 @@
 import type { Id } from "@convex/_generated/dataModel";
-import { renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGitHubSync } from "../useGitHubSync";
 
 // Mock Convex

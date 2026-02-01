@@ -21,7 +21,6 @@ import PullRequests from "./pages/PullRequests";
 import TestDetail from "./pages/TestDetail";
 import TestExecutionDetail from "./pages/TestExecutionDetail";
 import TestExplorer from "./pages/TestExplorer";
-import TestFiles from "./pages/TestFiles";
 import TestPyramid from "./pages/TestPyramid";
 import TestRunDetail from "./pages/TestRunDetail";
 import TestRuns from "./pages/TestRuns";
@@ -84,7 +83,6 @@ function App() {
 							<Route path="/code-lens" element={<CodeLens />} />
 							<Route path="/coverage-tree" element={<CoverageTree />} />
 							<Route path="/coverage/:file" element={<FileCoverageDetail />} />
-							<Route path="/test-files" element={<TestFiles />} />
 							<Route path="/anomalies" element={<Anomalies />} />
 							<Route path="/ci-runs" element={<CIRuns />} />
 							<Route path="/ci-runs/:runId" element={<CIRunDetail />} />

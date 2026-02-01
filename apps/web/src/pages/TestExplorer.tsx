@@ -18,9 +18,42 @@ type Project = Doc<"projects">;
 const ITEMS_PER_PAGE = 20;
 const PAGINATION_PAGE_SIZE = 100; // Load 100 tests per page from Convex
 
+type ViewMode = "individual" | "byFile";
+
+function getFrameworkColor(framework: string): string {
+	switch (framework) {
+		case "vitest":
+			return "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20";
+		case "playwright":
+			return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20";
+		case "jest":
+			return "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20";
+		default:
+			return "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20";
+	}
+}
+
+function getTestTypeColor(testType: string): string {
+	switch (testType) {
+		case "unit":
+			return "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20";
+		case "integration":
+			return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20";
+		case "e2e":
+			return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20";
+		case "visual":
+			return "bg-pink-500/10 text-pink-700 dark:text-pink-400 border-pink-500/20";
+		default:
+			return "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20";
+	}
+}
+
 export default function TestExplorer() {
+	const [viewMode, setViewMode] = useState<ViewMode>("individual");
 	const [searchQuery, setSearchQuery] = useState("");
 	const [statusFilter, setStatusFilter] = useState<string>("all");
+	const [testTypeFilter, setTestTypeFilter] = useState<string>("all");
+	const [frameworkFilter, setFrameworkFilter] = useState<string>("all");
 	const [currentPage, setCurrentPage] = useState(1);
 	const [expandedTestId, setExpandedTestId] = useState<Id<"tests"> | null>(null);
 
@@ -54,6 +87,9 @@ export default function TestExplorer() {
 	const [selectedActionType, setSelectedActionType] = useState<
 		Record<Id<"tests">, "fix_test" | "fix_bug">
 	>({} as Record<Id<"tests">, "fix_test" | "fix_bug">);
+
+	// Query for test files view
+	const testFileGroups = useQuery(api.tests.getTestsByTestFile, {});
 
 	// Get project for the test to find repository
 	const getProjectForTest = (test: Test): Project | undefined => {
@@ -120,6 +156,30 @@ export default function TestExplorer() {
 	// Tests are already filtered server-side, so use them directly
 	const filteredTests = tests || [];
 
+	// Filter test file groups
+	const filteredGroups = useMemo(() => {
+		if (!testFileGroups) return [];
+		return testFileGroups.filter((group) => {
+			const matchesSearch =
+				!searchQuery ||
+				group.testFile.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				group.tests.some((t) => t.name.toLowerCase().includes(searchQuery.toLowerCase()));
+			const matchesTestType = testTypeFilter === "all" || group.testType === testTypeFilter;
+			const matchesFramework = frameworkFilter === "all" || group.framework === frameworkFilter;
+			return matchesSearch && matchesTestType && matchesFramework;
+		});
+	}, [testFileGroups, searchQuery, testTypeFilter, frameworkFilter]);
+
+	const uniqueTestTypes = useMemo(() => {
+		if (!testFileGroups) return [];
+		return Array.from(new Set(testFileGroups.map((g) => g.testType))).sort();
+	}, [testFileGroups]);
+
+	const uniqueFrameworks = useMemo(() => {
+		if (!testFileGroups) return [];
+		return Array.from(new Set(testFileGroups.map((g) => g.framework))).sort();
+	}, [testFileGroups]);
+
 	// Build test definition key for feature lookup when a test is expanded
 	const expandedTestDefinitionKey = useMemo(() => {
 		if (!expandedTestId) return null;
@@ -162,7 +222,7 @@ export default function TestExplorer() {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: We intentionally want to reset page when these change
 	useEffect(() => {
 		setCurrentPage(1);
-	}, [searchQuery, statusFilter]);
+	}, [searchQuery, statusFilter, testTypeFilter, frameworkFilter, viewMode]);
 
 	// Fetch code snippet from GitHub when expanded test has no snippet in DB
 	useEffect(() => {
@@ -237,50 +297,232 @@ export default function TestExplorer() {
 
 			<Card>
 				<CardHeader>
+					<div className="flex items-center justify-between">
+						<CardTitle>View Mode</CardTitle>
+						<div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+							<Button
+								variant={viewMode === "individual" ? "default" : "ghost"}
+								size="sm"
+								onClick={() => setViewMode("individual")}
+								className="h-7 text-xs"
+							>
+								Individual Tests
+							</Button>
+							<Button
+								variant={viewMode === "byFile" ? "default" : "ghost"}
+								size="sm"
+								onClick={() => setViewMode("byFile")}
+								className="h-7 text-xs"
+							>
+								By Test File
+							</Button>
+						</div>
+					</div>
+				</CardHeader>
+			</Card>
+
+			<Card>
+				<CardHeader>
 					<CardTitle>Filters</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<div className="flex gap-4">
-						<input
-							type="text"
-							placeholder="Search tests..."
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-							className="flex-1 px-4 py-2 border rounded-md"
-						/>
-						<select
-							value={statusFilter}
-							onChange={(e) => setStatusFilter(e.target.value)}
-							className="px-4 py-2 border rounded-md"
-						>
-							<option value="all">All Status</option>
-							<option value="passed">Passed</option>
-							<option value="failed">Failed</option>
-							<option value="skipped">Skipped</option>
-						</select>
+					<div className="space-y-4">
+						<div>
+							<input
+								type="text"
+								placeholder={
+									viewMode === "byFile" ? "Search by test file or test name..." : "Search tests..."
+								}
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								className="w-full px-4 py-2 border rounded-md"
+							/>
+						</div>
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+							{viewMode === "individual" && (
+								<div>
+									<label htmlFor="status" className="block text-sm font-medium mb-2">
+										Status
+									</label>
+									<select
+										id="status"
+										value={statusFilter}
+										onChange={(e) => setStatusFilter(e.target.value)}
+										className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+									>
+										<option value="all">All Status</option>
+										<option value="passed">Passed</option>
+										<option value="failed">Failed</option>
+										<option value="skipped">Skipped</option>
+									</select>
+								</div>
+							)}
+							{viewMode === "byFile" && (
+								<>
+									<div>
+										<label htmlFor="testType" className="block text-sm font-medium mb-2">
+											Test Type
+										</label>
+										<select
+											id="testType"
+											value={testTypeFilter}
+											onChange={(e) => setTestTypeFilter(e.target.value)}
+											className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+										>
+											<option value="all">All Types</option>
+											{uniqueTestTypes.map((type) => (
+												<option key={type} value={type}>
+													{type.charAt(0).toUpperCase() + type.slice(1)}
+												</option>
+											))}
+										</select>
+									</div>
+									<div>
+										<label htmlFor="framework" className="block text-sm font-medium mb-2">
+											Framework
+										</label>
+										<select
+											id="framework"
+											value={frameworkFilter}
+											onChange={(e) => setFrameworkFilter(e.target.value)}
+											className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+										>
+											<option value="all">All Frameworks</option>
+											{uniqueFrameworks.map((framework) => (
+												<option key={framework} value={framework}>
+													{framework.charAt(0).toUpperCase() + framework.slice(1)}
+												</option>
+											))}
+										</select>
+									</div>
+								</>
+							)}
+						</div>
 					</div>
 				</CardContent>
 			</Card>
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Tests</CardTitle>
+					<CardTitle>{viewMode === "byFile" ? "Test Files" : "Tests"}</CardTitle>
 					<CardDescription>
-						{status === "CanLoadMore" || status === "LoadingMore" || status === "LoadingFirstPage"
-							? `Loading tests... (${filteredTests.length} loaded so far)`
-							: `${filteredTests.length} test${filteredTests.length !== 1 ? "s" : ""} found`}
-						{filteredTests && filteredTests.length > ITEMS_PER_PAGE && (
+						{viewMode === "byFile" ? (
 							<>
-								{" "}
-								(showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-
-								{Math.min(currentPage * ITEMS_PER_PAGE, filteredTests.length)} of{" "}
-								{filteredTests.length})
+								{filteredGroups.length} test file group{filteredGroups.length !== 1 ? "s" : ""}{" "}
+								found
+							</>
+						) : (
+							<>
+								{status === "CanLoadMore" ||
+								status === "LoadingMore" ||
+								status === "LoadingFirstPage"
+									? `Loading tests... (${filteredTests.length} loaded so far)`
+									: `${filteredTests.length} test${filteredTests.length !== 1 ? "s" : ""} found`}
+								{filteredTests && filteredTests.length > ITEMS_PER_PAGE && (
+									<>
+										{" "}
+										(showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-
+										{Math.min(currentPage * ITEMS_PER_PAGE, filteredTests.length)} of{" "}
+										{filteredTests.length})
+									</>
+								)}
 							</>
 						)}
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					{paginatedTests && paginatedTests.length > 0 ? (
+					{viewMode === "byFile" ? (
+						<>
+							{filteredGroups.length > 0 ? (
+								<div className="space-y-4">
+									{filteredGroups.map((group) => (
+										<div
+											key={`${group.testFile}-${group.testType}-${group.framework}`}
+											className="border border-border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors"
+										>
+											<div className="flex items-start justify-between mb-3">
+												<div className="flex-1">
+													<div className="font-medium text-lg mb-2">{group.testFile}</div>
+													<div className="flex flex-wrap gap-2">
+														<Badge className={getTestTypeColor(group.testType)}>
+															{group.testType}
+														</Badge>
+														<Badge className={getFrameworkColor(group.framework)}>
+															{group.framework}
+														</Badge>
+													</div>
+												</div>
+												<div className="text-sm text-muted-foreground">
+													<div>
+														<span className="text-success">{group.passed} passed</span>
+														{group.failed > 0 && (
+															<>
+																{" · "}
+																<span className="text-error">{group.failed} failed</span>
+															</>
+														)}
+														{group.skipped > 0 && (
+															<>
+																{" · "}
+																<span className="text-muted-foreground">
+																	{group.skipped} skipped
+																</span>
+															</>
+														)}
+													</div>
+													<div className="mt-1">
+														{group.tests.length} test{group.tests.length !== 1 ? "s" : ""}
+													</div>
+												</div>
+											</div>
+											<div className="space-y-1 mt-3">
+												{group.tests.slice(0, 10).map((test) => (
+													<Link
+														key={test._id}
+														to={`/tests/${test.projectId}/${encodeURIComponent(test.name)}/${encodeURIComponent(test.file)}`}
+														className="block py-1.5 px-2 rounded hover:bg-muted/50 transition-colors"
+													>
+														<div className="flex items-center justify-between">
+															<span className="text-sm">{test.name}</span>
+															<Badge
+																variant={
+																	test.status === "passed"
+																		? "success"
+																		: test.status === "failed"
+																			? "error"
+																			: "neutral"
+																}
+															>
+																{test.status}
+															</Badge>
+														</div>
+													</Link>
+												))}
+												{group.tests.length > 10 && (
+													<div className="text-xs text-muted-foreground pt-2">
+														+{group.tests.length - 10} more test
+														{group.tests.length - 10 !== 1 ? "s" : ""}
+													</div>
+												)}
+											</div>
+										</div>
+									))}
+								</div>
+							) : testFileGroups && testFileGroups.length === 0 ? (
+								<EmptyState
+									title="No test files found"
+									description="Run your tests with a Panoptes reporter to see tests organized by test file here."
+									image="/panoptes_under_fruit_tree.png"
+								/>
+							) : (
+								<EmptyState
+									title="No matching test files"
+									description="Try adjusting your filters to see more results."
+									image="/panoptes_under_fruit_tree.png"
+								/>
+							)}
+						</>
+					) : paginatedTests && paginatedTests.length > 0 ? (
 						<>
 							<div className="space-y-2">
 								{paginatedTests.map((test: Test) => {
