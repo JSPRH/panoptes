@@ -67,9 +67,9 @@ export default function TestRuns() {
 			args.testType = urlTestType as "unit" | "integration" | "e2e" | "visual";
 		}
 
-		if (startTimestamp !== null) {
-			args.startTimestamp = startTimestamp;
-		}
+		// When startTimestamp is null (period is "all"), pass 0 to show all historical data
+		// Otherwise pass the calculated timestamp
+		args.startTimestamp = startTimestamp ?? 0;
 
 		return args;
 	}, [selectedProjectId, urlTestType, startTimestamp]);
