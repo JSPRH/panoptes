@@ -1939,6 +1939,119 @@ export const getTestDefinitionHistory = query({
 });
 
 /**
+ * Get historical coverage data aggregated over time for charts
+ * Returns coverage metrics (lines, statements, branches, functions) over time periods
+ */
+export const getCoverageHistory = query({
+	args: {
+		projectId: v.optional(v.id("projects")),
+		startTimestamp: v.optional(v.number()),
+		limit: v.optional(v.number()),
+		useStatementCoverage: v.optional(v.boolean()),
+	},
+	handler: async (ctx, args) => {
+		const limit = args.limit ?? 100;
+		const startTimestamp = args.startTimestamp ?? Date.now() - 30 * 24 * 60 * 60 * 1000; // Default 30 days
+		const useStatementCoverage = args.useStatementCoverage ?? false;
+
+		// Find test runs with coverage within the time period
+		let testRuns: Doc<"testRuns">[];
+		if (args.projectId !== undefined) {
+			const projectId = args.projectId;
+			testRuns = await ctx.db
+				.query("testRuns")
+				.withIndex("by_project", (q) => q.eq("projectId", projectId))
+				.order("desc")
+				.take(limit * 2); // Get more runs to filter by coverage
+		} else {
+			testRuns = await ctx.db
+				.query("testRuns")
+				.withIndex("by_started_at")
+				.order("desc")
+				.take(limit * 2);
+		}
+
+		// Filter by time and find runs with coverage
+		const runsWithCoverage: Array<{ run: Doc<"testRuns">; coverage: Doc<"fileCoverage">[] }> = [];
+
+		for (const run of testRuns) {
+			if (run.startedAt < startTimestamp) break;
+
+			const coverage = await ctx.db
+				.query("fileCoverage")
+				.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
+				.take(COVERAGE_PER_RUN_LIMIT);
+
+			if (coverage.length > 0) {
+				runsWithCoverage.push({ run, coverage });
+			}
+
+			if (runsWithCoverage.length >= limit) break;
+		}
+
+		// Sort by startedAt ascending for chronological order
+		runsWithCoverage.sort((a, b) => a.run.startedAt - b.run.startedAt);
+
+		// Aggregate coverage metrics per run
+		return runsWithCoverage.map(({ run, coverage }) => {
+			let totalLinesCovered = 0;
+			let totalLinesTotal = 0;
+			let totalStatementsCovered = 0;
+			let totalStatementsTotal = 0;
+			let totalBranchesCovered = 0;
+			let totalBranchesTotal = 0;
+			let totalFunctionsCovered = 0;
+			let totalFunctionsTotal = 0;
+			let fileCount = 0;
+
+			for (const fc of coverage) {
+				totalLinesCovered += fc.linesCovered;
+				totalLinesTotal += fc.linesTotal;
+				if (fc.statementsCovered !== undefined && fc.statementsTotal !== undefined) {
+					totalStatementsCovered += fc.statementsCovered;
+					totalStatementsTotal += fc.statementsTotal;
+				}
+				if (fc.branchesCovered !== undefined && fc.branchesTotal !== undefined) {
+					totalBranchesCovered += fc.branchesCovered;
+					totalBranchesTotal += fc.branchesTotal;
+				}
+				if (fc.functionsCovered !== undefined && fc.functionsTotal !== undefined) {
+					totalFunctionsCovered += fc.functionsCovered;
+					totalFunctionsTotal += fc.functionsTotal;
+				}
+				fileCount++;
+			}
+
+			const linesCoverage = totalLinesTotal > 0 ? (totalLinesCovered / totalLinesTotal) * 100 : 0;
+			const statementsCoverage =
+				totalStatementsTotal > 0 ? (totalStatementsCovered / totalStatementsTotal) * 100 : 0;
+			const branchesCoverage =
+				totalBranchesTotal > 0 ? (totalBranchesCovered / totalBranchesTotal) * 100 : 0;
+			const functionsCoverage =
+				totalFunctionsTotal > 0 ? (totalFunctionsCovered / totalFunctionsTotal) * 100 : 0;
+
+			return {
+				date: run.startedAt,
+				linesCoverage,
+				statementsCoverage,
+				branchesCoverage,
+				functionsCoverage,
+				overallCoverage: useStatementCoverage ? statementsCoverage : linesCoverage,
+				fileCount,
+				totalLinesCovered,
+				totalLinesTotal,
+				totalStatementsCovered,
+				totalStatementsTotal,
+				totalBranchesCovered,
+				totalBranchesTotal,
+				totalFunctionsCovered,
+				totalFunctionsTotal,
+			};
+		});
+	},
+});
+
+/**
  * Fix test runs that have tests stuck in "running" status.
  * Converts all "running" tests to "failed" for runs that have completedAt set.
  */

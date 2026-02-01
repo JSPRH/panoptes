@@ -120,6 +120,29 @@ export default function TestExplorer() {
 	// Tests are already filtered server-side, so use them directly
 	const filteredTests = tests || [];
 
+	// Build test definition key for feature lookup when a test is expanded
+	const expandedTestDefinitionKey = useMemo(() => {
+		if (!expandedTestId) return null;
+		const test = filteredTests.find((t) => t._id === expandedTestId);
+		if (!test) return null;
+		return `${test.projectId}|${test.name}|${test.file}|${test.line ?? ""}`;
+	}, [expandedTestId, filteredTests]);
+
+	// Get feature mappings for the expanded test
+	// biome-ignore lint/suspicious/noExplicitAny: API types not generated yet for new tables
+	const featuresApi = (api as any).features;
+	const expandedTestFeatures = useQuery(
+		featuresApi?.getTestFeatureMappings,
+		expandedTestDefinitionKey ? { testDefinitionKey: expandedTestDefinitionKey } : "skip"
+	) as
+		| Array<{
+				_id: Id<"testFeatureMappings">;
+				featureId: Id<"features">;
+				confidence: number;
+				feature: { name: string; category?: string } | null;
+		  }>
+		| undefined;
+
 	const totalPages = Math.ceil((filteredTests?.length || 0) / ITEMS_PER_PAGE);
 	const paginatedTests = useMemo(() => {
 		if (!filteredTests) return [];
@@ -442,6 +465,37 @@ export default function TestExplorer() {
 															file={test.file}
 															showGitHubLink={false}
 														/>
+													)}
+													{/* Feature Tags */}
+													{expandedTestFeatures && expandedTestFeatures.length > 0 && (
+														<Card>
+															<CardHeader>
+																<CardTitle className="text-sm">Features Covered</CardTitle>
+															</CardHeader>
+															<CardContent>
+																<div className="flex flex-wrap gap-2">
+																	{expandedTestFeatures.map((mapping) =>
+																		mapping.feature ? (
+																			<Link
+																				key={mapping._id}
+																				to={`/features?feature=${mapping.featureId}`}
+																				className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm hover:bg-primary/20 transition-colors"
+																			>
+																				<span>{mapping.feature.name}</span>
+																				{mapping.feature.category && (
+																					<span className="text-xs opacity-70">
+																						({mapping.feature.category})
+																					</span>
+																				)}
+																				<span className="text-xs opacity-50">
+																					{Math.round(mapping.confidence * 100)}%
+																				</span>
+																			</Link>
+																		) : null
+																	)}
+																</div>
+															</CardContent>
+														</Card>
 													)}
 													{attachmentsWithUrls.length > 0 && (
 														<Card>

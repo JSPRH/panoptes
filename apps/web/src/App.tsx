@@ -11,6 +11,7 @@ import CIRuns from "./pages/CIRuns";
 import CodeLens from "./pages/CodeLens";
 import CoverageTree from "./pages/CoverageTree";
 import Dashboard from "./pages/Dashboard";
+import FeatureExplorer from "./pages/FeatureExplorer";
 import FileCoverageDetail from "./pages/FileCoverageDetail";
 import Homepage from "./pages/Homepage";
 import Imprint from "./pages/Imprint";
@@ -72,6 +73,7 @@ function App() {
 							<Route path="/agb" element={<AGB />} />
 							<Route path="/privacy" element={<Privacy />} />
 							<Route path="/pyramid" element={<TestPyramid />} />
+							<Route path="/features" element={<FeatureExplorer />} />
 							<Route path="/explorer" element={<TestExplorer />} />
 							<Route path="/runs" element={<TestRuns />} />
 							<Route path="/runs/:runId" element={<TestRunDetail />} />

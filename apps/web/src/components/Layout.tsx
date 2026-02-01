@@ -8,6 +8,7 @@ interface LayoutProps {
 const navItems = [
 	{ path: "/dashboard", label: "Dashboard" },
 	{ path: "/pyramid", label: "Test Pyramid" },
+	{ path: "/features", label: "Feature Explorer" },
 	{ path: "/explorer", label: "Test Explorer" },
 	{ path: "/runs", label: "Test Runs" },
 	{ path: "/coverage-tree", label: "Coverage Tree" },

@@ -11,6 +11,10 @@ import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { formatDuration, getPeriodStartTimestamp } from "../lib/chartUtils";
 
+type FeatureMapping = Doc<"testFeatureMappings"> & {
+	feature: Doc<"features"> | null;
+};
+
 type TestExecution = Doc<"tests"> & { ci?: boolean; commitSha?: string; runStartedAt?: number };
 
 function formatTime(ts: number): string {
@@ -61,6 +65,22 @@ export default function TestDetail() {
 				}
 			: "skip"
 	);
+
+	// Build test definition key for feature lookup
+	const testDefinitionKey = useMemo(() => {
+		if (!projectId || !name || !file) return null;
+		const decodedName = decodeURIComponent(name);
+		const decodedFile = decodeURIComponent(file);
+		return `${projectId}|${decodedName}|${decodedFile}|${line ?? ""}`;
+	}, [projectId, name, file, line]);
+
+	// Get feature mappings for this test
+	// biome-ignore lint/suspicious/noExplicitAny: API types not generated yet for new tables
+	const featuresApi = (api as any).features;
+	const featureMappings = useQuery(
+		featuresApi?.getTestFeatureMappings,
+		testDefinitionKey ? { testDefinitionKey } : "skip"
+	) as FeatureMapping[] | undefined;
 
 	const stats = useMemo(() => {
 		if (!executions) return null;
@@ -160,6 +180,31 @@ export default function TestDetail() {
 								{stats.failed > 0 && <Badge variant="error">{stats.failed} failed</Badge>}
 								{stats.skipped > 0 && <Badge variant="neutral">{stats.skipped} skipped</Badge>}
 							</div>
+							{/* Feature Tags */}
+							{featureMappings && featureMappings.length > 0 && (
+								<div className="mt-4 pt-4 border-t">
+									<div className="text-sm text-muted-foreground mb-2">Features Covered:</div>
+									<div className="flex flex-wrap gap-2">
+										{featureMappings.map((mapping) =>
+											mapping.feature ? (
+												<Link
+													key={mapping._id}
+													to={`/features?feature=${mapping.featureId}`}
+													className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm hover:bg-primary/20 transition-colors"
+												>
+													<span>{mapping.feature.name}</span>
+													{mapping.feature.category && (
+														<span className="text-xs opacity-70">({mapping.feature.category})</span>
+													)}
+													<span className="text-xs opacity-50">
+														{Math.round(mapping.confidence * 100)}%
+													</span>
+												</Link>
+											) : null
+										)}
+									</div>
+								</div>
+							)}
 						</div>
 					)}
 				</CardContent>

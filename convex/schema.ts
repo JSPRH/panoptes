@@ -392,4 +392,63 @@ export default defineSchema({
 	})
 		.index("by_file_commit", ["file", "commitSha"])
 		.index("by_project", ["projectId"]),
+
+	// Feature definitions discovered by AI or defined by users
+	features: defineTable({
+		projectId: v.id("projects"),
+		name: v.string(),
+		description: v.string(),
+		category: v.optional(v.string()), // e.g., "Authentication", "Checkout", "Dashboard"
+		userJourney: v.optional(v.string()), // High-level journey this belongs to
+		relatedFiles: v.array(v.string()), // Files that implement this feature
+		confidence: v.number(), // AI confidence score 0-1
+		isUserDefined: v.boolean(), // Was this defined/edited by user
+		status: v.union(v.literal("active"), v.literal("archived")),
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	})
+		.index("by_project", ["projectId"])
+		.index("by_category", ["projectId", "category"])
+		.searchIndex("search_name", { searchField: "name", filterFields: ["projectId"] }),
+
+	// Mappings between tests and features
+	testFeatureMappings: defineTable({
+		projectId: v.id("projects"),
+		testDefinitionKey: v.string(), // Same format as testDefinitionLatest
+		featureId: v.id("features"),
+		confidence: v.number(), // AI confidence 0-1
+		reason: v.string(), // Why this test maps to this feature
+		isUserConfirmed: v.boolean(),
+		createdAt: v.number(),
+	})
+		.index("by_feature", ["featureId"])
+		.index("by_test", ["testDefinitionKey"])
+		.index("by_project", ["projectId"]),
+
+	// Codebase analysis runs (onboarding/refresh)
+	codebaseAnalysis: defineTable({
+		projectId: v.id("projects"),
+		status: v.union(
+			v.literal("pending"),
+			v.literal("running"),
+			v.literal("completed"),
+			v.literal("failed")
+		),
+		progress: v.optional(
+			v.object({
+				phase: v.string(),
+				current: v.number(),
+				total: v.number(),
+			})
+		),
+		filesScanned: v.optional(v.number()),
+		featuresDiscovered: v.optional(v.number()),
+		testsMapped: v.optional(v.number()),
+		error: v.optional(v.string()),
+		startedAt: v.number(),
+		completedAt: v.optional(v.number()),
+		model: v.string(),
+	})
+		.index("by_project", ["projectId"])
+		.index("by_status", ["status"]),
 });
