@@ -6,9 +6,9 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import { ChartCard, CoverageTrendChart } from "../components/charts";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { ChartCard, CoverageTrendChart } from "../components/charts";
 import { getPeriodStartTimestamp } from "../lib/chartUtils";
 
 type Test = Doc<"tests">;

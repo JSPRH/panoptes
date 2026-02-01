@@ -6,12 +6,12 @@ import { useState } from "react";
 import { CoverageTree } from "../components/CoverageTree";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import { ChartCard, CoverageTrendChart } from "../components/charts";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Switch } from "../components/ui/switch";
-import type { TreeNode } from "../lib/pathUtils";
-import { ChartCard, CoverageTrendChart } from "../components/charts";
 import { getPeriodStartTimestamp } from "../lib/chartUtils";
+import type { TreeNode } from "../lib/pathUtils";
 
 export default function CoverageTreePage() {
 	const [useStatementCoverage, setUseStatementCoverage] = useState(false);

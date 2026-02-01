@@ -1,20 +1,20 @@
 import {
+	chartColors,
+	formatChartDate,
+	formatChartDateTime,
+	formatPercentage,
+} from "@/lib/chartUtils";
+import {
+	Area,
+	AreaChart,
+	Legend,
 	Line,
 	LineChart,
 	ResponsiveContainer,
 	Tooltip,
 	XAxis,
 	YAxis,
-	Legend,
-	Area,
-	AreaChart,
 } from "recharts";
-import {
-	formatChartDate,
-	formatChartDateTime,
-	formatPercentage,
-	chartColors,
-} from "@/lib/chartUtils";
 import type { TooltipProps } from "recharts";
 
 interface CoverageTrendChartProps {
