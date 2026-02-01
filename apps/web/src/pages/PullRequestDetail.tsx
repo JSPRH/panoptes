@@ -156,7 +156,7 @@ export default function PullRequestDetail() {
 
 	const selectedPR = pr as PullRequest;
 
-	const handleTriggerCloudAgent = async (actionType?: CloudAgentActionType) => {
+	const handleTriggerCloudAgent = async (actionType?: CloudAgentActionType, createPR?: boolean) => {
 		if (!latestFailedCIRun) {
 			throw new Error("No failed CI run found");
 		}
@@ -166,19 +166,35 @@ export default function PullRequestDetail() {
 		const result = await triggerCloudAgent({
 			ciRunId: latestFailedCIRun._id,
 			actionType: validActionType,
+			createPR: createPR ?? true, // Default to true for backward compatibility
 		});
 		// Handle restart_ci case
 		if ("success" in result && result.success) {
-			return { agentUrl: undefined, prUrl: undefined };
+			return {
+				agentUrl: undefined,
+				prUrl: undefined,
+				branch: undefined,
+				commitSha: undefined,
+				createPR: undefined,
+			};
 		}
 		// Handle agent launch case
 		if ("agentId" in result) {
 			return {
 				agentUrl: result.agentUrl,
 				prUrl: result.prUrl,
+				branch: result.branch,
+				commitSha: result.commitSha,
+				createPR: result.createPR,
 			};
 		}
-		return { agentUrl: undefined, prUrl: undefined };
+		return {
+			agentUrl: undefined,
+			prUrl: undefined,
+			branch: undefined,
+			commitSha: undefined,
+			createPR: undefined,
+		};
 	};
 
 	return (
@@ -303,6 +319,7 @@ export default function PullRequestDetail() {
 									onTrigger={handleTriggerCloudAgent}
 									actionType="fix_bug"
 									showActionSelector={true}
+									showPRToggle={true}
 									className="w-full"
 									variant="default"
 									size="default"

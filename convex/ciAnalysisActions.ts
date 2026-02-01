@@ -356,13 +356,22 @@ export const triggerCursorCloudAgent = action({
 		actionType: v.optional(
 			v.union(v.literal("restart_ci"), v.literal("fix_test"), v.literal("fix_bug"))
 		),
+		createPR: v.optional(v.boolean()),
 	},
 	handler: async (
 		ctx,
 		args
 	): Promise<
 		| { success: true; action: "restart_ci"; message: string }
-		| { agentId: string; agentUrl: string; prUrl?: string; action: string }
+		| {
+				agentId: string;
+				agentUrl: string;
+				prUrl?: string;
+				action: string;
+				branch: string;
+				commitSha?: string;
+				createPR: boolean;
+		  }
 	> => {
 		// Get CI run and project info
 		const ciRun = await ctx.runQuery(internal.github._getCIRunById, {
@@ -500,6 +509,9 @@ Ensure all tests pass after your changes.`;
 			}
 		}
 
+		// Determine if we should create a PR or push directly to branch
+		const shouldCreatePR = args.createPR ?? true; // Default to true for backward compatibility
+
 		// Call Cursor Cloud Agents API
 		// See: https://cursor.com/docs/cloud-agent/api/endpoints#launch-an-agent
 		const response = await fetch("https://api.cursor.com/v0/agents", {
@@ -517,7 +529,7 @@ Ensure all tests pass after your changes.`;
 					ref,
 				},
 				target: {
-					autoCreatePr: true,
+					autoCreatePr: shouldCreatePR,
 					openAsCursorGithubApp: false,
 					skipReviewerRequest: false,
 				},
@@ -593,6 +605,9 @@ Ensure all tests pass after your changes.`;
 			agentUrl,
 			prUrl: result.target?.prUrl,
 			action: args.actionType || "fix_bug",
+			branch: ciRun.branch,
+			commitSha: ciRun.commitSha,
+			createPR: shouldCreatePR,
 		};
 	},
 });

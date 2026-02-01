@@ -2976,6 +2976,8 @@ components:
             ciRunId:
               type: string
               description: ID from table "ciRuns"
+            createPR:
+              type: boolean
 
     Response_ciAnalysisActions.triggerCursorCloudAgent:
       type: object
