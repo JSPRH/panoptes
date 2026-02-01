@@ -758,6 +758,68 @@ paths:
               schema:
                 $ref: "#/components/schemas/FailedResponse"
 
+  /api/run/github/getPR:
+    post:
+      summary: Calls a query at the path github.js:getPR
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getPR"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getPR"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getCIRunsForPR:
+    post:
+      summary: Calls a query at the path github.js:getCIRunsForPR
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getCIRunsForPR"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getCIRunsForPR"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
   /api/run/github/getCodeSnippetForTest:
     post:
       summary: Calls a query at the path github.js:getCodeSnippetForTest
@@ -3925,6 +3987,74 @@ components:
           type: object
         value: {}
 
+    Request_github.getPR:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - prNumber
+            - projectId
+          properties:
+            prNumber:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_github.getPR:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getCIRunsForPR:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - branch
+            - projectId
+          properties:
+            branch:
+              type: string
+            commitSha:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_github.getCIRunsForPR:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
     Request_github.getCodeSnippetForTest:
       type: object
       required:
@@ -4049,6 +4179,8 @@ components:
             - tests
             - totalTests
           properties:
+            branch:
+              type: string
             ci:
               type: boolean
             commitSha:
@@ -4123,8 +4255,12 @@ components:
                 - type: string
                   enum:
                     - "other"
+            githubRunId:
+              type: number
             metadata: {}
             passedTests:
+              type: number
+            prNumber:
               type: number
             projectId:
               type: string

@@ -41,6 +41,17 @@ export default defineConfig({
 		screenshot: "only-on-failure",
 	},
 
+	/* Visual comparison configuration */
+	expect: {
+		/* Maximum time expect() should wait for the condition to be met. */
+		timeout: 5000,
+		/* Threshold for visual comparison (0-1) */
+		toHaveScreenshot: {
+			threshold: 0.2,
+			maxDiffPixels: 100,
+		},
+	},
+
 	/* Configure projects for major browsers */
 	projects: [
 		{

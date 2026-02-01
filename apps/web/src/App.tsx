@@ -17,6 +17,7 @@ import FileCoverageDetail from "./pages/FileCoverageDetail";
 import Homepage from "./pages/Homepage";
 import Imprint from "./pages/Imprint";
 import Privacy from "./pages/Privacy";
+import PullRequestDetail from "./pages/PullRequestDetail";
 import PullRequests from "./pages/PullRequests";
 import TestDetail from "./pages/TestDetail";
 import TestExecutionDetail from "./pages/TestExecutionDetail";
@@ -87,6 +88,7 @@ function App() {
 							<Route path="/ci-runs" element={<CIRuns />} />
 							<Route path="/ci-runs/:runId" element={<CIRunDetail />} />
 							<Route path="/pull-requests" element={<PullRequests />} />
+							<Route path="/pull-requests/:projectId/:prNumber" element={<PullRequestDetail />} />
 							<Route path="/api-docs" element={<APIDocs />} />
 						</Routes>
 					</Layout>

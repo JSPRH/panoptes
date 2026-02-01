@@ -39,6 +39,9 @@ export const ingestTestRun = mutation({
 		commitSha: v.optional(v.string()),
 		triggeredBy: v.optional(v.string()),
 		reporterVersion: v.optional(v.string()),
+		branch: v.optional(v.string()),
+		githubRunId: v.optional(v.number()),
+		prNumber: v.optional(v.number()),
 		tests: v.array(
 			v.object({
 				name: v.string(),
@@ -198,6 +201,21 @@ export const ingestTestRun = mutation({
 			}
 		}
 
+		// Try to find matching CI run if githubRunId is provided
+		let ciRunId: Id<"ciRuns"> | undefined = undefined;
+		if (args.githubRunId && projectId) {
+			// Find CI run by matching runId and projectId
+			// Note: ciRuns.runId is the GitHub workflow run ID
+			const ciRuns = await ctx.db
+				.query("ciRuns")
+				.withIndex("by_project", (q) => q.eq("projectId", projectId))
+				.collect();
+			const matchingCIRun = ciRuns.find((run) => run.runId === args.githubRunId);
+			if (matchingCIRun) {
+				ciRunId = matchingCIRun._id;
+			}
+		}
+
 		// Create test run
 		const testRunId = await ctx.db.insert("testRuns", {
 			projectId,
@@ -214,8 +232,12 @@ export const ingestTestRun = mutation({
 			environment: args.environment,
 			ci: args.ci,
 			commitSha: args.commitSha,
+			ciRunId,
 			triggeredBy: args.triggeredBy,
 			reporterVersion: args.reporterVersion,
+			branch: args.branch,
+			githubRunId: args.githubRunId,
+			prNumber: args.prNumber,
 			metadata: args.metadata,
 		});
 

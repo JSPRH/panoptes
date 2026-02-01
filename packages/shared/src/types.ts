@@ -79,6 +79,9 @@ export const TestRunIngestSchema = z.object({
 	commitSha: z.string().optional(),
 	triggeredBy: z.string().optional(),
 	reporterVersion: z.string().optional(),
+	branch: z.string().optional(),
+	githubRunId: z.number().optional(),
+	prNumber: z.number().optional(),
 	tests: z.array(TestResultSchema),
 	suites: z
 		.array(

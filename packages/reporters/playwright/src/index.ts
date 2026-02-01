@@ -60,6 +60,75 @@ function getTriggeredBy(): string | undefined {
 	}
 }
 
+function getBranch(): string | undefined {
+	// GitHub Actions: GITHUB_REF contains the branch or PR ref
+	if (process.env.GITHUB_REF) {
+		// GITHUB_REF can be:
+		// - refs/heads/branch-name (for push events)
+		// - refs/pull/N/merge (for pull_request events)
+		// - refs/tags/tag-name (for tag events)
+		const ref = process.env.GITHUB_REF;
+		// Extract branch name from refs/heads/branch-name
+		if (ref.startsWith("refs/heads/")) {
+			return ref.replace("refs/heads/", "");
+		}
+		// For PRs, extract the branch from GITHUB_HEAD_REF if available
+		if (process.env.GITHUB_HEAD_REF) {
+			return process.env.GITHUB_HEAD_REF;
+		}
+		// Fallback to the ref as-is (might be useful)
+		return ref;
+	}
+	// CircleCI
+	if (process.env.CIRCLE_BRANCH) return process.env.CIRCLE_BRANCH;
+	// GitLab CI
+	if (process.env.CI_COMMIT_REF_NAME) return process.env.CI_COMMIT_REF_NAME;
+	// Try to get from git in local environment
+	try {
+		const { execSync } = require("node:child_process");
+		return execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf-8" }).trim();
+	} catch {
+		return undefined;
+	}
+}
+
+function getGitHubRunId(): number | undefined {
+	if (process.env.GITHUB_RUN_ID) {
+		const runId = Number.parseInt(process.env.GITHUB_RUN_ID, 10);
+		if (!Number.isNaN(runId)) {
+			return runId;
+		}
+	}
+	return undefined;
+}
+
+function getPRNumber(): number | undefined {
+	// GitHub Actions: GITHUB_REF for pull_request events is refs/pull/N/merge
+	if (process.env.GITHUB_REF) {
+		const ref = process.env.GITHUB_REF;
+		const match = ref.match(/^refs\/pull\/(\d+)\//);
+		if (match) {
+			const prNumber = Number.parseInt(match[1], 10);
+			if (!Number.isNaN(prNumber)) {
+				return prNumber;
+			}
+		}
+	}
+	// Also check GITHUB_EVENT_PATH if available (contains full event JSON)
+	if (process.env.GITHUB_EVENT_PATH) {
+		try {
+			const fs = require("node:fs");
+			const eventData = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, "utf-8"));
+			if (eventData.pull_request?.number) {
+				return eventData.pull_request.number;
+			}
+		} catch {
+			// Silently fail if we can't read the event file
+		}
+	}
+	return undefined;
+}
+
 function getReporterVersion(): string | undefined {
 	try {
 		// Try to read package.json from the package directory
@@ -192,6 +261,17 @@ export default class PanoptesReporter implements Reporter {
 		const failedTests = this.tests.filter((t) => t.status === "failed").length;
 		const skippedTests = this.tests.filter((t) => t.status === "skipped").length;
 
+		// Detect if this is a visual test run
+		// Check if any test file path contains "visual" or if tests have screenshot attachments
+		const hasVisualTests =
+			this.tests.some(
+				(t) =>
+					t.file.toLowerCase().includes("visual") ||
+					t.attachments?.some((att) => att.name.toLowerCase().includes("screenshot"))
+			) || this.tests.some((t) => t.tags?.includes("visual"));
+
+		const testType: "unit" | "integration" | "e2e" | "visual" = hasVisualTests ? "visual" : "e2e";
+
 		// Build suite data
 		const suiteData = Array.from(this.suites.values()).map((suite) => {
 			const suiteTests = suite.tests;
@@ -216,7 +296,7 @@ export default class PanoptesReporter implements Reporter {
 		const testRun: TestRunIngest = {
 			projectName: this.options.projectName,
 			framework: "playwright",
-			testType: "e2e", // Playwright is typically e2e tests
+			testType,
 			startedAt: this.startTime,
 			completedAt: endTime,
 			duration,
@@ -229,12 +309,15 @@ export default class PanoptesReporter implements Reporter {
 			commitSha: getCommitSha(),
 			triggeredBy: getTriggeredBy(),
 			reporterVersion: getReporterVersion(),
+			branch: getBranch(),
+			githubRunId: getGitHubRunId(),
+			prNumber: getPRNumber(),
 			tests: this.tests,
 			suites: suiteData,
 		};
 
 		console.log(
-			`[Panoptes] Sending test run: project=${this.options.projectName}, testType=e2e, totalTests=${this.tests.length}, passed=${passedTests}, failed=${failedTests}, skipped=${skippedTests}`
+			`[Panoptes] Sending test run: project=${this.options.projectName}, testType=${testType}, totalTests=${this.tests.length}, passed=${passedTests}, failed=${failedTests}, skipped=${skippedTests}`
 		);
 
 		if (!this.options.convexUrl) {

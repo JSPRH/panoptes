@@ -3,6 +3,7 @@ import { api } from "@convex/_generated/api.js";
 import type { Doc } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { GitHubPageHeader } from "../components/GitHubPageHeader";
 import { ProjectSelector } from "../components/ProjectSelector";
@@ -70,9 +71,10 @@ export default function PullRequests() {
 						{prs && prs.length > 0 ? (
 							<div className="space-y-2">
 								{prs.map((pr: PullRequest) => (
-									<div
+									<Link
 										key={pr._id}
-										className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
+										to={`/pull-requests/${pr.projectId}/${pr.prNumber}`}
+										className="flex items-center justify-between py-3 px-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
 									>
 										<div className="flex-1">
 											<div className="flex items-center gap-2">
@@ -96,11 +98,12 @@ export default function PullRequests() {
 												target="_blank"
 												rel="noopener noreferrer"
 												className="text-sm text-primary hover:underline"
+												onClick={(e) => e.stopPropagation()}
 											>
 												View on GitHub
 											</a>
 										</div>
-									</div>
+									</Link>
 								))}
 							</div>
 						) : (

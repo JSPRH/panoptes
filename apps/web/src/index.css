@@ -74,8 +74,15 @@
 	* {
 		@apply border-border;
 	}
+	html,
+	body {
+		@apply h-full;
+	}
 	body {
 		@apply bg-background text-foreground font-sans antialiased;
+	}
+	#root {
+		@apply min-h-full;
 	}
 	h1,
 	h2,

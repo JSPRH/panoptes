@@ -44,6 +44,9 @@ export default defineSchema({
 		ciRunId: v.optional(v.id("ciRuns")),
 		triggeredBy: v.optional(v.string()),
 		reporterVersion: v.optional(v.string()),
+		branch: v.optional(v.string()),
+		githubRunId: v.optional(v.number()),
+		prNumber: v.optional(v.number()),
 		metadata: v.optional(v.any()),
 	})
 		.index("by_project", ["projectId"])

@@ -1721,6 +1721,49 @@ export const getPRsForProject = query({
 	},
 });
 
+export const getPR = query({
+	args: {
+		projectId: v.id("projects"),
+		prNumber: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const results = await ctx.db
+			.query("pullRequests")
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.filter((q) => q.eq(q.field("prNumber"), args.prNumber))
+			.first();
+
+		return results;
+	},
+});
+
+export const getCIRunsForPR = query({
+	args: {
+		projectId: v.id("projects"),
+		branch: v.string(),
+		commitSha: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		// Get all CI runs for the project
+		const allRuns = await ctx.db
+			.query("ciRuns")
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.order("desc")
+			.collect();
+
+		// Filter by branch, and optionally by commitSha if provided
+		const matchingRuns = allRuns.filter((run) => {
+			const branchMatch = run.branch === args.branch;
+			if (args.commitSha) {
+				return branchMatch && run.commitSha === args.commitSha;
+			}
+			return branchMatch;
+		});
+
+		return matchingRuns;
+	},
+});
+
 export const getCodeSnippetForTest = query({
 	args: {
 		testId: v.id("tests"),

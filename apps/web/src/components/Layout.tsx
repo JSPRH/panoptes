@@ -83,10 +83,10 @@ export default function Layout({ children }: LayoutProps) {
 
 					{/* Sidebar on lg+ */}
 					<aside className="hidden lg:flex lg:w-56 lg:min-w-[14rem] border-r border-border bg-card flex-shrink-0">
-						<div className="sticky top-0 flex flex-col w-full min-h-screen">
+						<div className="sticky top-0 flex flex-col w-full h-screen">
 							<Link
 								to="/"
-								className="px-4 py-5 border-b border-border flex items-center gap-2 hover:opacity-80 transition-opacity"
+								className="px-4 py-5 border-b border-border flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0"
 							>
 								<img
 									src="/panoptes_logo_icon_only.png"
@@ -96,7 +96,7 @@ export default function Layout({ children }: LayoutProps) {
 								/>
 								<span className="font-heading font-semibold text-lg text-foreground">Panoptes</span>
 							</Link>
-							<nav className="flex-1 overflow-y-auto py-3">
+							<nav className="flex-1 overflow-y-auto py-3 min-h-0">
 								<div className="space-y-0.5 px-3">
 									<NavLinks currentPath={location.pathname} variant="sidebar" />
 								</div>
