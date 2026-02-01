@@ -24,7 +24,8 @@
 		"test:e2e:ui": "bun run --cwd apps/web test:e2e:ui",
 		"ci": "bun run lint && bun run typecheck && bun run test && bun run build",
 		"prepare": "bun run install-git-hooks",
-		"install-git-hooks": "cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"
+		"install-git-hooks": "cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit",
+		"openapi:generate": "convex-helpers open-api-spec --output-file convex-spec.yaml"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.8.0",
@@ -35,6 +36,7 @@
 		"@vitest/coverage-v8": "^4.0.18",
 		"@vitest/ui": "^4.0.18",
 		"convex": "^1.12.0",
+		"convex-helpers": "^0.1.111",
 		"jsdom": "^27.4.0",
 		"typescript": "^5.3.3",
 		"vitest": "^4.0.18"
