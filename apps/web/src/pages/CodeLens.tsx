@@ -1,6 +1,6 @@
 // @ts-ignore - Convex generates this file
 import { api } from "@convex/_generated/api.js";
-import type { Doc } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -8,6 +8,8 @@ import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { ChartCard, CoverageTrendChart } from "../components/charts";
+import { getPeriodStartTimestamp } from "../lib/chartUtils";
 
 type Test = Doc<"tests">;
 type FileCoverageDoc = Doc<"fileCoverage">;
@@ -24,6 +26,8 @@ export default function CodeLens() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [sortBy, setSortBy] = useState<SortOption>("coverage");
 	const [sortDesc, setSortDesc] = useState(true);
+	const [period, setPeriod] = useState("30d");
+	const [showAllMetrics, setShowAllMetrics] = useState(false);
 
 	const tests = useQuery(api.tests.getTests, { limit: 500 });
 	const testRuns = useQuery(api.tests.getTestRuns, { limit: 10 });
@@ -31,6 +35,27 @@ export default function CodeLens() {
 	const coverageForRun = useQuery(
 		api.tests.getCoverageForTestRun,
 		latestTestRunId ? { testRunId: latestTestRunId } : "skip"
+	);
+
+	// Get historical coverage data
+	const startTimestamp = getPeriodStartTimestamp(period);
+	const projectId = testRuns?.[0]?.projectId;
+	const coverageHistory = useQuery(
+		api.tests.getCoverageHistory,
+		projectId && startTimestamp
+			? {
+					projectId: projectId as Id<"projects">,
+					startTimestamp,
+					limit: 100,
+					useStatementCoverage: false,
+				}
+			: projectId
+				? {
+						projectId: projectId as Id<"projects">,
+						limit: 100,
+						useStatementCoverage: false,
+					}
+				: "skip"
 	);
 
 	// Map file path -> LOC coverage (from latest run that has coverage)
@@ -116,6 +141,33 @@ export default function CodeLens() {
 				title="Code Lens"
 				description="Test coverage mapped to source files (files being tested, not test files)"
 			/>
+
+			{coverageHistory && coverageHistory.length > 0 && (
+				<ChartCard
+					title="Coverage Trend Over Time"
+					description="Overall code coverage trends across test runs"
+					selectedPeriod={period}
+					onPeriodChange={setPeriod}
+				>
+					<div className="mb-4 flex items-center gap-4">
+						<label className="flex items-center gap-2 text-sm">
+							<input
+								type="checkbox"
+								checked={showAllMetrics}
+								onChange={(e) => setShowAllMetrics(e.target.checked)}
+								className="rounded border-border"
+							/>
+							<span className="text-muted-foreground">Show all metrics (Lines, Statements, Branches, Functions)</span>
+						</label>
+					</div>
+					<CoverageTrendChart
+						data={coverageHistory}
+						showArea
+						height={300}
+						showAllMetrics={showAllMetrics}
+					/>
+				</ChartCard>
+			)}
 
 			<Card>
 				<CardHeader>
