@@ -96,6 +96,27 @@ The commit SHA is stored in the `testRuns` table and can be used to:
 
 Panoptes supports triggering Cursor Cloud Agents to automatically fix failing tests.
 
+### Setup
+
+**IMPORTANT: GitHub Access Requirement**
+
+The Cursor Cloud Agents API requires that your `CURSOR_API_KEY` is associated with a GitHub account or organization that has access to the repository you're trying to work on.
+
+1. **Get your Cursor API key** from [Cursor Dashboard](https://cursor.com/settings)
+2. **Ensure the API key is linked to a GitHub account** that has access to your repository:
+   - For private repositories: The GitHub account must have read/write access
+   - For organization repositories: The account must be a member of the organization with appropriate permissions
+3. **Add the API key to Convex secrets**:
+   - Go to Convex Dashboard → Settings → Environment Variables
+   - Add `CURSOR_API_KEY` with your API key value
+
+**Repository URL Format**: The repository URL stored in your project can be in any of these formats:
+- `https://github.com/owner/repo`
+- `git@github.com:owner/repo.git`
+- `owner/repo`
+
+Panoptes will automatically normalize it to the full GitHub URL format (`https://github.com/owner/repo`) when calling the Cursor API.
+
 ### Option 1: GitHub Action (Recommended)
 
 Add the workflow to your repository:
@@ -172,6 +193,34 @@ Check:
 - Check that the file exists in the repository
 - Ensure the commit SHA is valid (if using a specific commit)
 - Make sure the token has read access to the repository
+
+### "Cursor Cloud Agents API error: 400 - You do not have access to repository..."
+
+This error means the Cursor API key is not associated with a GitHub account that has access to the repository.
+
+**Solutions:**
+
+1. **Verify API key is linked to GitHub**:
+   - Go to [Cursor Dashboard](https://cursor.com/settings)
+   - Check that your API key is associated with a GitHub account
+   - Ensure the GitHub account has access to the repository
+
+2. **For private repositories**:
+   - The GitHub account linked to your Cursor API key must have read/write access to the private repository
+   - If it's an organization repository, ensure the account is a member with appropriate permissions
+
+3. **For organization repositories**:
+   - The GitHub account must be a member of the organization
+   - The account must have at least read access to the repository
+   - Organization admins may need to grant access
+
+4. **Repository URL format**:
+   - Panoptes automatically normalizes repository URLs to `https://github.com/owner/repo` format
+   - Ensure the repository URL in your project settings is correct (supports: `owner/repo`, `https://github.com/owner/repo`, or `git@github.com:owner/repo.git`)
+
+5. **Check API key permissions**:
+   - Verify the API key hasn't expired
+   - Ensure the API key has the necessary permissions for Cloud Agents
 
 ## Rate Limiting
 

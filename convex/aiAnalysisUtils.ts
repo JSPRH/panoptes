@@ -29,6 +29,38 @@ export function getCursorApiKey(): string {
 }
 
 /**
+ * Normalize a repository URL to the full GitHub URL format required by Cursor Cloud Agents API.
+ * Supports formats: https://github.com/owner/repo, git@github.com:owner/repo.git, owner/repo
+ * Returns: https://github.com/owner/repo
+ */
+export function normalizeRepositoryUrl(repository: string): string {
+	// If already a full GitHub URL, return as-is
+	if (repository.startsWith("https://github.com/")) {
+		// Remove trailing .git if present
+		return repository.replace(/\.git$/, "").replace(/\/$/, "");
+	}
+
+	// Parse owner/repo from various formats
+	const patterns = [
+		/https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?(?:\/|$)/,
+		/git@github\.com:([^\/]+)\/([^\/]+?)(?:\.git)?$/,
+		/^([^\/]+)\/([^\/]+)$/,
+	];
+
+	for (const pattern of patterns) {
+		const match = repository.match(pattern);
+		if (match) {
+			return `https://github.com/${match[1]}/${match[2]}`;
+		}
+	}
+
+	// If we can't parse it, throw an error
+	throw new Error(
+		`Invalid repository URL format: ${repository}. Expected formats: https://github.com/owner/repo, git@github.com:owner/repo.git, or owner/repo`
+	);
+}
+
+/**
  * Create an OpenAI client instance.
  */
 export function createOpenAIClient() {

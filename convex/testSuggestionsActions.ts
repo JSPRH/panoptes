@@ -6,7 +6,7 @@ import { z } from "zod";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action } from "./_generated/server";
-import { createOpenAIClient } from "./aiAnalysisUtils";
+import { createOpenAIClient, getCursorApiKey, normalizeRepositoryUrl } from "./aiAnalysisUtils";
 
 export const generateTestSuggestions = action({
 	args: {
@@ -255,13 +255,13 @@ Please:
 
 Focus on covering the uncovered lines listed above.`;
 
-		const apiKey = process.env.CURSOR_API_KEY;
-		if (!apiKey) {
-			throw new Error("CURSOR_API_KEY not configured in Convex secrets");
-		}
+		const apiKey = getCursorApiKey();
 
 		// Determine branch/ref to use
 		const ref = args.commitSha || "main";
+
+		// Normalize repository URL to full GitHub URL format required by Cursor API
+		const repository = normalizeRepositoryUrl(project.repository);
 
 		// Call Cursor Cloud Agents API
 		const response = await fetch("https://api.cursor.com/v0/agents", {
@@ -275,7 +275,7 @@ Focus on covering the uncovered lines listed above.`;
 					text: prompt,
 				},
 				source: {
-					repository: project.repository,
+					repository,
 					ref,
 				},
 				target: {

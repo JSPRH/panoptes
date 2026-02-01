@@ -4,7 +4,12 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
-import { CIRunFailureAnalysisSchema, analyzeFailure, getCursorApiKey } from "./aiAnalysisUtils";
+import {
+	CIRunFailureAnalysisSchema,
+	analyzeFailure,
+	getCursorApiKey,
+	normalizeRepositoryUrl,
+} from "./aiAnalysisUtils";
 
 /**
  * Internal action that processes a failed CI run by fetching logs and analyzing.
@@ -289,8 +294,9 @@ Please fix the issue and ensure all tests pass.`;
 
 			// Generate background agent data for Cloud Agents API
 			// See: https://cursor.com/docs/cloud-agent/api/endpoints
+			// Normalize repository URL to full GitHub URL format required by Cursor API
 			const cursorBackgroundAgentData = {
-				repository: project.repository,
+				repository: normalizeRepositoryUrl(project.repository),
 				ref: ciRun.branch,
 				prompt: cursorPrompt,
 			};
@@ -378,8 +384,12 @@ export const triggerCursorCloudAgent = action({
 			throw new Error("Background agent data not available");
 		}
 
-		const { repository, ref } = analysis.analysis.cursorBackgroundAgentData;
+		const { repository: rawRepository, ref } = analysis.analysis.cursorBackgroundAgentData;
 		const apiKey = getCursorApiKey();
+
+		// Normalize repository URL to full GitHub URL format required by Cursor API
+		// (in case it was stored in a different format)
+		const repository = normalizeRepositoryUrl(rawRepository);
 
 		// Build prompt based on action type
 		let prompt = analysis.analysis.cursorBackgroundAgentData.prompt;

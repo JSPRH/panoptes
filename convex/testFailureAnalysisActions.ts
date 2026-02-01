@@ -11,6 +11,7 @@ import {
 	analyzeFailureWithImages,
 	formatCodeSnippet,
 	getCursorApiKey,
+	normalizeRepositoryUrl,
 } from "./aiAnalysisUtils";
 
 export const analyzeTestFailure = action({
@@ -327,6 +328,9 @@ Please fix the bug and ensure the test passes.`;
 			ref = testRun.commitSha;
 		}
 
+		// Normalize repository URL to full GitHub URL format required by Cursor API
+		const repository = normalizeRepositoryUrl(project.repository);
+
 		// Call Cursor Cloud Agents API
 		// See: https://cursor.com/docs/cloud-agent/api/endpoints#launch-an-agent
 		const response = await fetch("https://api.cursor.com/v0/agents", {
@@ -340,7 +344,7 @@ Please fix the bug and ensure the test passes.`;
 					text: prompt,
 				},
 				source: {
-					repository: project.repository,
+					repository,
 					ref,
 				},
 				target: {
