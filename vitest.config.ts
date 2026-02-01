@@ -10,10 +10,23 @@ export default defineConfig({
 		},
 	},
 	test: {
-		environment: "jsdom",
+		environmentMatchGlobs: [
+			// All tests in convex/ will run in edge-runtime
+			["convex/**", "edge-runtime"],
+			// React component integration tests need jsdom (not edge-runtime)
+			// Only backend integration tests in convex/ use edge-runtime
+			// All other tests use jsdom
+			["**", "jsdom"],
+		],
 		setupFiles: ["./apps/web/src/test-setup.ts"],
-		exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
-		include: ["tests/**/*.test.ts", "apps/web/src/**/*.test.ts", "apps/web/src/**/*.test.tsx"],
+		exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**", "**/*.spec.ts", "**/*.spec.tsx"],
+		include: [
+			"tests/**/*.test.ts",
+			"apps/web/src/**/*.test.ts",
+			"apps/web/src/**/*.test.tsx",
+			"convex/**/*.test.ts",
+		],
+		server: { deps: { inline: ["convex-test"] } },
 		reporters: [
 			"default",
 			new PanoptesReporter({

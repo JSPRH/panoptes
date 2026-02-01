@@ -1,23 +1,31 @@
-import { expect, test } from "@playwright/test";
+// This file contains Playwright e2e tests
+// It is skipped when running with bun test - use `bun run test:e2e` to run these tests
 
-test.describe("Dashboard", () => {
-	test("should load the dashboard page", async ({ page }) => {
-		await page.goto("/");
-		await expect(page).toHaveTitle(/Panoptes/);
-	});
+// @ts-ignore - Check if running with bun test
+if (typeof Bun === "undefined") {
+	// Only execute when NOT running with bun test (i.e., with Playwright)
+	const setupTests = async () => {
+		const { expect, test } = await import("@playwright/test");
 
-	test("should display page header", async ({ page }) => {
-		await page.goto("/dashboard");
-		// Check for dashboard header text
-		const header = page.getByRole("heading", { name: /dashboard/i });
-		await expect(header).toBeVisible();
-	});
+		test.describe("Dashboard", () => {
+			test("should load the dashboard page", async ({ page }) => {
+				await page.goto("/");
+				await expect(page).toHaveTitle(/Panoptes/);
+			});
 
-	test("should have navigation links", async ({ page }) => {
-		await page.goto("/dashboard");
-		// Check for navigation elements - these should be visible in the layout
-		// Use first() since there are two nav elements (mobile and desktop), but only one is visible at a time
-		const nav = page.locator("nav").first();
-		await expect(nav).toBeVisible();
-	});
-});
+			test("should display page header", async ({ page }) => {
+				await page.goto("/dashboard");
+				const header = page.getByRole("heading", { name: /dashboard/i });
+				await expect(header).toBeVisible();
+			});
+
+			test("should have navigation links", async ({ page }) => {
+				await page.goto("/dashboard");
+				const nav = page.locator("nav").first();
+				await expect(nav).toBeVisible();
+			});
+		});
+	};
+
+	setupTests();
+}
