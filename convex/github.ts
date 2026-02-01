@@ -754,6 +754,201 @@ export const getAvailableRepositories = action({
 	},
 });
 
+interface GitHubTreeItem {
+	path: string;
+	mode: string;
+	type: "blob" | "tree";
+	sha: string;
+	size?: number;
+}
+
+/**
+ * Get the full file tree of a repository.
+ * Uses the GitHub Trees API to fetch the entire file structure.
+ * Filters to relevant source files and excludes test files, node_modules, etc.
+ */
+export const getRepositoryTree = action({
+	args: {
+		projectId: v.id("projects"),
+		ref: v.optional(v.string()), // branch or commit SHA, defaults to default branch
+		includeTestFiles: v.optional(v.boolean()), // include test files in results
+	},
+	handler: async (ctx, args) => {
+		const project = await ctx.runQuery(internal.github._getProject, {
+			projectId: args.projectId,
+		});
+
+		if (!project) {
+			throw new Error("Project not found");
+		}
+
+		if (!project.repository) {
+			throw new Error("Project repository not configured");
+		}
+
+		const repoInfo = parseRepositoryUrl(project.repository);
+		if (!repoInfo) {
+			throw new Error(`Invalid repository URL: ${project.repository}`);
+		}
+
+		const token = getGitHubToken();
+		const ref = args.ref || "HEAD";
+
+		// Fetch the tree recursively
+		const response = await fetch(
+			`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/git/trees/${ref}?recursive=1`,
+			{
+				headers: {
+					Authorization: `Bearer ${token}`,
+					Accept: "application/vnd.github.v3+json",
+				},
+			}
+		);
+
+		if (!response.ok) {
+			const error = await response.text();
+			throw new Error(`GitHub API error: ${response.status} - ${error}`);
+		}
+
+		const data = (await response.json()) as {
+			sha: string;
+			tree: GitHubTreeItem[];
+			truncated: boolean;
+		};
+
+		// Source file extensions to include
+		const sourceExtensions = [
+			".ts",
+			".tsx",
+			".js",
+			".jsx",
+			".py",
+			".go",
+			".rs",
+			".java",
+			".kt",
+			".swift",
+			".rb",
+			".php",
+			".cs",
+			".cpp",
+			".c",
+			".vue",
+			".svelte",
+		];
+
+		// Test file patterns to exclude (unless includeTestFiles is true)
+		const testPatterns = [
+			/\.test\./,
+			/\.spec\./,
+			/\.tests\./,
+			/__tests__\//,
+			/\/tests?\//,
+			/\.stories\./,
+			/\.story\./,
+		];
+
+		// Directories to always exclude
+		const excludeDirs = [
+			"node_modules/",
+			".git/",
+			"dist/",
+			"build/",
+			".next/",
+			"__pycache__/",
+			".venv/",
+			"venv/",
+			"vendor/",
+			"target/",
+			".turbo/",
+			"coverage/",
+			".nyc_output/",
+		];
+
+		// Filter to relevant files
+		const files = data.tree
+			.filter((item) => {
+				// Only include files (blobs), not directories
+				if (item.type !== "blob") return false;
+
+				// Check if file has a source extension
+				const hasSourceExtension = sourceExtensions.some((ext) =>
+					item.path.toLowerCase().endsWith(ext)
+				);
+				if (!hasSourceExtension) return false;
+
+				// Exclude files in excluded directories
+				const inExcludedDir = excludeDirs.some((dir) => item.path.includes(dir));
+				if (inExcludedDir) return false;
+
+				// Exclude test files unless requested
+				if (!args.includeTestFiles) {
+					const isTestFile = testPatterns.some((pattern) => pattern.test(item.path));
+					if (isTestFile) return false;
+				}
+
+				return true;
+			})
+			.map((item) => ({
+				path: item.path,
+				size: item.size,
+			}));
+
+		// Categorize files by type
+		const categorized = {
+			pages: files.filter(
+				(f) =>
+					f.path.includes("/pages/") ||
+					f.path.includes("/routes/") ||
+					f.path.includes("/app/") ||
+					f.path.match(/\/\[[^\]]+\]\.tsx?$/) // Next.js dynamic routes
+			),
+			components: files.filter((f) => f.path.includes("/components/") || f.path.includes("/ui/")),
+			api: files.filter(
+				(f) =>
+					f.path.includes("/api/") ||
+					f.path.includes("/routes/") ||
+					f.path.includes("/handlers/") ||
+					f.path.includes("/controllers/")
+			),
+			services: files.filter(
+				(f) =>
+					f.path.includes("/services/") ||
+					f.path.includes("/lib/") ||
+					f.path.includes("/utils/") ||
+					f.path.includes("/helpers/")
+			),
+			hooks: files.filter((f) => f.path.includes("/hooks/") || f.path.match(/use[A-Z]/)),
+			convex: files.filter((f) => f.path.includes("/convex/")),
+			other: files.filter(
+				(f) =>
+					!f.path.includes("/pages/") &&
+					!f.path.includes("/routes/") &&
+					!f.path.includes("/app/") &&
+					!f.path.includes("/components/") &&
+					!f.path.includes("/ui/") &&
+					!f.path.includes("/api/") &&
+					!f.path.includes("/handlers/") &&
+					!f.path.includes("/controllers/") &&
+					!f.path.includes("/services/") &&
+					!f.path.includes("/lib/") &&
+					!f.path.includes("/utils/") &&
+					!f.path.includes("/helpers/") &&
+					!f.path.includes("/hooks/") &&
+					!f.path.includes("/convex/")
+			),
+		};
+
+		return {
+			sha: data.sha,
+			truncated: data.truncated,
+			totalFiles: files.length,
+			files,
+			categorized,
+		};
+	},
+});
+
 export const syncProjectGitHubData = action({
 	args: {
 		projectId: v.id("projects"),
@@ -824,6 +1019,47 @@ export const getCIRun = query({
 	},
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.runId);
+	},
+});
+
+/**
+ * Get historical CI run data aggregated by time for charts
+ * Returns success rates, counts, and durations over time
+ */
+export const getCIRunHistory = query({
+	args: {
+		projectId: v.id("projects"),
+		startTimestamp: v.optional(v.number()),
+		limit: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		const limit = args.limit ?? 500;
+		const startTimestamp = args.startTimestamp ?? Date.now() - 30 * 24 * 60 * 60 * 1000; // Default 30 days
+
+		const runs = await ctx.db
+			.query("ciRuns")
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.order("desc")
+			.take(limit);
+
+		// Filter by start timestamp
+		const filtered = runs.filter((r) => r.startedAt >= startTimestamp);
+
+		// Sort by startedAt ascending for chronological order
+		filtered.sort((a, b) => a.startedAt - b.startedAt);
+
+		// Return data points with success rates and metrics
+		return filtered.map((run) => ({
+			date: run.startedAt,
+			success: run.conclusion === "success" ? 1 : 0,
+			failure: run.conclusion === "failure" ? 1 : 0,
+			cancelled: run.conclusion === "cancelled" ? 1 : 0,
+			successRate: run.conclusion === "success" ? 100 : run.conclusion === "failure" ? 0 : 50,
+			duration: run.completedAt ? run.completedAt - run.startedAt : 0,
+			status: run.status,
+			conclusion: run.conclusion,
+			workflowName: run.workflowName,
+		}));
 	},
 });
 

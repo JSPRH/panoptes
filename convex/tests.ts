@@ -166,9 +166,7 @@ export const ingestTestRun = mutation({
 		}
 
 		// Determine if run is actually complete - either has completedAt OR all tests have final status
-		const hasFinalStatusTests = args.tests.filter(
-			(t) => t.status !== "running"
-		).length;
+		const hasFinalStatusTests = args.tests.filter((t) => t.status !== "running").length;
 		const allTestsHaveFinalStatus = hasFinalStatusTests === args.tests.length;
 		const runIsActuallyComplete = isComplete || allTestsHaveFinalStatus;
 
@@ -259,7 +257,8 @@ export const ingestTestRun = mutation({
 			if (test.status === "running") {
 				// If completedAt is set (and not null/0), the run is definitely complete - convert to failed
 				// Check both undefined and null/0 to be safe
-				const hasCompletedAt = args.completedAt !== undefined && args.completedAt !== null && args.completedAt > 0;
+				const hasCompletedAt =
+					args.completedAt !== undefined && args.completedAt !== null && args.completedAt > 0;
 				if (hasCompletedAt) {
 					finalStatus = "failed";
 					console.warn(
@@ -1830,6 +1829,116 @@ export const getTestSuggestions = query({
 });
 
 /**
+ * Get historical test run data aggregated by time for charts
+ * Returns pass rates, counts, and durations over time
+ */
+export const getTestRunHistory = query({
+	args: {
+		projectId: v.optional(v.id("projects")),
+		testType: v.optional(
+			v.union(v.literal("unit"), v.literal("integration"), v.literal("e2e"), v.literal("visual"))
+		),
+		startTimestamp: v.optional(v.number()),
+		limit: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		const limit = args.limit ?? 500;
+		const startTimestamp = args.startTimestamp ?? Date.now() - 30 * 24 * 60 * 60 * 1000; // Default 30 days
+
+		let runs: Doc<"testRuns">[];
+		if (args.projectId !== undefined) {
+			const projectId = args.projectId;
+			runs = await ctx.db
+				.query("testRuns")
+				.withIndex("by_project", (q) => q.eq("projectId", projectId))
+				.order("desc")
+				.take(limit);
+		} else {
+			runs = await ctx.db.query("testRuns").withIndex("by_started_at").order("desc").take(limit);
+		}
+
+		// Filter by test type and time range
+		let filtered = runs.filter((r) => r.startedAt >= startTimestamp);
+		if (args.testType !== undefined) {
+			filtered = filtered.filter((r) => r.testType === args.testType);
+		}
+
+		// Sort by startedAt ascending for chronological order
+		filtered.sort((a, b) => a.startedAt - b.startedAt);
+
+		// Return data points with pass rates and metrics
+		return filtered.map((run) => ({
+			date: run.startedAt,
+			passed: run.passedTests,
+			failed: run.failedTests,
+			skipped: run.skippedTests,
+			total: run.totalTests,
+			passRate: run.totalTests > 0 ? (run.passedTests / run.totalTests) * 100 : 0,
+			duration: run.duration ?? 0,
+			testType: run.testType,
+			status: run.status,
+		}));
+	},
+});
+
+/**
+ * Get historical execution data for a specific test definition
+ * Returns executions with pass/fail trends over time
+ */
+export const getTestDefinitionHistory = query({
+	args: {
+		projectId: v.id("projects"),
+		name: v.string(),
+		file: v.string(),
+		line: v.optional(v.number()),
+		startTimestamp: v.optional(v.number()),
+		limit: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		const limit = args.limit ?? 100;
+		const startTimestamp = args.startTimestamp ?? Date.now() - 90 * 24 * 60 * 60 * 1000; // Default 90 days
+
+		// Get all tests for this project
+		const allTests = await ctx.db
+			.query("tests")
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.take(1000); // Reasonable limit for filtering
+
+		// Filter by test definition (name + file + line)
+		const matchingTests = allTests.filter(
+			(test) =>
+				test.name === args.name &&
+				test.file === args.file &&
+				(test.line === args.line || (args.line === undefined && test.line === undefined))
+		);
+
+		// Get test runs for these tests to filter by time
+		const testRuns = await Promise.all(
+			matchingTests.map(async (test) => {
+				const run = await ctx.db.get(test.testRunId);
+				return { test, run };
+			})
+		);
+
+		// Filter by start timestamp
+		const filtered = testRuns.filter(({ run }) => run && run.startedAt >= startTimestamp);
+
+		// Sort by startedAt ascending
+		filtered.sort((a, b) => (a.run?.startedAt ?? 0) - (b.run?.startedAt ?? 0));
+
+		// Return execution history
+		return filtered.slice(0, limit).map(({ test, run }) => ({
+			date: run?.startedAt ?? 0,
+			status: test.status,
+			duration: test.duration,
+			passed: test.status === "passed" ? 1 : 0,
+			failed: test.status === "failed" ? 1 : 0,
+			skipped: test.status === "skipped" ? 1 : 0,
+		}));
+	},
+});
+
+/**
  * Fix test runs that have tests stuck in "running" status.
  * Converts all "running" tests to "failed" for runs that have completedAt set.
  */
@@ -1839,7 +1948,7 @@ export const fixRunningTests = mutation({
 	},
 	handler: async (ctx, args) => {
 		let testRuns: Doc<"testRuns">[];
-		
+
 		if (args.testRunId) {
 			const run = await ctx.db.get(args.testRunId);
 			if (!run) {
@@ -1883,7 +1992,7 @@ export const fixRunningTests = mutation({
 					.query("tests")
 					.withIndex("by_test_run", (q) => q.eq("testRunId", run._id))
 					.collect();
-				
+
 				const failedCount = allTests.filter((t) => t.status === "failed").length;
 				const passedCount = allTests.filter((t) => t.status === "passed").length;
 				const skippedCount = allTests.filter((t) => t.status === "skipped").length;
