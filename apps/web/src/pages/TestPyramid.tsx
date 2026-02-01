@@ -101,8 +101,8 @@ export default function TestPyramid() {
 		},
 		{
 			total: pyramidData.visual.total,
-			passed: 0,
-			failed: 0,
+			passed: pyramidData.visual.passed,
+			failed: pyramidData.visual.failed,
 			label: LAYER_CONFIGS.visual.label,
 			shortLabel: LAYER_CONFIGS.visual.shortLabel,
 			color: LAYER_CONFIGS.visual.color,
@@ -308,8 +308,8 @@ export default function TestPyramid() {
 						label: "Visual",
 						value: pyramidData.visual.total,
 						config: LAYER_CONFIGS.visual,
-						passed: 0,
-						failed: 0,
+						passed: pyramidData.visual.passed,
+						failed: pyramidData.visual.failed,
 					},
 				].map((stat) => {
 					const hasResults = stat.passed + stat.failed > 0;

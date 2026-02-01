@@ -23,21 +23,12 @@ export default function Homepage() {
 							Gain insights into your test coverage and make data-driven decisions about your test
 							suite.
 						</p>
-						<div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
+						<div className="mt-10 flex items-center justify-center">
 							<Link to="/dashboard">
 								<Button size="lg" className="text-base px-8 py-6">
 									Get Started
 								</Button>
 							</Link>
-							<a
-								href="https://github.com/JustinMiehle/panoptes"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<Button size="lg" variant="outline" className="text-base px-8 py-6">
-									View on GitHub
-								</Button>
-							</a>
 						</div>
 					</div>
 				</div>
@@ -182,26 +173,18 @@ export default function Homepage() {
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="mx-auto max-w-2xl text-center">
 						<h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
-							Ready to get started?
+							Ready to visualize your tests?
 						</h2>
 						<p className="mt-4 text-lg text-muted-foreground">
-							Start visualizing your test results today. It only takes a few minutes to set up.
+							Connect your test framework and start gaining insights into your test coverage in
+							minutes.
 						</p>
-						<div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
+						<div className="mt-10 flex items-center justify-center">
 							<Link to="/dashboard">
-								<Button size="lg" className="text-base px-8 py-6">
-									Go to Dashboard
+								<Button size="lg" className="px-10 py-7 text-lg font-semibold">
+									Start Visualizing Your Tests
 								</Button>
 							</Link>
-							<a
-								href="https://github.com/JustinMiehle/panoptes"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<Button size="lg" variant="outline" className="text-base px-8 py-6">
-									View Documentation
-								</Button>
-							</a>
 						</div>
 					</div>
 				</div>
@@ -228,16 +211,6 @@ export default function Homepage() {
 									>
 										Dashboard
 									</Link>
-								</li>
-								<li>
-									<a
-										href="https://github.com/JustinMiehle/panoptes"
-										target="_blank"
-										rel="noopener noreferrer"
-										className="text-sm text-muted-foreground hover:text-foreground"
-									>
-										Documentation
-									</a>
 								</li>
 							</ul>
 						</div>
