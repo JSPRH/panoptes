@@ -344,6 +344,72 @@ export default function TestExecutionDetail() {
 						</Card>
 					)}
 
+					{selectedExecution.status === "failed" && (
+						<Card>
+							<CardHeader>
+								<CardTitle>Fix with Cursor</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+									<Button
+										onClick={() => {
+											if (analysis?.summary && analysis.rootCause && analysis.suggestedFix) {
+												// Generate deeplink dynamically from analysis data
+												const deeplink = generateCursorDeeplinkFromAnalysis(
+													analysis,
+													selectedExecution.name,
+													selectedExecution.file,
+													selectedExecution.line
+												);
+												window.open(deeplink, "_blank");
+											} else {
+												// Build prompt from test data if no analysis
+												const prompt = `Fix the failing test "${selectedExecution.name}" in file ${selectedExecution.file}${selectedExecution.line ? `:${selectedExecution.line}` : ""}.
+
+${selectedExecution.error ? `Error: ${selectedExecution.error}` : "Test failed"}
+
+${selectedExecution.errorDetails ? `Error Details:\n${selectedExecution.errorDetails}` : ""}
+
+Please analyze the test failure, identify the root cause, and fix the issue. Ensure the test passes after your changes.`;
+
+												const encodedPrompt = encodeURIComponent(prompt);
+												const deeplink = `https://cursor.com/link/prompt?text=${encodedPrompt}`;
+												window.open(deeplink, "_blank");
+											}
+										}}
+										size="sm"
+										variant="outline"
+										className="flex-1"
+									>
+										💬 Open Prompt in Cursor
+									</Button>
+									{project?.repository && (
+										<CloudAgentButton
+											onTrigger={async (actionType) => {
+												if (!executionId) {
+													throw new Error("No execution ID available");
+												}
+												const result = await triggerCloudAgentForTest({
+													testId: executionId as Id<"tests">,
+													actionType: (actionType as "fix_test" | "fix_bug") || selectedActionType,
+												});
+												return {
+													agentUrl: result.agentUrl,
+													prUrl: result.prUrl,
+												};
+											}}
+											actionType={selectedActionType}
+											showActionSelector={true}
+											className="flex-1"
+										>
+											🚀 Launch Agent
+										</CloudAgentButton>
+									)}
+								</div>
+							</CardContent>
+						</Card>
+					)}
+
 					{analysis && analysis.status === "completed" && (
 						<Card>
 							<CardHeader>
@@ -365,69 +431,6 @@ export default function TestExecutionDetail() {
 											</Badge>
 										</CardDescription>
 									</div>
-									<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-										{(analysis?.summary && analysis.rootCause && analysis.suggestedFix) ||
-										selectedExecution.status === "failed" ? (
-											<Button
-												onClick={() => {
-													if (analysis?.summary && analysis.rootCause && analysis.suggestedFix) {
-														// Generate deeplink dynamically from analysis data
-														const deeplink = generateCursorDeeplinkFromAnalysis(
-															analysis,
-															selectedExecution.name,
-															selectedExecution.file,
-															selectedExecution.line
-														);
-														window.open(deeplink, "_blank");
-													} else if (selectedExecution.status === "failed") {
-														// Build prompt from test data if no analysis
-														const prompt = `Fix the failing test "${selectedExecution.name}" in file ${selectedExecution.file}${selectedExecution.line ? `:${selectedExecution.line}` : ""}.
-
-${selectedExecution.error ? `Error: ${selectedExecution.error}` : "Test failed"}
-
-${selectedExecution.errorDetails ? `Error Details:\n${selectedExecution.errorDetails}` : ""}
-
-Please analyze the test failure, identify the root cause, and fix the issue. Ensure the test passes after your changes.`;
-
-														const encodedPrompt = encodeURIComponent(prompt);
-														const deeplink = `https://cursor.com/link/prompt?text=${encodedPrompt}`;
-														window.open(deeplink, "_blank");
-													}
-												}}
-												size="sm"
-												variant="outline"
-												className="flex-1"
-											>
-												💬 Open Prompt in Cursor
-											</Button>
-										) : null}
-										{project?.repository && selectedExecution.status === "failed" && (
-											<CloudAgentButton
-												onTrigger={async (actionType) => {
-													if (!executionId) {
-														throw new Error("No execution ID available");
-													}
-													const result = await triggerCloudAgentForTest({
-														testId: executionId as Id<"tests">,
-														actionType:
-															(actionType as "fix_test" | "fix_bug") || selectedActionType,
-													});
-													return {
-														agentUrl: result.agentUrl,
-														prUrl: result.prUrl,
-													};
-												}}
-												actionType={selectedActionType}
-												showActionSelector={true}
-												className="flex-1"
-											>
-												🚀 Launch Agent
-											</CloudAgentButton>
-										)}
-									</div>
-									{analysisError && (
-										<div className="mt-2 text-sm text-destructive">{analysisError}</div>
-									)}
 								</div>
 							</CardHeader>
 							<CardContent className="space-y-4">
