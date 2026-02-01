@@ -1,0 +1,4628 @@
+openapi: 3.0.3
+info:
+  title: Convex App - OpenAPI 3.0
+  version: 0.0.0
+servers:
+  - url: http://127.0.0.1:3210
+security:
+  - bearerAuth: []
+tags:
+  - name: query
+    description: Functions that read data
+  - name: mutation
+    description: Functions that write/update/delete data
+  - name: action
+    description: Functions that can make calls to external APIs
+paths:
+  /api/run/anomalies/detectAnomalies:
+    post:
+      summary: Calls a mutation at the path anomalies.js:detectAnomalies
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_anomalies.detectAnomalies"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_anomalies.detectAnomalies"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/anomalies/getAnomalies:
+    post:
+      summary: Calls a query at the path anomalies.js:getAnomalies
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_anomalies.getAnomalies"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_anomalies.getAnomalies"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/anomalies/resolveAnomaly:
+    post:
+      summary: Calls a mutation at the path anomalies.js:resolveAnomaly
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_anomalies.resolveAnomaly"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_anomalies.resolveAnomaly"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/anomalies/updateAnomalyInsights:
+    post:
+      summary: Calls a mutation at the path anomalies.js:updateAnomalyInsights
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_anomalies.updateAnomalyInsights"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_anomalies.updateAnomalyInsights"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/ciAnalysis/getCIRunAnalysis:
+    post:
+      summary: Calls a query at the path ciAnalysis.js:getCIRunAnalysis
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_ciAnalysis.getCIRunAnalysis"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_ciAnalysis.getCIRunAnalysis"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/ciAnalysisActions/analyzeCIRunFailure:
+    post:
+      summary: Calls a action at the path ciAnalysisActions.js:analyzeCIRunFailure
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_ciAnalysisActions.analyzeCIRunFailure"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_ciAnalysisActions.analyzeCIRunFailure"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/ciAnalysisActions/triggerCursorCloudAgent:
+    post:
+      summary: Calls a action at the path ciAnalysisActions.js:triggerCursorCloudAgent
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_ciAnalysisActions.triggerCursorCloudAgent"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_ciAnalysisActions.triggerCursorCloudAgent"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getCIRuns:
+    post:
+      summary: Calls a action at the path github.js:getCIRuns
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getCIRuns"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getCIRuns"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getOpenPRs:
+    post:
+      summary: Calls a action at the path github.js:getOpenPRs
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getOpenPRs"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getOpenPRs"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getCodeSnippet:
+    post:
+      summary: Calls a action at the path github.js:getCodeSnippet
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getCodeSnippet"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getCodeSnippet"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getFileContent:
+    post:
+      summary: Calls a action at the path github.js:getFileContent
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getFileContent"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getFileContent"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getAvailableRepositories:
+    post:
+      summary: Calls a action at the path github.js:getAvailableRepositories
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getAvailableRepositories"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getAvailableRepositories"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/syncProjectGitHubData:
+    post:
+      summary: Calls a action at the path github.js:syncProjectGitHubData
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.syncProjectGitHubData"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.syncProjectGitHubData"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getCIRunsForProject:
+    post:
+      summary: Calls a query at the path github.js:getCIRunsForProject
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getCIRunsForProject"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getCIRunsForProject"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getCIRun:
+    post:
+      summary: Calls a query at the path github.js:getCIRun
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getCIRun"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getCIRun"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getCIRunParsedTests:
+    post:
+      summary: Calls a query at the path github.js:getCIRunParsedTests
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getCIRunParsedTests"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getCIRunParsedTests"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getCIRunParsedTestsByStep:
+    post:
+      summary: Calls a query at the path github.js:getCIRunParsedTestsByStep
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getCIRunParsedTestsByStep"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getCIRunParsedTestsByStep"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/fetchCIRunJobs:
+    post:
+      summary: Calls a action at the path github.js:fetchCIRunJobs
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.fetchCIRunJobs"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.fetchCIRunJobs"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/rerunCIRun:
+    post:
+      summary: Calls a action at the path github.js:rerunCIRun
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.rerunCIRun"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.rerunCIRun"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getCIRunJobs:
+    post:
+      summary: Calls a query at the path github.js:getCIRunJobs
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getCIRunJobs"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getCIRunJobs"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getCIRunJobSteps:
+    post:
+      summary: Calls a query at the path github.js:getCIRunJobSteps
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getCIRunJobSteps"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getCIRunJobSteps"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getPRsForProject:
+    post:
+      summary: Calls a query at the path github.js:getPRsForProject
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getPRsForProject"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getPRsForProject"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/getCodeSnippetForTest:
+    post:
+      summary: Calls a query at the path github.js:getCodeSnippetForTest
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.getCodeSnippetForTest"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.getCodeSnippetForTest"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/github/storeCodeSnippet:
+    post:
+      summary: Calls a mutation at the path github.js:storeCodeSnippet
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_github.storeCodeSnippet"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_github.storeCodeSnippet"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/ingestTestRun:
+    post:
+      summary: Calls a mutation at the path tests.js:ingestTestRun
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.ingestTestRun"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.ingestTestRun"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getCoverageForTestRun:
+    post:
+      summary: Calls a query at the path tests.js:getCoverageForTestRun
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getCoverageForTestRun"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getCoverageForTestRun"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getFileCoverage:
+    post:
+      summary: Calls a query at the path tests.js:getFileCoverage
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getFileCoverage"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getFileCoverage"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getCoverageTree:
+    post:
+      summary: Calls a query at the path tests.js:getCoverageTree
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getCoverageTree"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getCoverageTree"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestsByTestFile:
+    post:
+      summary: Calls a query at the path tests.js:getTestsByTestFile
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestsByTestFile"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestsByTestFile"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestRuns:
+    post:
+      summary: Calls a query at the path tests.js:getTestRuns
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestRuns"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestRuns"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestRun:
+    post:
+      summary: Calls a query at the path tests.js:getTestRun
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestRun"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestRun"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestRunsByCIRunId:
+    post:
+      summary: Calls a query at the path tests.js:getTestRunsByCIRunId
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestRunsByCIRunId"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestRunsByCIRunId"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestExecution:
+    post:
+      summary: Calls a query at the path tests.js:getTestExecution
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestExecution"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestExecution"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestDefinitionExecutions:
+    post:
+      summary: Calls a query at the path tests.js:getTestDefinitionExecutions
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestDefinitionExecutions"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestDefinitionExecutions"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestAttachments:
+    post:
+      summary: Calls a query at the path tests.js:getTestAttachments
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestAttachments"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestAttachments"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestAttachmentsWithUrls:
+    post:
+      summary: Calls a action at the path tests.js:getTestAttachmentsWithUrls
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestAttachmentsWithUrls"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestAttachmentsWithUrls"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTests:
+    post:
+      summary: Calls a query at the path tests.js:getTests
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTests"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTests"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestsPaginated:
+    post:
+      summary: Calls a query at the path tests.js:getTestsPaginated
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestsPaginated"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestsPaginated"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getProjects:
+    post:
+      summary: Calls a query at the path tests.js:getProjects
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getProjects"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getProjects"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getDashboardStats:
+    post:
+      summary: Calls a query at the path tests.js:getDashboardStats
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getDashboardStats"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getDashboardStats"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/updateProjectRepository:
+    post:
+      summary: Calls a mutation at the path tests.js:updateProjectRepository
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.updateProjectRepository"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.updateProjectRepository"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestPyramidData:
+    post:
+      summary: Calls a query at the path tests.js:getTestPyramidData
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestPyramidData"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestPyramidData"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/seedFailingTest:
+    post:
+      summary: Calls a mutation at the path tests.js:seedFailingTest
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.seedFailingTest"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.seedFailingTest"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/seedHistoricalCoverage:
+    post:
+      summary: Calls a mutation at the path tests.js:seedHistoricalCoverage
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.seedHistoricalCoverage"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.seedHistoricalCoverage"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/getTestSuggestions:
+    post:
+      summary: Calls a query at the path tests.js:getTestSuggestions
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getTestSuggestions"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getTestSuggestions"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/tests/fixRunningTests:
+    post:
+      summary: Calls a mutation at the path tests.js:fixRunningTests
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.fixRunningTests"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.fixRunningTests"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testSuggestionsActions/triggerCloudAgentForTestCoverage:
+    post:
+      summary: Calls a action at the path testSuggestionsActions.js:triggerCloudAgentForTestCoverage
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testSuggestionsActions.triggerCloudAgentForTestCoverage"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testSuggestionsActions.triggerCloudAgentForTestCoverage"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testSuggestionsActions/generateTestSuggestions:
+    post:
+      summary: Calls a action at the path testSuggestionsActions.js:generateTestSuggestions
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testSuggestionsActions.generateTestSuggestions"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testSuggestionsActions.generateTestSuggestions"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/anomaliesActions/analyzeAnomalies:
+    post:
+      summary: Calls a action at the path anomaliesActions.js:analyzeAnomalies
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_anomaliesActions.analyzeAnomalies"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_anomaliesActions.analyzeAnomalies"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testFailureAnalysis/getTestFailureAnalysis:
+    post:
+      summary: Calls a query at the path testFailureAnalysis.js:getTestFailureAnalysis
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testFailureAnalysis.getTestFailureAnalysis"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testFailureAnalysis.getTestFailureAnalysis"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testFailureAnalysis/_createTestFailureAnalysis:
+    post:
+      summary: Calls a mutation at the path testFailureAnalysis.js:_createTestFailureAnalysis
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testFailureAnalysis._createTestFailureAnalysis"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testFailureAnalysis._createTestFailureAnalysis"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testFailureAnalysis/_updateTestFailureAnalysis:
+    post:
+      summary: Calls a mutation at the path testFailureAnalysis.js:_updateTestFailureAnalysis
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testFailureAnalysis._updateTestFailureAnalysis"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testFailureAnalysis._updateTestFailureAnalysis"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testFailureAnalysisActions/triggerCloudAgentForTest:
+    post:
+      summary: Calls a action at the path testFailureAnalysisActions.js:triggerCloudAgentForTest
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testFailureAnalysisActions.triggerCloudAgentForTest"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testFailureAnalysisActions.triggerCloudAgentForTest"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testFailureAnalysisActions/analyzeTestFailure:
+    post:
+      summary: Calls a action at the path testFailureAnalysisActions.js:analyzeTestFailure
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testFailureAnalysisActions.analyzeTestFailure"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testFailureAnalysisActions.analyzeTestFailure"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Token of the format "Bearer {token}" for normal authentication and "Convex {token}" for admin tokens.
+  schemas:
+    Request_anomalies.detectAnomalies:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_anomalies.detectAnomalies:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_anomalies.getAnomalies:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+            resolved:
+              type: boolean
+            type:
+              oneOf:
+                - type: string
+                  enum:
+                    - "flaky"
+                - type: string
+                  enum:
+                    - "slow"
+                - type: string
+                  enum:
+                    - "resource_intensive"
+                - type: string
+                  enum:
+                    - "frequently_failing"
+
+    Response_anomalies.getAnomalies:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_anomalies.resolveAnomaly:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - anomalyId
+          properties:
+            anomalyId:
+              type: string
+              description: ID from table "anomalies"
+
+    Response_anomalies.resolveAnomaly:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_anomalies.updateAnomalyInsights:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - anomalyId
+            - confidence
+            - insights
+          properties:
+            anomalyId:
+              type: string
+              description: ID from table "anomalies"
+            confidence:
+              type: number
+            insights:
+              type: string
+            rootCause:
+              type: string
+            suggestedFix:
+              type: string
+
+    Response_anomalies.updateAnomalyInsights:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_ciAnalysis.getCIRunAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_ciAnalysis.getCIRunAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_ciAnalysis._createCIRunAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+            - status
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "pending"
+                - type: string
+                  enum:
+                    - "completed"
+                - type: string
+                  enum:
+                    - "failed"
+
+    Response_ciAnalysis._createCIRunAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_ciAnalysis._updateCIRunAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - analysisId
+            - status
+          properties:
+            analysis:
+              type: object
+              required:
+                - confidence
+                - isFlaky
+                - proposedFix
+                - proposedTest
+                - rootCause
+                - summary
+                - title
+              properties:
+                confidence:
+                  type: number
+                cursorAgentId:
+                  type: string
+                cursorAgentUrl:
+                  type: string
+                cursorBackgroundAgentData:
+                  type: object
+                  required:
+                    - prompt
+                    - ref
+                    - repository
+                  properties:
+                    prompt:
+                      type: string
+                    ref:
+                      type: string
+                    repository:
+                      type: string
+                cursorPrompt:
+                  type: string
+                isFlaky:
+                  type: boolean
+                proposedFix:
+                  type: string
+                proposedTest:
+                  type: string
+                rootCause:
+                  type: string
+                summary:
+                  type: string
+                title:
+                  type: string
+            analysisId:
+              type: string
+              description: ID from table "ciRunAnalysis"
+            model:
+              type: string
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "pending"
+                - type: string
+                  enum:
+                    - "completed"
+                - type: string
+                  enum:
+                    - "failed"
+
+    Response_ciAnalysis._updateCIRunAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_ciAnalysisActions._processFailedCIRunsBatch:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+
+    Response_ciAnalysisActions._processFailedCIRunsBatch:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_ciAnalysisActions.analyzeCIRunFailure:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_ciAnalysisActions.analyzeCIRunFailure:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_ciAnalysisActions.triggerCursorCloudAgent:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+          properties:
+            actionType:
+              oneOf:
+                - type: string
+                  enum:
+                    - "restart_ci"
+                - type: string
+                  enum:
+                    - "fix_test"
+                - type: string
+                  enum:
+                    - "fix_bug"
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_ciAnalysisActions.triggerCursorCloudAgent:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_ciAnalysisActions._processFailedCIRun:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_ciAnalysisActions._processFailedCIRun:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._getProject:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_github._getProject:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._getExistingCIRun:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+            - runId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+            runId:
+              type: number
+
+    Response_github._getExistingCIRun:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._updateCIRun:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - branch
+            - commitSha
+            - htmlUrl
+            - runId
+            - startedAt
+            - status
+          properties:
+            branch:
+              type: string
+            commitSha:
+              type: string
+            completedAt:
+              type: number
+            conclusion:
+              type: string
+            htmlUrl:
+              type: string
+            runId:
+              type: string
+              description: ID from table "ciRuns"
+            startedAt:
+              type: number
+            status:
+              type: string
+
+    Response_github._updateCIRun:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._insertCIRun:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - branch
+            - commitSha
+            - htmlUrl
+            - projectId
+            - runId
+            - startedAt
+            - status
+            - workflowId
+            - workflowName
+          properties:
+            branch:
+              type: string
+            commitSha:
+              type: string
+            completedAt:
+              type: number
+            conclusion:
+              type: string
+            htmlUrl:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+            runId:
+              type: number
+            startedAt:
+              type: number
+            status:
+              type: string
+            workflowId:
+              type: number
+            workflowName:
+              type: string
+
+    Response_github._insertCIRun:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._getExistingPR:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - prNumber
+            - projectId
+          properties:
+            prNumber:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_github._getExistingPR:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._updatePR:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - author
+            - baseBranch
+            - branch
+            - commitSha
+            - htmlUrl
+            - prId
+            - state
+            - title
+            - updatedAt
+          properties:
+            author:
+              type: string
+            baseBranch:
+              type: string
+            branch:
+              type: string
+            commitSha:
+              type: string
+            htmlUrl:
+              type: string
+            prId:
+              type: string
+              description: ID from table "pullRequests"
+            state:
+              type: string
+            title:
+              type: string
+            updatedAt:
+              type: number
+
+    Response_github._updatePR:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._insertPR:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - author
+            - baseBranch
+            - branch
+            - commitSha
+            - createdAt
+            - htmlUrl
+            - prNumber
+            - projectId
+            - state
+            - title
+            - updatedAt
+          properties:
+            author:
+              type: string
+            baseBranch:
+              type: string
+            branch:
+              type: string
+            commitSha:
+              type: string
+            createdAt:
+              type: number
+            htmlUrl:
+              type: string
+            prNumber:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+            state:
+              type: string
+            title:
+              type: string
+            updatedAt:
+              type: number
+
+    Response_github._insertPR:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getCIRuns:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            limit:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_github.getCIRuns:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getOpenPRs:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_github.getOpenPRs:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getCodeSnippet:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - file
+            - line
+            - projectId
+          properties:
+            commitSha:
+              type: string
+            contextLines:
+              type: number
+            file:
+              type: string
+            line:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_github.getCodeSnippet:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getFileContent:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - file
+            - projectId
+          properties:
+            file:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+            ref:
+              type: string
+
+    Response_github.getFileContent:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getAvailableRepositories:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          properties:
+            limit:
+              type: number
+
+    Response_github.getAvailableRepositories:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.syncProjectGitHubData:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_github.syncProjectGitHubData:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getCIRunsForProject:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            limit:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_github.getCIRunsForProject:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getCIRun:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - runId
+          properties:
+            runId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_github.getCIRun:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._insertCIRunJob:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+            - jobId
+            - name
+            - startedAt
+            - status
+            - workflowName
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+            completedAt:
+              type: number
+            conclusion:
+              type: string
+            jobId:
+              type: number
+            name:
+              type: string
+            runnerName:
+              type: string
+            startedAt:
+              type: number
+            status:
+              type: string
+            workflowName:
+              type: string
+
+    Response_github._insertCIRunJob:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._insertCIRunJobStep:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - jobId
+            - logs
+            - name
+            - startedAt
+            - status
+            - stepNumber
+          properties:
+            completedAt:
+              type: number
+            conclusion:
+              type: string
+            jobId:
+              type: string
+              description: ID from table "ciRunJobs"
+            logs:
+              type: string
+            name:
+              type: string
+            startedAt:
+              type: number
+            status:
+              type: string
+            stepNumber:
+              type: number
+
+    Response_github._insertCIRunJobStep:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._getExistingCIRunJob:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+            - jobId
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+            jobId:
+              type: number
+
+    Response_github._getExistingCIRunJob:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._insertCIRunParsedTest:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+            - status
+            - stepId
+            - testName
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+            duration:
+              type: number
+            error:
+              type: string
+            errorDetails:
+              type: string
+            file:
+              type: string
+            line:
+              type: number
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "passed"
+                - type: string
+                  enum:
+                    - "failed"
+                - type: string
+                  enum:
+                    - "skipped"
+            stderr:
+              type: string
+            stdout:
+              type: string
+            stepId:
+              type: string
+              description: ID from table "ciRunJobSteps"
+            testName:
+              type: string
+
+    Response_github._insertCIRunParsedTest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getCIRunParsedTests:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_github.getCIRunParsedTests:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getCIRunParsedTestsByStep:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - stepId
+          properties:
+            stepId:
+              type: string
+              description: ID from table "ciRunJobSteps"
+
+    Response_github.getCIRunParsedTestsByStep:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.fetchCIRunJobs:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_github.fetchCIRunJobs:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.rerunCIRun:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_github.rerunCIRun:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github._getCIRunById:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_github._getCIRunById:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getCIRunJobs:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_github.getCIRunJobs:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getCIRunJobSteps:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - jobId
+          properties:
+            jobId:
+              type: string
+              description: ID from table "ciRunJobs"
+
+    Response_github.getCIRunJobSteps:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getPRsForProject:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+            state:
+              oneOf:
+                - type: string
+                  enum:
+                    - "open"
+                - type: string
+                  enum:
+                    - "closed"
+                - type: string
+                  enum:
+                    - "merged"
+
+    Response_github.getPRsForProject:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.getCodeSnippetForTest:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - testId
+          properties:
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_github.getCodeSnippetForTest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.storeCodeSnippet:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - content
+            - endLine
+            - file
+            - startLine
+            - testId
+          properties:
+            content:
+              type: string
+            endLine:
+              type: number
+            file:
+              type: string
+            language:
+              type: string
+            startLine:
+              type: number
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_github.storeCodeSnippet:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_github.createFakeFailingCIRuns:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            count:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_github.createFakeFailingCIRuns:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.ingestTestRun:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - failedTests
+            - framework
+            - passedTests
+            - projectName
+            - skippedTests
+            - startedAt
+            - testType
+            - tests
+            - totalTests
+          properties:
+            ci:
+              type: boolean
+            commitSha:
+              type: string
+            completedAt:
+              type: number
+            coverage:
+              type: object
+              properties:
+                files:
+                  type: object
+                summary:
+                  type: object
+                  properties:
+                    branches:
+                      type: object
+                      required:
+                        - covered
+                        - total
+                      properties:
+                        covered:
+                          type: number
+                        total:
+                          type: number
+                    functions:
+                      type: object
+                      required:
+                        - covered
+                        - total
+                      properties:
+                        covered:
+                          type: number
+                        total:
+                          type: number
+                    lines:
+                      type: object
+                      required:
+                        - covered
+                        - total
+                      properties:
+                        covered:
+                          type: number
+                        total:
+                          type: number
+                    statements:
+                      type: object
+                      required:
+                        - covered
+                        - total
+                      properties:
+                        covered:
+                          type: number
+                        total:
+                          type: number
+            duration:
+              type: number
+            environment:
+              type: string
+            failedTests:
+              type: number
+            framework:
+              oneOf:
+                - type: string
+                  enum:
+                    - "vitest"
+                - type: string
+                  enum:
+                    - "playwright"
+                - type: string
+                  enum:
+                    - "jest"
+                - type: string
+                  enum:
+                    - "other"
+            metadata: {}
+            passedTests:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+            projectName:
+              type: string
+            reporterVersion:
+              type: string
+            skippedTests:
+              type: number
+            startedAt:
+              type: number
+            suites:
+              type: array
+              items:
+                type: object
+                required:
+                  - duration
+                  - failedTests
+                  - file
+                  - name
+                  - passedTests
+                  - skippedTests
+                  - status
+                  - totalTests
+                properties:
+                  duration:
+                    type: number
+                  failedTests:
+                    type: number
+                  file:
+                    type: string
+                  name:
+                    type: string
+                  passedTests:
+                    type: number
+                  skippedTests:
+                    type: number
+                  status:
+                    oneOf:
+                      - type: string
+                        enum:
+                          - "passed"
+                      - type: string
+                        enum:
+                          - "failed"
+                      - type: string
+                        enum:
+                          - "skipped"
+                  totalTests:
+                    type: number
+            testType:
+              oneOf:
+                - type: string
+                  enum:
+                    - "unit"
+                - type: string
+                  enum:
+                    - "integration"
+                - type: string
+                  enum:
+                    - "e2e"
+                - type: string
+                  enum:
+                    - "visual"
+            tests:
+              type: array
+              items:
+                type: object
+                required:
+                  - duration
+                  - file
+                  - name
+                  - status
+                properties:
+                  attachments:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - contentType
+                        - name
+                        - storageId
+                      properties:
+                        contentType:
+                          type: string
+                        name:
+                          type: string
+                        storageId:
+                          type: string
+                          description: ID from table "_storage"
+                  codeSnippet:
+                    type: object
+                    required:
+                      - content
+                      - endLine
+                      - startLine
+                    properties:
+                      content:
+                        type: string
+                      endLine:
+                        type: number
+                      language:
+                        type: string
+                      startLine:
+                        type: number
+                  column:
+                    type: number
+                  duration:
+                    type: number
+                  error:
+                    type: string
+                  errorDetails:
+                    type: string
+                  file:
+                    type: string
+                  line:
+                    type: number
+                  metadata: {}
+                  name:
+                    type: string
+                  retries:
+                    type: number
+                  status:
+                    oneOf:
+                      - type: string
+                        enum:
+                          - "passed"
+                      - type: string
+                        enum:
+                          - "failed"
+                      - type: string
+                        enum:
+                          - "skipped"
+                      - type: string
+                        enum:
+                          - "running"
+                  stderr:
+                    type: string
+                  stdout:
+                    type: string
+                  suite:
+                    type: string
+                  tags:
+                    type: array
+                    items:
+                      type: string
+            totalTests:
+              type: number
+            triggeredBy:
+              type: string
+
+    Response_tests.ingestTestRun:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getCoverageForTestRun:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - testRunId
+          properties:
+            testRunId:
+              type: string
+              description: ID from table "testRuns"
+
+    Response_tests.getCoverageForTestRun:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getFileCoverage:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - file
+          properties:
+            file:
+              type: string
+
+    Response_tests.getFileCoverage:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getCoverageTree:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          properties:
+            historicalPeriod:
+              oneOf:
+                - type: string
+                  enum:
+                    - "1w"
+                - type: string
+                  enum:
+                    - "1m"
+                - type: string
+                  enum:
+                    - "1y"
+            projectId:
+              type: string
+              description: ID from table "projects"
+            useStatementCoverage:
+              type: boolean
+
+    Response_tests.getCoverageTree:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestsByTestFile:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          properties:
+            limit:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_tests.getTestsByTestFile:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestRuns:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          properties:
+            ci:
+              type: boolean
+            limit:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+            testType:
+              oneOf:
+                - type: string
+                  enum:
+                    - "unit"
+                - type: string
+                  enum:
+                    - "integration"
+                - type: string
+                  enum:
+                    - "e2e"
+                - type: string
+                  enum:
+                    - "visual"
+            triggeredBy:
+              type: string
+
+    Response_tests.getTestRuns:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestRun:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - runId
+          properties:
+            runId:
+              type: string
+              description: ID from table "testRuns"
+
+    Response_tests.getTestRun:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestRunsByCIRunId:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - ciRunId
+          properties:
+            ciRunId:
+              type: string
+              description: ID from table "ciRuns"
+
+    Response_tests.getTestRunsByCIRunId:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestExecution:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - testId
+          properties:
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_tests.getTestExecution:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestDefinitionExecutions:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - file
+            - name
+            - projectId
+          properties:
+            file:
+              type: string
+            limit:
+              type: number
+            line:
+              type: number
+            name:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_tests.getTestDefinitionExecutions:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestAttachments:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - testId
+          properties:
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_tests.getTestAttachments:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestAttachmentsWithUrls:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - testId
+          properties:
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_tests.getTestAttachmentsWithUrls:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTests:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          properties:
+            limit:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "passed"
+                - type: string
+                  enum:
+                    - "failed"
+                - type: string
+                  enum:
+                    - "skipped"
+                - type: string
+                  enum:
+                    - "running"
+            testRunId:
+              type: string
+              description: ID from table "testRuns"
+
+    Response_tests.getTests:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestsPaginated:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - paginationOpts
+          properties:
+            paginationOpts:
+              type: object
+              required:
+                - cursor
+                - numItems
+              properties:
+                cursor:
+                  type: string
+                  nullable: true
+                endCursor:
+                  type: string
+                  nullable: true
+                id:
+                  type: number
+                maximumBytesRead:
+                  type: number
+                maximumRowsRead:
+                  type: number
+                numItems:
+                  type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+            searchQuery:
+              type: string
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "passed"
+                - type: string
+                  enum:
+                    - "failed"
+                - type: string
+                  enum:
+                    - "skipped"
+                - type: string
+                  enum:
+                    - "running"
+                - type: string
+                  enum:
+                    - "all"
+            testRunId:
+              type: string
+              description: ID from table "testRuns"
+
+    Response_tests.getTestsPaginated:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getProjects:
+      type: object
+      required:
+        - args
+      properties:
+        args: {}
+
+    Response_tests.getProjects:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getDashboardStats:
+      type: object
+      required:
+        - args
+      properties:
+        args: {}
+
+    Response_tests.getDashboardStats:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.updateProjectRepository:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+            - repository
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+            repository:
+              type: string
+
+    Response_tests.updateProjectRepository:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestPyramidData:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_tests.getTestPyramidData:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.seedFailingTest:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+
+    Response_tests.seedFailingTest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.seedHistoricalCoverage:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+            projectName:
+              type: string
+
+    Response_tests.seedHistoricalCoverage:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.getTestSuggestions:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - file
+            - projectId
+          properties:
+            commitSha:
+              type: string
+            file:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_tests.getTestSuggestions:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_tests.fixRunningTests:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          properties:
+            testRunId:
+              type: string
+              description: ID from table "testRuns"
+
+    Response_tests.fixRunningTests:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testSuggestions._createTestSuggestions:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - commitSha
+            - file
+            - model
+            - projectId
+            - suggestions
+          properties:
+            commitSha:
+              type: string
+            file:
+              type: string
+            model:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+            suggestions:
+              type: array
+              items:
+                type: object
+                required:
+                  - description
+                  - difficulty
+                  - prompt
+                  - testType
+                  - title
+                  - uncoveredLines
+                  - value
+                properties:
+                  description:
+                    type: string
+                  difficulty:
+                    oneOf:
+                      - type: string
+                        enum:
+                          - "low"
+                      - type: string
+                        enum:
+                          - "medium"
+                      - type: string
+                        enum:
+                          - "high"
+                  estimatedRuntime:
+                    type: number
+                  prompt:
+                    type: string
+                  testType:
+                    oneOf:
+                      - type: string
+                        enum:
+                          - "unit"
+                      - type: string
+                        enum:
+                          - "integration"
+                      - type: string
+                        enum:
+                          - "e2e"
+                  title:
+                    type: string
+                  uncoveredLines:
+                    type: array
+                    items:
+                      type: number
+                  value:
+                    type: number
+
+    Response_testSuggestions._createTestSuggestions:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testSuggestionsActions.triggerCloudAgentForTestCoverage:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - file
+            - projectId
+            - uncoveredLines
+          properties:
+            commitSha:
+              type: string
+            file:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+            uncoveredLines:
+              type: array
+              items:
+                type: number
+
+    Response_testSuggestionsActions.triggerCloudAgentForTestCoverage:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testSuggestionsActions.generateTestSuggestions:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - file
+            - projectId
+          properties:
+            commitSha:
+              type: string
+            file:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_testSuggestionsActions.generateTestSuggestions:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_anomaliesActions.analyzeAnomalies:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_anomaliesActions.analyzeAnomalies:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testFailureAnalysis.getTestFailureAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - testId
+          properties:
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_testFailureAnalysis.getTestFailureAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testFailureAnalysis._createTestFailureAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - status
+            - testId
+          properties:
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "pending"
+                - type: string
+                  enum:
+                    - "completed"
+                - type: string
+                  enum:
+                    - "failed"
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_testFailureAnalysis._createTestFailureAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testFailureAnalysis._updateTestFailureAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - analysisId
+            - status
+          properties:
+            analysisId:
+              type: string
+              description: ID from table "testFailureAnalysis"
+            codeLocation:
+              type: string
+            confidence:
+              oneOf:
+                - type: string
+                  enum:
+                    - "high"
+                - type: string
+                  enum:
+                    - "medium"
+                - type: string
+                  enum:
+                    - "low"
+            relatedFiles:
+              type: array
+              items:
+                type: string
+            rootCause:
+              type: string
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "pending"
+                - type: string
+                  enum:
+                    - "completed"
+                - type: string
+                  enum:
+                    - "failed"
+            suggestedFix:
+              type: string
+            summary:
+              type: string
+
+    Response_testFailureAnalysis._updateTestFailureAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testFailureAnalysisActions.triggerCloudAgentForTest:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - actionType
+            - testId
+          properties:
+            actionType:
+              oneOf:
+                - type: string
+                  enum:
+                    - "fix_test"
+                - type: string
+                  enum:
+                    - "fix_bug"
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_testFailureAnalysisActions.triggerCloudAgentForTest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testFailureAnalysisActions.analyzeTestFailure:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - testId
+          properties:
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_testFailureAnalysisActions.analyzeTestFailure:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    FailedResponse:
+      type: object
+      properties: {}

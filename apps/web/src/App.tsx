@@ -4,6 +4,7 @@ import { ConvexConfigError } from "./components/ConvexConfigError";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import AGB from "./pages/AGB";
+import APIDocs from "./pages/APIDocs";
 import Anomalies from "./pages/Anomalies";
 import CIRunDetail from "./pages/CIRunDetail";
 import CIRuns from "./pages/CIRuns";
@@ -84,6 +85,7 @@ function App() {
 							<Route path="/ci-runs" element={<CIRuns />} />
 							<Route path="/ci-runs/:runId" element={<CIRunDetail />} />
 							<Route path="/pull-requests" element={<PullRequests />} />
+							<Route path="/api-docs" element={<APIDocs />} />
 						</Routes>
 					</Layout>
 				</BrowserRouter>

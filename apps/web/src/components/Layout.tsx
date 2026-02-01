@@ -15,6 +15,7 @@ const navItems = [
 	{ path: "/anomalies", label: "Anomalies" },
 	{ path: "/ci-runs", label: "CI Runs" },
 	{ path: "/pull-requests", label: "Pull Requests" },
+	{ path: "/api-docs", label: "API Docs" },
 ];
 
 // Pages that should not show the navigation sidebar

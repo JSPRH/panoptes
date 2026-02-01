@@ -149,6 +149,25 @@ if [ -n "$CONVEX_FILES" ]; then
 			echo "✅ Staged new generated files: $UNTRACKED_FILES"
 		fi
 	fi
+	
+	# Regenerate OpenAPI spec after successful deployment
+	echo "📄 Regenerating OpenAPI spec..."
+	if bun run openapi:generate; then
+		# Copy to public folder for web app
+		if [ -f "convex-spec.yaml" ]; then
+			cp convex-spec.yaml apps/web/public/convex-spec.yaml
+			echo "✅ Copied OpenAPI spec to web public folder"
+		fi
+		# Stage the updated spec if it changed
+		if git diff --quiet convex-spec.yaml; then
+			echo "ℹ️  OpenAPI spec unchanged"
+		else
+			git add convex-spec.yaml apps/web/public/convex-spec.yaml
+			echo "✅ Updated and staged OpenAPI spec"
+		fi
+	else
+		echo "⚠️  OpenAPI spec generation failed, but continuing..."
+	fi
 else
 	echo "ℹ️  No Convex files changed, skipping Convex validation"
 fi
