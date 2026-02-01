@@ -4,7 +4,7 @@ import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import { createOpenAIClient } from "./aiAnalysisUtils";
 
@@ -160,10 +160,10 @@ export const _runAnalysis = internalAction({
 				ctx.runQuery(internal.codebaseAnalysis._getTestDefinitions, {
 					projectId: args.projectId,
 				}),
-			]);
+			]) as [Doc<"fileCoverage">[], Doc<"testDefinitionLatest">[]];
 
 			// Phase 3: Select key files to analyze (prioritize pages, API, and covered files)
-			const coveredFiles = new Set(coverageData.map((c) => c.file));
+			const coveredFiles = new Set<string>(coverageData.map((c: Doc<"fileCoverage">) => c.file));
 			const keyFiles: string[] = [];
 
 			// Add all pages (these define user journeys)
@@ -310,7 +310,7 @@ Look for: pages, API endpoints, UI components, data flows, user interactions.`;
 				for (let i = 0; i < testDefinitions.length; i += BATCH_SIZE) {
 					const batch = testDefinitions.slice(i, i + BATCH_SIZE);
 					const testsForPrompt = batch
-						.map((t) => {
+						.map((t: Doc<"testDefinitionLatest">) => {
 							// Parse definitionKey: projectId|name|file|line
 							const parts = t.definitionKey.split("|");
 							const name = parts[1] || "unknown";
@@ -399,7 +399,7 @@ Only include mappings where confidence >= 0.5.`;
  */
 export const getAnalysisStatus = action({
 	args: { projectId: v.id("projects") },
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<Doc<"codebaseAnalysis"> | null> => {
 		return await ctx.runQuery(internal.codebaseAnalysis._getLatestAnalysis, {
 			projectId: args.projectId,
 		});
