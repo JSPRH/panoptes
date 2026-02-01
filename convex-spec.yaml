@@ -2401,6 +2401,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/FailedResponse"
 
+  /api/run/tests/getCoverageByPackage:
+    post:
+      summary: Calls a query at the path tests.js:getCoverageByPackage
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_tests.getCoverageByPackage"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_tests.getCoverageByPackage"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
   /api/run/tests/fixRunningTests:
     post:
       summary: Calls a mutation at the path tests.js:fixRunningTests
@@ -2419,6 +2450,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Response_tests.fixRunningTests"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/featuresActions/triggerCloudAgentForFeature:
+    post:
+      summary: Calls a action at the path featuresActions.js:triggerCloudAgentForFeature
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_featuresActions.triggerCloudAgentForFeature"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_featuresActions.triggerCloudAgentForFeature"
         "400":
           description: Failed operation
           content:
@@ -6549,6 +6611,42 @@ components:
           type: object
         value: {}
 
+    Request_tests.getCoverageByPackage:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          properties:
+            limit:
+              type: number
+            maxPackages:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+            startTimestamp:
+              type: number
+            useStatementCoverage:
+              type: boolean
+
+    Response_tests.getCoverageByPackage:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
     Request_tests.fixRunningTests:
       type: object
       required:
@@ -6562,6 +6660,36 @@ components:
               description: ID from table "testRuns"
 
     Response_tests.fixRunningTests:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_featuresActions.triggerCloudAgentForFeature:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - featureId
+          properties:
+            featureId:
+              type: string
+              description: ID from table "features"
+
+    Response_featuresActions.triggerCloudAgentForFeature:
       type: object
       required:
         - status

@@ -1412,15 +1412,20 @@ type TestStatus = "passed" | "failed" | "skipped" | "running";
 
 // Aggregate for efficient counting of test definitions by type and status
 // Uses namespace to separate by testType, and key to track status
+// Type assertion needed because TypeScript doesn't infer the component type from generated API
 const testDefinitionAggregate = new TableAggregate<{
 	Namespace: "unit" | "integration" | "e2e" | "visual";
 	Key: "passed" | "failed" | "skipped" | "running";
 	DataModel: DataModel;
 	TableName: "testDefinitionLatest";
-}>(components.testDefinitionAggregate, {
-	namespace: (doc: Doc<"testDefinitionLatest">) => doc.testType,
-	sortKey: (doc: Doc<"testDefinitionLatest">) => doc.status,
-});
+}>(
+	// biome-ignore lint/suspicious/noExplicitAny: Generated API types don't properly expose component types at compile time, but the property exists at runtime
+	(components as { testDefinitionAggregate: any }).testDefinitionAggregate,
+	{
+		namespace: (doc: Doc<"testDefinitionLatest">) => doc.testType,
+		sortKey: (doc: Doc<"testDefinitionLatest">) => doc.status,
+	}
+);
 
 async function updateDashboardStats(
 	ctx: GenericMutationCtx<DataModel>,
