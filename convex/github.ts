@@ -792,7 +792,28 @@ export const getRepositoryTree = action({
 		}
 
 		const token = getGitHubToken();
-		const ref = args.ref || "HEAD";
+		
+		// If no ref provided, get the default branch from the repository
+		let ref = args.ref;
+		if (!ref) {
+			const repoResponse = await fetch(
+				`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}`,
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+						Accept: "application/vnd.github.v3+json",
+					},
+				}
+			);
+			
+			if (repoResponse.ok) {
+				const repoData = (await repoResponse.json()) as { default_branch: string };
+				ref = repoData.default_branch || "main";
+			} else {
+				// Fallback to "main" if we can't get the default branch
+				ref = "main";
+			}
+		}
 
 		// Fetch the tree recursively
 		const response = await fetch(
