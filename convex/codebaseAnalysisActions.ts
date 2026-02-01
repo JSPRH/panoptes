@@ -20,7 +20,7 @@ const FeatureDiscoverySchema = z.object({
 			category: z.string().describe("High-level category (e.g., 'Auth', 'Dashboard', 'Testing')"),
 			userJourney: z
 				.string()
-				.optional()
+				.nullish()
 				.describe("Optional user journey this belongs to (e.g., 'Onboarding Flow')"),
 			relatedFiles: z.array(z.string()).describe("File paths that implement this feature"),
 			confidence: z.number().min(0).max(1).describe("Confidence score 0-1"),
@@ -277,7 +277,7 @@ Look for: pages, API endpoints, UI components, data flows, user interactions.`;
 					name: feature.name,
 					description: feature.description,
 					category: feature.category,
-					userJourney: feature.userJourney,
+					userJourney: feature.userJourney ?? undefined,
 					relatedFiles: feature.relatedFiles,
 					confidence: feature.confidence,
 					isUserDefined: false,
