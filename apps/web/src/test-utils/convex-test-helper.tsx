@@ -61,7 +61,7 @@ export function createTestInstance() {
 
 // Helper to set up test data for common scenarios
 export async function setupTestProject(t: ReturnType<typeof convexTest>) {
-	const projectId = await t.mutation(api.tests.ingestTestRun, {
+	await t.mutation(api.tests.ingestTestRun, {
 		projectName: "Test Project",
 		framework: "vitest",
 		testType: "unit",
