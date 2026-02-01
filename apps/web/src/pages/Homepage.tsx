@@ -153,13 +153,13 @@ export default function Homepage() {
 									</CardDescription>
 								</CardHeader>
 								<CardContent>
-									<div className="aspect-video rounded-lg bg-gradient-to-br from-secondary/20 to-secondary/5 flex items-center justify-center">
-										<div className="text-center">
-											<div className="text-4xl mb-2">🔧</div>
-											<div className="text-sm text-muted-foreground font-medium">
-												Vitest • Playwright
-											</div>
-										</div>
+									<div className="aspect-video rounded-lg bg-gradient-to-br from-secondary/20 to-secondary/5 flex items-center justify-center gap-8 p-8">
+										<img src="/vitest-logo.svg" alt="Vitest" className="h-12 w-auto opacity-90" />
+										<img
+											src="/playwright-logo.svg"
+											alt="Playwright"
+											className="h-12 w-auto opacity-90"
+										/>
 									</div>
 								</CardContent>
 							</Card>
