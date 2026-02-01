@@ -46,16 +46,24 @@ const modules: Record<string, () => Promise<unknown>> = {
 // Helper to create a test instance with aggregate component registered
 export function createTestInstance() {
 	const t = convexTest(schema, modules);
-	// Register the aggregate component - it needs a schema and modules
-	const aggregateSchema = defineSchema({
-		aggregateState: defineTable({
-			namespace: v.string(),
-			key: v.string(),
-			count: v.number(),
-		}),
-	});
-	// Use the same modules so the aggregate can access _generated files
-	t.registerComponent("testDefinitionAggregate", aggregateSchema, modules);
+	// Try to register the aggregate component - it needs a schema and modules
+	// Note: Aggregate requires internal Convex modules (btree, public) that aren't available
+	// in the test environment, so we skip registration and let the code fall back to DB queries
+	try {
+		const aggregateSchema = defineSchema({
+			aggregateState: defineTable({
+				namespace: v.string(),
+				key: v.string(),
+				count: v.number(),
+			}),
+		});
+		// Use the same modules so the aggregate can access _generated files
+		t.registerComponent("testDefinitionAggregate", aggregateSchema, modules);
+	} catch (error) {
+		// Aggregate registration fails in test environment due to missing internal modules
+		// This is expected - the code will fall back to database queries
+		console.warn("Skipping aggregate registration in test environment:", error);
+	}
 	return t;
 }
 
