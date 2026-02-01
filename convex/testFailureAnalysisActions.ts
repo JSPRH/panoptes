@@ -284,21 +284,34 @@ export const triggerCloudAgentForTest = action({
 			testId: args.testId,
 		});
 
+		// Helper function to truncate long text fields for API compatibility
+		const truncate = (text: string | undefined, maxLength: number): string => {
+			if (!text) return "";
+			return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+		};
+
 		// Build prompt based on action type
+		// Truncate long fields to prevent "invalid text for prompt" errors
 		let prompt = "";
 		const testContext = `${test.file}${test.line ? `:${test.line}` : ""}`;
+		const error = truncate(test.error, 500);
+		const errorDetails = truncate(test.errorDetails, 1000); // Truncate stack traces
+		const summary = truncate(analysis?.summary, 500);
+		const rootCause = truncate(analysis?.rootCause, 1000);
+		const suggestedFix = truncate(analysis?.suggestedFix, 1000);
+		const codeLocation = truncate(analysis?.codeLocation, 200);
 
 		if (args.actionType === "fix_test") {
 			// Focus on test code, assertions, mocking
 			prompt = `Fix the failing test "${test.name}" in file ${testContext}.
 
-${test.error ? `Error: ${test.error}` : "Test failed"}
+${error ? `Error: ${error}` : "Test failed"}
 
-${test.errorDetails ? `Error Details:\n${test.errorDetails}` : ""}
+${errorDetails ? `Error Details:\n${errorDetails}` : ""}
 
-${analysis?.summary ? `Analysis Summary: ${analysis.summary}` : ""}
-${analysis?.rootCause ? `Root Cause: ${analysis.rootCause}` : ""}
-${analysis?.suggestedFix ? `Suggested Fix: ${analysis.suggestedFix}` : ""}
+${summary ? `Analysis Summary: ${summary}` : ""}
+${rootCause ? `Root Cause: ${rootCause}` : ""}
+${suggestedFix ? `Suggested Fix: ${suggestedFix}` : ""}
 
 Focus on:
 - Fixing test code, assertions, and expectations
@@ -311,14 +324,14 @@ Please fix the test and ensure it passes.`;
 			// Focus on production code, logic errors
 			prompt = `Fix the bug causing the test "${test.name}" to fail in file ${testContext}.
 
-${test.error ? `Test Error: ${test.error}` : "Test failed"}
+${error ? `Test Error: ${error}` : "Test failed"}
 
-${test.errorDetails ? `Error Details:\n${test.errorDetails}` : ""}
+${errorDetails ? `Error Details:\n${errorDetails}` : ""}
 
-${analysis?.summary ? `Analysis Summary: ${analysis.summary}` : ""}
-${analysis?.rootCause ? `Root Cause: ${analysis.rootCause}` : ""}
-${analysis?.suggestedFix ? `Suggested Fix: ${analysis.suggestedFix}` : ""}
-${analysis?.codeLocation ? `Code Location: ${analysis.codeLocation}` : ""}
+${summary ? `Analysis Summary: ${summary}` : ""}
+${rootCause ? `Root Cause: ${rootCause}` : ""}
+${suggestedFix ? `Suggested Fix: ${suggestedFix}` : ""}
+${codeLocation ? `Code Location: ${codeLocation}` : ""}
 
 Focus on:
 - Fixing production code logic errors
@@ -327,6 +340,12 @@ Focus on:
 - Ensuring code correctness and edge case handling
 
 Please fix the bug and ensure the test passes.`;
+		}
+
+		// Final safety check: truncate entire prompt if it's too long (max ~8000 chars for API)
+		const maxPromptLength = 8000;
+		if (prompt.length > maxPromptLength) {
+			prompt = `${prompt.substring(0, maxPromptLength - 100)}...\n\n[Prompt truncated due to length]`;
 		}
 
 		const apiKey = getCursorApiKey();
