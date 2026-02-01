@@ -1,11 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { convexTest } from "convex-test";
 import { api } from "@convex/_generated/api";
-import Anomalies from "../Anomalies";
+import { render, screen, waitFor } from "@testing-library/react";
+import type { convexTest } from "convex-test";
+import { BrowserRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestInstance, setupTestProject } from "../../test-utils/convex-test-helper";
-import type { Id } from "@convex/_generated/dataModel";
+import Anomalies from "../Anomalies";
 
 // Mock Convex hooks
 let testInstance: ReturnType<typeof convexTest> | null = null;
@@ -18,7 +17,7 @@ vi.mock("convex/react", () => {
 			if (args === "skip") return undefined;
 
 			const cacheKey = JSON.stringify({ query: String(query), args });
-			
+
 			if (queryResults.has(cacheKey)) {
 				return queryResults.get(cacheKey);
 			}
@@ -34,9 +33,7 @@ vi.mock("convex/react", () => {
 
 // Skip these tests when running with bun test - they require vitest/jsdom
 // @ts-ignore
-const testSuite = typeof Bun !== "undefined" && !globalThis.__vitest__ 
-	? describe.skip 
-	: describe;
+const testSuite = typeof Bun !== "undefined" && !globalThis.__vitest__ ? describe.skip : describe;
 
 testSuite("Anomalies Integration Tests", () => {
 	beforeEach(async () => {
@@ -57,7 +54,8 @@ testSuite("Anomalies Integration Tests", () => {
 	});
 
 	it("should display empty state when no anomalies exist", async () => {
-		const projectId = await setupTestProject(testInstance!);
+		if (!testInstance) throw new Error("testInstance not initialized");
+		const projectId = await setupTestProject(testInstance);
 
 		const projects = await testInstance.query(api.tests.getProjects);
 		const anomalies = await testInstance.query(api.anomalies.getAnomalies, {

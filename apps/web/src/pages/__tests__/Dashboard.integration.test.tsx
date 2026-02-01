@@ -1,10 +1,14 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { convexTest } from "convex-test";
 import { api } from "@convex/_generated/api";
+import { render, screen, waitFor } from "@testing-library/react";
+import type { convexTest } from "convex-test";
+import { BrowserRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	createTestInstance,
+	createTestRun,
+	setupTestProject,
+} from "../../test-utils/convex-test-helper";
 import Dashboard from "../Dashboard";
-import { createTestInstance, setupTestProject, createTestRun } from "../../test-utils/convex-test-helper";
 
 // Mock Convex hooks to use convex-test
 let testInstance: ReturnType<typeof convexTest> | null = null;
@@ -17,7 +21,7 @@ vi.mock("convex/react", () => {
 			if (args === "skip") return undefined;
 
 			const cacheKey = JSON.stringify({ query: String(query), args });
-			
+
 			// Return cached result synchronously
 			if (queryResults.has(cacheKey)) {
 				return queryResults.get(cacheKey);
@@ -47,14 +51,24 @@ if (typeof Bun !== "undefined" && !globalThis.__vitest__) {
 		});
 
 		it("should render dashboard with empty state when no data exists", async () => {
+			if (!testInstance) throw new Error("testInstance not initialized");
 			// Pre-populate with empty data
 			const stats = await testInstance.query(api.tests.getDashboardStats);
 			const projects = await testInstance.query(api.tests.getProjects);
 			const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 10 });
 
-			queryResults.set(JSON.stringify({ query: String(api.tests.getDashboardStats), args: undefined }), stats);
-			queryResults.set(JSON.stringify({ query: String(api.tests.getProjects), args: undefined }), projects);
-			queryResults.set(JSON.stringify({ query: String(api.tests.getTestRuns), args: { limit: 10 } }), testRuns);
+			queryResults.set(
+				JSON.stringify({ query: String(api.tests.getDashboardStats), args: undefined }),
+				stats
+			);
+			queryResults.set(
+				JSON.stringify({ query: String(api.tests.getProjects), args: undefined }),
+				projects
+			);
+			queryResults.set(
+				JSON.stringify({ query: String(api.tests.getTestRuns), args: { limit: 10 } }),
+				testRuns
+			);
 
 			render(
 				<BrowserRouter>
@@ -68,8 +82,9 @@ if (typeof Bun !== "undefined" && !globalThis.__vitest__) {
 		});
 
 		it("should display dashboard stats when test data exists", async () => {
-			const projectId = await setupTestProject(testInstance!);
-			await createTestRun(testInstance!, projectId, {
+			if (!testInstance) throw new Error("testInstance not initialized");
+			const projectId = await setupTestProject(testInstance);
+			await createTestRun(testInstance, projectId, {
 				testType: "unit",
 				passedTests: 10,
 				failedTests: 2,
@@ -80,9 +95,18 @@ if (typeof Bun !== "undefined" && !globalThis.__vitest__) {
 			const projects = await testInstance.query(api.tests.getProjects);
 			const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 10 });
 
-			queryResults.set(JSON.stringify({ query: String(api.tests.getDashboardStats), args: undefined }), stats);
-			queryResults.set(JSON.stringify({ query: String(api.tests.getProjects), args: undefined }), projects);
-			queryResults.set(JSON.stringify({ query: String(api.tests.getTestRuns), args: { limit: 10 } }), testRuns);
+			queryResults.set(
+				JSON.stringify({ query: String(api.tests.getDashboardStats), args: undefined }),
+				stats
+			);
+			queryResults.set(
+				JSON.stringify({ query: String(api.tests.getProjects), args: undefined }),
+				projects
+			);
+			queryResults.set(
+				JSON.stringify({ query: String(api.tests.getTestRuns), args: { limit: 10 } }),
+				testRuns
+			);
 
 			render(
 				<BrowserRouter>
