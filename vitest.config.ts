@@ -18,7 +18,7 @@ export default defineConfig({
 			"default",
 			new PanoptesReporter({
 				convexUrl: process.env.CONVEX_URL,
-				projectName: process.env.PANOPTES_PROJECT_NAME || "panoptes-test",
+				projectName: process.env.PANOPTES_PROJECT_NAME || "panoptes",
 				environment: process.env.NODE_ENV || "development",
 				ci: process.env.CI === "true",
 			}),

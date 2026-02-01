@@ -26,7 +26,7 @@ export default defineConfig({
 			"@justinmiehle/reporter-playwright",
 			{
 				convexUrl: process.env.CONVEX_URL || "http://localhost:3210",
-				projectName: process.env.PANOPTES_PROJECT_NAME || "panoptes-web",
+				projectName: process.env.PANOPTES_PROJECT_NAME || "panoptes",
 				environment: process.env.NODE_ENV || "development",
 				ci: process.env.CI === "true",
 			},
