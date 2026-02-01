@@ -395,14 +395,18 @@ export const triggerCursorCloudAgent = action({
 		// (in case it was stored in a different format)
 		const repository = normalizeRepositoryUrl(rawRepository);
 
-		// Get the CI run to access commit SHA (more reliable than branch name)
+		// Get the CI run to access branch name
 		const ciRun = await ctx.runQuery(internal.github._getCIRunById, {
 			ciRunId: args.ciRunId,
 		});
 
-		// Resolve the ref: prefer commit SHA (most reliable), fallback to fetching default branch
-		// The Cursor API accepts commit SHAs as refs, which is more reliable than branch names
-		const ref = await resolveRepositoryRef(repository, storedRef, ciRun?.commitSha);
+		// Resolve the ref: verify branch exists, fallback to default branch
+		// The Cursor API requires branch names (not commit SHAs) and verifies branch existence
+		const ref = await resolveRepositoryRef(
+			repository,
+			ciRun?.branch || storedRef,
+			ciRun?.commitSha
+		);
 
 		// Build prompt based on action type
 		let prompt = analysis.analysis.cursorBackgroundAgentData.prompt;

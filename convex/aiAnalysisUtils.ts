@@ -73,45 +73,33 @@ export function normalizeRepositoryUrl(repository: string): string {
 }
 
 /**
- * Resolve a ref (branch/commit) for use with Cursor Cloud Agents API.
- * Prefers commit SHA (most reliable), falls back to fetching default branch from GitHub.
+ * Resolve a ref (branch) for use with Cursor Cloud Agents API.
+ * The Cursor API requires branch names (not commit SHAs) and verifies branch existence.
+ * This function verifies the branch exists and falls back to the default branch if needed.
  * @param repository - Full GitHub repository URL (e.g., https://github.com/owner/repo)
- * @param preferredRef - Preferred ref (branch name or commit SHA)
- * @param commitSha - Commit SHA if available (preferred over branch name)
- * @returns Resolved ref (commit SHA, branch name, or default branch)
+ * @param preferredRef - Preferred branch name
+ * @param commitSha - Commit SHA (not used, but kept for API compatibility)
+ * @returns Resolved branch name
  */
 export async function resolveRepositoryRef(
 	repository: string,
 	preferredRef?: string,
 	commitSha?: string
 ): Promise<string> {
-	// Prefer commit SHA if available (commits are immutable and always exist)
-	if (commitSha) {
-		return commitSha;
+	const repoInfo = parseRepositoryUrl(repository);
+	if (!repoInfo) {
+		throw new Error(`Invalid repository URL: ${repository}`);
 	}
 
-	// If we have a preferred ref, try to use it
-	if (preferredRef) {
-		// If it looks like a commit SHA (40 hex characters), use it directly
-		if (/^[a-f0-9]{40}$/i.test(preferredRef)) {
-			return preferredRef;
-		}
-		// Otherwise, it's a branch name - we'll try to fetch default branch as fallback
+	const token = process.env.GITHUB_ACCESS_TOKEN;
+	if (!token) {
+		// If no GitHub token, fall back to preferred ref or "main"
+		return preferredRef || "main";
 	}
 
-	// Fetch default branch from GitHub API as fallback
+	// First, try to get the default branch
+	let defaultBranch = "main";
 	try {
-		const repoInfo = parseRepositoryUrl(repository);
-		if (!repoInfo) {
-			throw new Error(`Invalid repository URL: ${repository}`);
-		}
-
-		const token = process.env.GITHUB_ACCESS_TOKEN;
-		if (!token) {
-			// If no GitHub token, fall back to preferred ref or "main"
-			return preferredRef || "main";
-		}
-
 		const repoResponse = await fetch(
 			`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}`,
 			{
@@ -124,15 +112,37 @@ export async function resolveRepositoryRef(
 
 		if (repoResponse.ok) {
 			const repoData = (await repoResponse.json()) as { default_branch: string };
-			return repoData.default_branch || preferredRef || "main";
+			defaultBranch = repoData.default_branch || "main";
 		}
 	} catch (error) {
-		// If fetching default branch fails, fall back to preferred ref or "main"
 		console.warn(`Failed to fetch default branch for ${repository}:`, error);
 	}
 
-	// Final fallback
-	return preferredRef || "main";
+	// If we have a preferred ref (branch name), verify it exists
+	if (preferredRef && !/^[a-f0-9]{40}$/i.test(preferredRef)) {
+		// It's a branch name, not a commit SHA - verify it exists
+		try {
+			const branchResponse = await fetch(
+				`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/branches/${encodeURIComponent(preferredRef)}`,
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+						Accept: "application/vnd.github.v3+json",
+					},
+				}
+			);
+
+			if (branchResponse.ok) {
+				// Branch exists, use it
+				return preferredRef;
+			}
+		} catch (error) {
+			console.warn(`Failed to verify branch ${preferredRef} for ${repository}:`, error);
+		}
+	}
+
+	// Fall back to default branch
+	return defaultBranch;
 }
 
 /**
