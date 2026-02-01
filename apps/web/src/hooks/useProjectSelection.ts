@@ -10,9 +10,9 @@ export function useProjectSelection() {
 
 	const selectedProject = projects?.find((p) => p._id === selectedProjectId);
 
-	// Auto-select first project if only one exists
+	// Auto-select first project if available and none selected
 	useEffect(() => {
-		if (projects && projects.length === 1 && !selectedProjectId) {
+		if (projects && projects.length > 0 && !selectedProjectId) {
 			setSelectedProjectId(projects[0]._id);
 		}
 	}, [projects, selectedProjectId]);

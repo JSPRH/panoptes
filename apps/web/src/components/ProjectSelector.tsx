@@ -2,22 +2,15 @@
 import { api } from "@convex/_generated/api.js";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useQuery } from "convex/react";
-import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 
 type Project = Doc<"projects">;
 
 interface ProjectSelectorProps {
 	selectedProjectId: Id<"projects"> | null;
 	onProjectSelect: (projectId: Id<"projects">) => void;
-	description?: string;
 }
 
-export function ProjectSelector({
-	selectedProjectId,
-	onProjectSelect,
-	description = "Select a project",
-}: ProjectSelectorProps) {
+export function ProjectSelector({ selectedProjectId, onProjectSelect }: ProjectSelectorProps) {
 	const projects = useQuery(api.tests.getProjects);
 
 	if (!projects || projects.length === 0) {
@@ -29,26 +22,28 @@ export function ProjectSelector({
 	}
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Project Selection</CardTitle>
-				<CardDescription>{description}</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<div className="flex flex-wrap gap-2">
-					{projects.map((project: Project) => (
-						<Button
-							key={project._id}
-							variant={selectedProjectId === project._id ? "default" : "outline"}
-							size="sm"
-							onClick={() => onProjectSelect(project._id as Id<"projects">)}
-						>
-							{project.name}
-							{!project.repository && <span className="ml-2 text-xs text-warning">(no repo)</span>}
-						</Button>
-					))}
-				</div>
-			</CardContent>
-		</Card>
+		<div className="flex items-center gap-2">
+			<label htmlFor="project-select" className="text-sm font-medium text-muted-foreground">
+				Project:
+			</label>
+			<select
+				id="project-select"
+				value={selectedProjectId || ""}
+				onChange={(e) => {
+					if (e.target.value) {
+						onProjectSelect(e.target.value as Id<"projects">);
+					}
+				}}
+				className="px-3 py-1.5 text-sm border border-border rounded-md bg-background hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+			>
+				<option value="">-- Select a project --</option>
+				{projects.map((project: Project) => (
+					<option key={project._id} value={project._id}>
+						{project.name}
+						{!project.repository ? " (no repo)" : ""}
+					</option>
+				))}
+			</select>
+		</div>
 	);
 }

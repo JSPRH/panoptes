@@ -5,13 +5,13 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import { ProjectSelector } from "../components/ProjectSelector";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 
 type Anomaly = Doc<"anomalies">;
-type Project = Doc<"projects">;
 
 export default function Anomalies() {
 	const [selectedProjectId, setSelectedProjectId] = useState<Id<"projects"> | null>(null);
@@ -32,9 +32,9 @@ export default function Anomalies() {
 	const resolveAnomaly = useMutation(api.anomalies.resolveAnomaly);
 	const analyzeAnomalies = useAction(api.anomaliesActions.analyzeAnomalies);
 
-	// Auto-select first project if only one exists
+	// Auto-select first project if available and none selected
 	useEffect(() => {
-		if (projects && projects.length === 1 && !selectedProjectId) {
+		if (projects && projects.length > 0 && !selectedProjectId) {
 			setSelectedProjectId(projects[0]._id);
 		}
 	}, [projects, selectedProjectId]);
@@ -83,38 +83,15 @@ export default function Anomalies() {
 		}
 	};
 
-	const hasMultipleProjects = projects && projects.length > 1;
-
 	return (
 		<div className="space-y-8">
-			<PageHeader title="Anomaly Detection" description="Detected issues in your test suite" />
-
-			{hasMultipleProjects && (
-				<Card>
-					<CardHeader>
-						<CardTitle>Project</CardTitle>
-						<CardDescription>Select a project to view anomalies</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<div className="flex flex-wrap gap-2">
-							{projects.map((project: Project) => (
-								<button
-									key={project._id}
-									type="button"
-									onClick={() => setSelectedProjectId(project._id)}
-									className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-										selectedProjectId === project._id
-											? "bg-primary text-primary-foreground"
-											: "bg-muted text-muted-foreground hover:bg-muted/80"
-									}`}
-								>
-									{project.name}
-								</button>
-							))}
-						</div>
-					</CardContent>
-				</Card>
-			)}
+			<div className="flex items-center justify-between">
+				<PageHeader title="Anomaly Detection" description="Detected issues in your test suite" />
+				<ProjectSelector
+					selectedProjectId={selectedProjectId}
+					onProjectSelect={setSelectedProjectId}
+				/>
+			</div>
 
 			{projects && projects.length === 0 && (
 				<p className="text-muted-foreground">

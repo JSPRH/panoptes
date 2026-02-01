@@ -37,18 +37,18 @@ export default function PullRequests() {
 
 	return (
 		<div className="space-y-8">
-			<GitHubPageHeader
-				title="Pull Requests"
-				description="Open pull requests from GitHub"
-				onSync={handleSync}
-				showSyncButton={!!selectedProjectId}
-			/>
-
-			<ProjectSelector
-				selectedProjectId={selectedProjectId}
-				onProjectSelect={setSelectedProjectId}
-				description="Select a project to view pull requests"
-			/>
+			<div className="flex items-center justify-between flex-wrap gap-4">
+				<GitHubPageHeader
+					title="Pull Requests"
+					description="Open pull requests from GitHub"
+					onSync={handleSync}
+					showSyncButton={!!selectedProjectId}
+				/>
+				<ProjectSelector
+					selectedProjectId={selectedProjectId}
+					onProjectSelect={setSelectedProjectId}
+				/>
+			</div>
 
 			{selectedProject && !selectedProject.repository && (
 				<RepositoryConfig
