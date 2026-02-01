@@ -138,37 +138,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/FailedResponse"
 
-  /api/run/anomaliesActions/analyzeAnomalies:
-    post:
-      summary: Calls a action at the path anomaliesActions.js:analyzeAnomalies
-      tags:
-        - action
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_anomaliesActions.analyzeAnomalies"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_anomaliesActions.analyzeAnomalies"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
   /api/run/ciAnalysis/getCIRunAnalysis:
     post:
       summary: Calls a query at the path ciAnalysis.js:getCIRunAnalysis
@@ -249,502 +218,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Response_ciAnalysisActions.triggerCursorCloudAgent"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/codebaseAnalysisActions/getAnalysisStatus:
-    post:
-      summary: Calls a action at the path codebaseAnalysisActions.js:getAnalysisStatus
-      tags:
-        - action
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_codebaseAnalysisActions.getAnalysisStatus"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_codebaseAnalysisActions.getAnalysisStatus"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/codebaseAnalysisActions/startCodebaseAnalysis:
-    post:
-      summary: Calls a action at the path codebaseAnalysisActions.js:startCodebaseAnalysis
-      tags:
-        - action
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_codebaseAnalysisActions.startCodebaseAnalysis"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_codebaseAnalysisActions.startCodebaseAnalysis"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/getFeatures:
-    post:
-      summary: Calls a query at the path features.js:getFeatures
-      tags:
-        - query
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.getFeatures"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.getFeatures"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/getCategories:
-    post:
-      summary: Calls a query at the path features.js:getCategories
-      tags:
-        - query
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.getCategories"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.getCategories"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/getFeatureWithTests:
-    post:
-      summary: Calls a query at the path features.js:getFeatureWithTests
-      tags:
-        - query
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.getFeatureWithTests"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.getFeatureWithTests"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/getUncoveredFeatures:
-    post:
-      summary: Calls a query at the path features.js:getUncoveredFeatures
-      tags:
-        - query
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.getUncoveredFeatures"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.getUncoveredFeatures"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/getLatestAnalysis:
-    post:
-      summary: Calls a query at the path features.js:getLatestAnalysis
-      tags:
-        - query
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.getLatestAnalysis"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.getLatestAnalysis"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/getTestFeatureMappings:
-    post:
-      summary: Calls a query at the path features.js:getTestFeatureMappings
-      tags:
-        - query
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.getTestFeatureMappings"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.getTestFeatureMappings"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/getFeatureStats:
-    post:
-      summary: Calls a query at the path features.js:getFeatureStats
-      tags:
-        - query
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.getFeatureStats"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.getFeatureStats"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/getFeatureTestHistory:
-    post:
-      summary: Calls a query at the path features.js:getFeatureTestHistory
-      tags:
-        - query
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.getFeatureTestHistory"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.getFeatureTestHistory"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/updateFeature:
-    post:
-      summary: Calls a mutation at the path features.js:updateFeature
-      tags:
-        - mutation
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.updateFeature"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.updateFeature"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/archiveFeature:
-    post:
-      summary: Calls a mutation at the path features.js:archiveFeature
-      tags:
-        - mutation
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.archiveFeature"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.archiveFeature"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/createFeature:
-    post:
-      summary: Calls a mutation at the path features.js:createFeature
-      tags:
-        - mutation
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.createFeature"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.createFeature"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/mergeFeatures:
-    post:
-      summary: Calls a mutation at the path features.js:mergeFeatures
-      tags:
-        - mutation
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.mergeFeatures"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.mergeFeatures"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/confirmTestMapping:
-    post:
-      summary: Calls a mutation at the path features.js:confirmTestMapping
-      tags:
-        - mutation
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.confirmTestMapping"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.confirmTestMapping"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/features/createTestMapping:
-    post:
-      summary: Calls a mutation at the path features.js:createTestMapping
-      tags:
-        - mutation
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_features.createTestMapping"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_features.createTestMapping"
         "400":
           description: Failed operation
           content:
@@ -1396,223 +869,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Response_github.storeCodeSnippet"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/testFailureAnalysis/getTestFailureAnalysis:
-    post:
-      summary: Calls a query at the path testFailureAnalysis.js:getTestFailureAnalysis
-      tags:
-        - query
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_testFailureAnalysis.getTestFailureAnalysis"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_testFailureAnalysis.getTestFailureAnalysis"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/testFailureAnalysis/_createTestFailureAnalysis:
-    post:
-      summary: Calls a mutation at the path testFailureAnalysis.js:_createTestFailureAnalysis
-      tags:
-        - mutation
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_testFailureAnalysis._createTestFailureAnalysis"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_testFailureAnalysis._createTestFailureAnalysis"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/testFailureAnalysis/_updateTestFailureAnalysis:
-    post:
-      summary: Calls a mutation at the path testFailureAnalysis.js:_updateTestFailureAnalysis
-      tags:
-        - mutation
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_testFailureAnalysis._updateTestFailureAnalysis"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_testFailureAnalysis._updateTestFailureAnalysis"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/testFailureAnalysisActions/triggerCloudAgentForTest:
-    post:
-      summary: Calls a action at the path testFailureAnalysisActions.js:triggerCloudAgentForTest
-      tags:
-        - action
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_testFailureAnalysisActions.triggerCloudAgentForTest"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_testFailureAnalysisActions.triggerCloudAgentForTest"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/testFailureAnalysisActions/analyzeTestFailure:
-    post:
-      summary: Calls a action at the path testFailureAnalysisActions.js:analyzeTestFailure
-      tags:
-        - action
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_testFailureAnalysisActions.analyzeTestFailure"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_testFailureAnalysisActions.analyzeTestFailure"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/testSuggestionsActions/triggerCloudAgentForTestCoverage:
-    post:
-      summary: Calls a action at the path testSuggestionsActions.js:triggerCloudAgentForTestCoverage
-      tags:
-        - action
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_testSuggestionsActions.triggerCloudAgentForTestCoverage"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_testSuggestionsActions.triggerCloudAgentForTestCoverage"
-        "400":
-          description: Failed operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-        "500":
-          description: Convex Internal Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FailedResponse"
-
-  /api/run/testSuggestionsActions/generateTestSuggestions:
-    post:
-      summary: Calls a action at the path testSuggestionsActions.js:generateTestSuggestions
-      tags:
-        - action
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Request_testSuggestionsActions.generateTestSuggestions"
-        required: true
-      responses:
-        "200":
-          description: Convex executed your request and returned a result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Response_testSuggestionsActions.generateTestSuggestions"
         "400":
           description: Failed operation
           content:
@@ -2587,6 +1843,750 @@ paths:
               schema:
                 $ref: "#/components/schemas/FailedResponse"
 
+  /api/run/testSuggestionsActions/triggerCloudAgentForTestCoverage:
+    post:
+      summary: Calls a action at the path testSuggestionsActions.js:triggerCloudAgentForTestCoverage
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testSuggestionsActions.triggerCloudAgentForTestCoverage"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testSuggestionsActions.triggerCloudAgentForTestCoverage"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testSuggestionsActions/generateTestSuggestions:
+    post:
+      summary: Calls a action at the path testSuggestionsActions.js:generateTestSuggestions
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testSuggestionsActions.generateTestSuggestions"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testSuggestionsActions.generateTestSuggestions"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/anomaliesActions/analyzeAnomalies:
+    post:
+      summary: Calls a action at the path anomaliesActions.js:analyzeAnomalies
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_anomaliesActions.analyzeAnomalies"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_anomaliesActions.analyzeAnomalies"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testFailureAnalysis/getTestFailureAnalysis:
+    post:
+      summary: Calls a query at the path testFailureAnalysis.js:getTestFailureAnalysis
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testFailureAnalysis.getTestFailureAnalysis"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testFailureAnalysis.getTestFailureAnalysis"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testFailureAnalysis/_createTestFailureAnalysis:
+    post:
+      summary: Calls a mutation at the path testFailureAnalysis.js:_createTestFailureAnalysis
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testFailureAnalysis._createTestFailureAnalysis"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testFailureAnalysis._createTestFailureAnalysis"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testFailureAnalysis/_updateTestFailureAnalysis:
+    post:
+      summary: Calls a mutation at the path testFailureAnalysis.js:_updateTestFailureAnalysis
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testFailureAnalysis._updateTestFailureAnalysis"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testFailureAnalysis._updateTestFailureAnalysis"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testFailureAnalysisActions/triggerCloudAgentForTest:
+    post:
+      summary: Calls a action at the path testFailureAnalysisActions.js:triggerCloudAgentForTest
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testFailureAnalysisActions.triggerCloudAgentForTest"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testFailureAnalysisActions.triggerCloudAgentForTest"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/testFailureAnalysisActions/analyzeTestFailure:
+    post:
+      summary: Calls a action at the path testFailureAnalysisActions.js:analyzeTestFailure
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_testFailureAnalysisActions.analyzeTestFailure"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_testFailureAnalysisActions.analyzeTestFailure"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/codebaseAnalysisActions/getAnalysisStatus:
+    post:
+      summary: Calls a action at the path codebaseAnalysisActions.js:getAnalysisStatus
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_codebaseAnalysisActions.getAnalysisStatus"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_codebaseAnalysisActions.getAnalysisStatus"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/codebaseAnalysisActions/startCodebaseAnalysis:
+    post:
+      summary: Calls a action at the path codebaseAnalysisActions.js:startCodebaseAnalysis
+      tags:
+        - action
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_codebaseAnalysisActions.startCodebaseAnalysis"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_codebaseAnalysisActions.startCodebaseAnalysis"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/getFeatures:
+    post:
+      summary: Calls a query at the path features.js:getFeatures
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.getFeatures"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.getFeatures"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/getCategories:
+    post:
+      summary: Calls a query at the path features.js:getCategories
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.getCategories"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.getCategories"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/getFeatureWithTests:
+    post:
+      summary: Calls a query at the path features.js:getFeatureWithTests
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.getFeatureWithTests"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.getFeatureWithTests"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/getUncoveredFeatures:
+    post:
+      summary: Calls a query at the path features.js:getUncoveredFeatures
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.getUncoveredFeatures"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.getUncoveredFeatures"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/getLatestAnalysis:
+    post:
+      summary: Calls a query at the path features.js:getLatestAnalysis
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.getLatestAnalysis"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.getLatestAnalysis"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/getTestFeatureMappings:
+    post:
+      summary: Calls a query at the path features.js:getTestFeatureMappings
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.getTestFeatureMappings"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.getTestFeatureMappings"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/getFeatureStats:
+    post:
+      summary: Calls a query at the path features.js:getFeatureStats
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.getFeatureStats"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.getFeatureStats"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/getFeatureTestHistory:
+    post:
+      summary: Calls a query at the path features.js:getFeatureTestHistory
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.getFeatureTestHistory"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.getFeatureTestHistory"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/updateFeature:
+    post:
+      summary: Calls a mutation at the path features.js:updateFeature
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.updateFeature"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.updateFeature"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/archiveFeature:
+    post:
+      summary: Calls a mutation at the path features.js:archiveFeature
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.archiveFeature"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.archiveFeature"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/createFeature:
+    post:
+      summary: Calls a mutation at the path features.js:createFeature
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.createFeature"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.createFeature"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/mergeFeatures:
+    post:
+      summary: Calls a mutation at the path features.js:mergeFeatures
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.mergeFeatures"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.mergeFeatures"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/confirmTestMapping:
+    post:
+      summary: Calls a mutation at the path features.js:confirmTestMapping
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.confirmTestMapping"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.confirmTestMapping"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
+  /api/run/features/createTestMapping:
+    post:
+      summary: Calls a mutation at the path features.js:createTestMapping
+      tags:
+        - mutation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.createTestMapping"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.createTestMapping"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
   /api/run/featuresActions/triggerCloudAgentForFeature:
     post:
       summary: Calls a action at the path featuresActions.js:triggerCloudAgentForFeature
@@ -2754,36 +2754,6 @@ components:
               type: string
 
     Response_anomalies.updateAnomalyInsights:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_anomaliesActions.analyzeAnomalies:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_anomaliesActions.analyzeAnomalies:
       type: object
       required:
         - status
@@ -3071,929 +3041,6 @@ components:
               description: ID from table "ciRuns"
 
     Response_ciAnalysisActions._processFailedCIRun:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysis._getLatestAnalysis:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_codebaseAnalysis._getLatestAnalysis:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysis._createAnalysis:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - model
-            - projectId
-            - status
-          properties:
-            model:
-              type: string
-            projectId:
-              type: string
-              description: ID from table "projects"
-            status:
-              oneOf:
-                - type: string
-                  enum:
-                    - "pending"
-                - type: string
-                  enum:
-                    - "running"
-                - type: string
-                  enum:
-                    - "completed"
-                - type: string
-                  enum:
-                    - "failed"
-
-    Response_codebaseAnalysis._createAnalysis:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysis._updateAnalysis:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - analysisId
-          properties:
-            analysisId:
-              type: string
-              description: ID from table "codebaseAnalysis"
-            completedAt:
-              type: number
-            error:
-              type: string
-            featuresDiscovered:
-              type: number
-            filesScanned:
-              type: number
-            progress:
-              type: object
-              required:
-                - current
-                - phase
-                - total
-              properties:
-                current:
-                  type: number
-                phase:
-                  type: string
-                total:
-                  type: number
-            status:
-              oneOf:
-                - type: string
-                  enum:
-                    - "pending"
-                - type: string
-                  enum:
-                    - "running"
-                - type: string
-                  enum:
-                    - "completed"
-                - type: string
-                  enum:
-                    - "failed"
-            testsMapped:
-              type: number
-
-    Response_codebaseAnalysis._updateAnalysis:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysis._createFeature:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - confidence
-            - description
-            - isUserDefined
-            - name
-            - projectId
-            - relatedFiles
-          properties:
-            category:
-              type: string
-            confidence:
-              type: number
-            description:
-              type: string
-            isUserDefined:
-              type: boolean
-            name:
-              type: string
-            projectId:
-              type: string
-              description: ID from table "projects"
-            relatedFiles:
-              type: array
-              items:
-                type: string
-            userJourney:
-              type: string
-
-    Response_codebaseAnalysis._createFeature:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysis._createTestFeatureMapping:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - confidence
-            - featureId
-            - isUserConfirmed
-            - projectId
-            - reason
-            - testDefinitionKey
-          properties:
-            confidence:
-              type: number
-            featureId:
-              type: string
-              description: ID from table "features"
-            isUserConfirmed:
-              type: boolean
-            projectId:
-              type: string
-              description: ID from table "projects"
-            reason:
-              type: string
-            testDefinitionKey:
-              type: string
-
-    Response_codebaseAnalysis._createTestFeatureMapping:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysis._getProjectFeatures:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_codebaseAnalysis._getProjectFeatures:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysis._getTestDefinitions:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_codebaseAnalysis._getTestDefinitions:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysis._getFileCoverageForProject:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_codebaseAnalysis._getFileCoverageForProject:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysis._clearProjectFeatures:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_codebaseAnalysis._clearProjectFeatures:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysisActions._runAnalysis:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - analysisId
-            - projectId
-          properties:
-            analysisId:
-              type: string
-              description: ID from table "codebaseAnalysis"
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_codebaseAnalysisActions._runAnalysis:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysisActions.getAnalysisStatus:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_codebaseAnalysisActions.getAnalysisStatus:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_codebaseAnalysisActions.startCodebaseAnalysis:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            forceRefresh:
-              type: boolean
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_codebaseAnalysisActions.startCodebaseAnalysis:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.getFeatures:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            category:
-              type: string
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_features.getFeatures:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.getCategories:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_features.getCategories:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.getFeatureWithTests:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - featureId
-          properties:
-            featureId:
-              type: string
-              description: ID from table "features"
-
-    Response_features.getFeatureWithTests:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.getUncoveredFeatures:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            maxTestCount:
-              type: number
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_features.getUncoveredFeatures:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.getLatestAnalysis:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_features.getLatestAnalysis:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.getTestFeatureMappings:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - testDefinitionKey
-          properties:
-            testDefinitionKey:
-              type: string
-
-    Response_features.getTestFeatureMappings:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.getFeatureStats:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - projectId
-          properties:
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_features.getFeatureStats:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.getFeatureTestHistory:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - featureId
-          properties:
-            featureId:
-              type: string
-              description: ID from table "features"
-            limit:
-              type: number
-            startTimestamp:
-              type: number
-
-    Response_features.getFeatureTestHistory:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.updateFeature:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - featureId
-          properties:
-            category:
-              type: string
-            description:
-              type: string
-            featureId:
-              type: string
-              description: ID from table "features"
-            name:
-              type: string
-            userJourney:
-              type: string
-
-    Response_features.updateFeature:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.archiveFeature:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - featureId
-          properties:
-            featureId:
-              type: string
-              description: ID from table "features"
-
-    Response_features.archiveFeature:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.createFeature:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - description
-            - name
-            - projectId
-          properties:
-            category:
-              type: string
-            description:
-              type: string
-            name:
-              type: string
-            projectId:
-              type: string
-              description: ID from table "projects"
-            relatedFiles:
-              type: array
-              items:
-                type: string
-            userJourney:
-              type: string
-
-    Response_features.createFeature:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.mergeFeatures:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - sourceFeatureId
-            - targetFeatureId
-          properties:
-            sourceFeatureId:
-              type: string
-              description: ID from table "features"
-            targetFeatureId:
-              type: string
-              description: ID from table "features"
-
-    Response_features.mergeFeatures:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.confirmTestMapping:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - confirmed
-            - mappingId
-          properties:
-            confirmed:
-              type: boolean
-            mappingId:
-              type: string
-              description: ID from table "testFeatureMappings"
-
-    Response_features.confirmTestMapping:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_features.createTestMapping:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - featureId
-            - projectId
-            - testDefinitionKey
-          properties:
-            featureId:
-              type: string
-              description: ID from table "features"
-            projectId:
-              type: string
-              description: ID from table "projects"
-            reason:
-              type: string
-            testDefinitionKey:
-              type: string
-
-    Response_features.createTestMapping:
       type: object
       required:
         - status
@@ -5256,376 +4303,6 @@ components:
               description: ID from table "projects"
 
     Response_github.createFakeFailingCIRuns:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_testFailureAnalysis.getTestFailureAnalysis:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - testId
-          properties:
-            testId:
-              type: string
-              description: ID from table "tests"
-
-    Response_testFailureAnalysis.getTestFailureAnalysis:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_testFailureAnalysis._createTestFailureAnalysis:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - status
-            - testId
-          properties:
-            status:
-              oneOf:
-                - type: string
-                  enum:
-                    - "pending"
-                - type: string
-                  enum:
-                    - "completed"
-                - type: string
-                  enum:
-                    - "failed"
-            testId:
-              type: string
-              description: ID from table "tests"
-
-    Response_testFailureAnalysis._createTestFailureAnalysis:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_testFailureAnalysis._updateTestFailureAnalysis:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - analysisId
-            - status
-          properties:
-            analysisId:
-              type: string
-              description: ID from table "testFailureAnalysis"
-            codeLocation:
-              type: string
-            confidence:
-              oneOf:
-                - type: string
-                  enum:
-                    - "high"
-                - type: string
-                  enum:
-                    - "medium"
-                - type: string
-                  enum:
-                    - "low"
-            relatedFiles:
-              type: array
-              items:
-                type: string
-            rootCause:
-              type: string
-            status:
-              oneOf:
-                - type: string
-                  enum:
-                    - "pending"
-                - type: string
-                  enum:
-                    - "completed"
-                - type: string
-                  enum:
-                    - "failed"
-            suggestedFix:
-              type: string
-            summary:
-              type: string
-
-    Response_testFailureAnalysis._updateTestFailureAnalysis:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_testFailureAnalysisActions.triggerCloudAgentForTest:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - actionType
-            - testId
-          properties:
-            actionType:
-              oneOf:
-                - type: string
-                  enum:
-                    - "fix_test"
-                - type: string
-                  enum:
-                    - "fix_bug"
-            testId:
-              type: string
-              description: ID from table "tests"
-
-    Response_testFailureAnalysisActions.triggerCloudAgentForTest:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_testFailureAnalysisActions.analyzeTestFailure:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - testId
-          properties:
-            testId:
-              type: string
-              description: ID from table "tests"
-
-    Response_testFailureAnalysisActions.analyzeTestFailure:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_testSuggestions._createTestSuggestions:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - commitSha
-            - file
-            - model
-            - projectId
-            - suggestions
-          properties:
-            commitSha:
-              type: string
-            file:
-              type: string
-            model:
-              type: string
-            projectId:
-              type: string
-              description: ID from table "projects"
-            suggestions:
-              type: array
-              items:
-                type: object
-                required:
-                  - description
-                  - difficulty
-                  - prompt
-                  - testType
-                  - title
-                  - uncoveredLines
-                  - value
-                properties:
-                  description:
-                    type: string
-                  difficulty:
-                    oneOf:
-                      - type: string
-                        enum:
-                          - "low"
-                      - type: string
-                        enum:
-                          - "medium"
-                      - type: string
-                        enum:
-                          - "high"
-                  estimatedRuntime:
-                    type: number
-                  prompt:
-                    type: string
-                  testType:
-                    oneOf:
-                      - type: string
-                        enum:
-                          - "unit"
-                      - type: string
-                        enum:
-                          - "integration"
-                      - type: string
-                        enum:
-                          - "e2e"
-                  title:
-                    type: string
-                  uncoveredLines:
-                    type: array
-                    items:
-                      type: number
-                  value:
-                    type: number
-
-    Response_testSuggestions._createTestSuggestions:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_testSuggestionsActions.triggerCloudAgentForTestCoverage:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - file
-            - projectId
-            - uncoveredLines
-          properties:
-            commitSha:
-              type: string
-            file:
-              type: string
-            projectId:
-              type: string
-              description: ID from table "projects"
-            uncoveredLines:
-              type: array
-              items:
-                type: number
-
-    Response_testSuggestionsActions.triggerCloudAgentForTestCoverage:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - "success"
-            - "error"
-        errorMessage:
-          type: string
-        errorData:
-          type: object
-        value: {}
-
-    Request_testSuggestionsActions.generateTestSuggestions:
-      type: object
-      required:
-        - args
-      properties:
-        args:
-          type: object
-          required:
-            - file
-            - projectId
-          properties:
-            commitSha:
-              type: string
-            file:
-              type: string
-            projectId:
-              type: string
-              description: ID from table "projects"
-
-    Response_testSuggestionsActions.generateTestSuggestions:
       type: object
       required:
         - status
@@ -6924,6 +5601,1329 @@ components:
               description: ID from table "testRuns"
 
     Response_tests.fixRunningTests:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testSuggestions._createTestSuggestions:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - commitSha
+            - file
+            - model
+            - projectId
+            - suggestions
+          properties:
+            commitSha:
+              type: string
+            file:
+              type: string
+            model:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+            suggestions:
+              type: array
+              items:
+                type: object
+                required:
+                  - description
+                  - difficulty
+                  - prompt
+                  - testType
+                  - title
+                  - uncoveredLines
+                  - value
+                properties:
+                  description:
+                    type: string
+                  difficulty:
+                    oneOf:
+                      - type: string
+                        enum:
+                          - "low"
+                      - type: string
+                        enum:
+                          - "medium"
+                      - type: string
+                        enum:
+                          - "high"
+                  estimatedRuntime:
+                    type: number
+                  prompt:
+                    type: string
+                  testType:
+                    oneOf:
+                      - type: string
+                        enum:
+                          - "unit"
+                      - type: string
+                        enum:
+                          - "integration"
+                      - type: string
+                        enum:
+                          - "e2e"
+                  title:
+                    type: string
+                  uncoveredLines:
+                    type: array
+                    items:
+                      type: number
+                  value:
+                    type: number
+
+    Response_testSuggestions._createTestSuggestions:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testSuggestionsActions.triggerCloudAgentForTestCoverage:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - file
+            - projectId
+            - uncoveredLines
+          properties:
+            commitSha:
+              type: string
+            file:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+            uncoveredLines:
+              type: array
+              items:
+                type: number
+
+    Response_testSuggestionsActions.triggerCloudAgentForTestCoverage:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testSuggestionsActions.generateTestSuggestions:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - file
+            - projectId
+          properties:
+            commitSha:
+              type: string
+            file:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_testSuggestionsActions.generateTestSuggestions:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_anomaliesActions.analyzeAnomalies:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_anomaliesActions.analyzeAnomalies:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testFailureAnalysis.getTestFailureAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - testId
+          properties:
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_testFailureAnalysis.getTestFailureAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testFailureAnalysis._createTestFailureAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - status
+            - testId
+          properties:
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "pending"
+                - type: string
+                  enum:
+                    - "completed"
+                - type: string
+                  enum:
+                    - "failed"
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_testFailureAnalysis._createTestFailureAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testFailureAnalysis._updateTestFailureAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - analysisId
+            - status
+          properties:
+            analysisId:
+              type: string
+              description: ID from table "testFailureAnalysis"
+            codeLocation:
+              type: string
+            confidence:
+              oneOf:
+                - type: string
+                  enum:
+                    - "high"
+                - type: string
+                  enum:
+                    - "medium"
+                - type: string
+                  enum:
+                    - "low"
+            relatedFiles:
+              type: array
+              items:
+                type: string
+            rootCause:
+              type: string
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "pending"
+                - type: string
+                  enum:
+                    - "completed"
+                - type: string
+                  enum:
+                    - "failed"
+            suggestedFix:
+              type: string
+            summary:
+              type: string
+
+    Response_testFailureAnalysis._updateTestFailureAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testFailureAnalysisActions.triggerCloudAgentForTest:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - actionType
+            - testId
+          properties:
+            actionType:
+              oneOf:
+                - type: string
+                  enum:
+                    - "fix_test"
+                - type: string
+                  enum:
+                    - "fix_bug"
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_testFailureAnalysisActions.triggerCloudAgentForTest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_testFailureAnalysisActions.analyzeTestFailure:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - testId
+          properties:
+            testId:
+              type: string
+              description: ID from table "tests"
+
+    Response_testFailureAnalysisActions.analyzeTestFailure:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysis._getLatestAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_codebaseAnalysis._getLatestAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysis._createAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - model
+            - projectId
+            - status
+          properties:
+            model:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "pending"
+                - type: string
+                  enum:
+                    - "running"
+                - type: string
+                  enum:
+                    - "completed"
+                - type: string
+                  enum:
+                    - "failed"
+
+    Response_codebaseAnalysis._createAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysis._updateAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - analysisId
+          properties:
+            analysisId:
+              type: string
+              description: ID from table "codebaseAnalysis"
+            completedAt:
+              type: number
+            error:
+              type: string
+            featuresDiscovered:
+              type: number
+            filesScanned:
+              type: number
+            progress:
+              type: object
+              required:
+                - current
+                - phase
+                - total
+              properties:
+                current:
+                  type: number
+                phase:
+                  type: string
+                total:
+                  type: number
+            status:
+              oneOf:
+                - type: string
+                  enum:
+                    - "pending"
+                - type: string
+                  enum:
+                    - "running"
+                - type: string
+                  enum:
+                    - "completed"
+                - type: string
+                  enum:
+                    - "failed"
+            testsMapped:
+              type: number
+
+    Response_codebaseAnalysis._updateAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysis._createFeature:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - confidence
+            - description
+            - isUserDefined
+            - name
+            - projectId
+            - relatedFiles
+          properties:
+            category:
+              type: string
+            confidence:
+              type: number
+            description:
+              type: string
+            isUserDefined:
+              type: boolean
+            name:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+            relatedFiles:
+              type: array
+              items:
+                type: string
+            userJourney:
+              type: string
+
+    Response_codebaseAnalysis._createFeature:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysis._createTestFeatureMapping:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - confidence
+            - featureId
+            - isUserConfirmed
+            - projectId
+            - reason
+            - testDefinitionKey
+          properties:
+            confidence:
+              type: number
+            featureId:
+              type: string
+              description: ID from table "features"
+            isUserConfirmed:
+              type: boolean
+            projectId:
+              type: string
+              description: ID from table "projects"
+            reason:
+              type: string
+            testDefinitionKey:
+              type: string
+
+    Response_codebaseAnalysis._createTestFeatureMapping:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysis._getProjectFeatures:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_codebaseAnalysis._getProjectFeatures:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysis._getTestDefinitions:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_codebaseAnalysis._getTestDefinitions:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysis._getFileCoverageForProject:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_codebaseAnalysis._getFileCoverageForProject:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysis._clearProjectFeatures:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_codebaseAnalysis._clearProjectFeatures:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysisActions._runAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - analysisId
+            - projectId
+          properties:
+            analysisId:
+              type: string
+              description: ID from table "codebaseAnalysis"
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_codebaseAnalysisActions._runAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysisActions.getAnalysisStatus:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_codebaseAnalysisActions.getAnalysisStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_codebaseAnalysisActions.startCodebaseAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            forceRefresh:
+              type: boolean
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_codebaseAnalysisActions.startCodebaseAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.getFeatures:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            category:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_features.getFeatures:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.getCategories:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_features.getCategories:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.getFeatureWithTests:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - featureId
+          properties:
+            featureId:
+              type: string
+              description: ID from table "features"
+
+    Response_features.getFeatureWithTests:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.getUncoveredFeatures:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            maxTestCount:
+              type: number
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_features.getUncoveredFeatures:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.getLatestAnalysis:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_features.getLatestAnalysis:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.getTestFeatureMappings:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - testDefinitionKey
+          properties:
+            testDefinitionKey:
+              type: string
+
+    Response_features.getTestFeatureMappings:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.getFeatureStats:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - projectId
+          properties:
+            projectId:
+              type: string
+              description: ID from table "projects"
+
+    Response_features.getFeatureStats:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.getFeatureTestHistory:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - featureId
+          properties:
+            featureId:
+              type: string
+              description: ID from table "features"
+            limit:
+              type: number
+            startTimestamp:
+              type: number
+
+    Response_features.getFeatureTestHistory:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.updateFeature:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - featureId
+          properties:
+            category:
+              type: string
+            description:
+              type: string
+            featureId:
+              type: string
+              description: ID from table "features"
+            name:
+              type: string
+            userJourney:
+              type: string
+
+    Response_features.updateFeature:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.archiveFeature:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - featureId
+          properties:
+            featureId:
+              type: string
+              description: ID from table "features"
+
+    Response_features.archiveFeature:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.createFeature:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - description
+            - name
+            - projectId
+          properties:
+            category:
+              type: string
+            description:
+              type: string
+            name:
+              type: string
+            projectId:
+              type: string
+              description: ID from table "projects"
+            relatedFiles:
+              type: array
+              items:
+                type: string
+            userJourney:
+              type: string
+
+    Response_features.createFeature:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.mergeFeatures:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - sourceFeatureId
+            - targetFeatureId
+          properties:
+            sourceFeatureId:
+              type: string
+              description: ID from table "features"
+            targetFeatureId:
+              type: string
+              description: ID from table "features"
+
+    Response_features.mergeFeatures:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.confirmTestMapping:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - confirmed
+            - mappingId
+          properties:
+            confirmed:
+              type: boolean
+            mappingId:
+              type: string
+              description: ID from table "testFeatureMappings"
+
+    Response_features.confirmTestMapping:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.createTestMapping:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - featureId
+            - projectId
+            - testDefinitionKey
+          properties:
+            featureId:
+              type: string
+              description: ID from table "features"
+            projectId:
+              type: string
+              description: ID from table "projects"
+            reason:
+              type: string
+            testDefinitionKey:
+              type: string
+
+    Response_features.createTestMapping:
       type: object
       required:
         - status

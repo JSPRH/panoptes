@@ -12,6 +12,7 @@ import {
 	formatCodeSnippet,
 	getCursorApiKey,
 	normalizeRepositoryUrl,
+	resolveRepositoryRef,
 } from "./aiAnalysisUtils";
 
 export const analyzeTestFailure = action({
@@ -330,22 +331,23 @@ Please fix the bug and ensure the test passes.`;
 
 		const apiKey = getCursorApiKey();
 
+		// Normalize repository URL to full GitHub URL format required by Cursor API
+		const repository = normalizeRepositoryUrl(project.repository);
+
 		// Determine branch/ref to use
-		let ref = "main";
+		let preferredRef: string | undefined;
 		if (testRun?.ciRunId) {
 			const ciRun = await ctx.runQuery(internal.github._getCIRunById, {
 				ciRunId: testRun.ciRunId,
 			});
 			if (ciRun?.branch) {
-				ref = ciRun.branch;
+				preferredRef = ciRun.branch;
 			}
-		} else if (testRun?.commitSha) {
-			// Use commit SHA if available
-			ref = testRun.commitSha;
 		}
 
-		// Normalize repository URL to full GitHub URL format required by Cursor API
-		const repository = normalizeRepositoryUrl(project.repository);
+		// Resolve the ref: verify branch exists, fallback to default branch
+		// The Cursor API requires branch names (not commit SHAs)
+		const ref = await resolveRepositoryRef(repository, preferredRef, testRun?.commitSha);
 
 		// Call Cursor Cloud Agents API
 		// See: https://cursor.com/docs/cloud-agent/api/endpoints#launch-an-agent
