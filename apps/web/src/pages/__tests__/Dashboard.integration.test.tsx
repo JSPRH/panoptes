@@ -64,23 +64,35 @@ if (typeof Bun !== "undefined" && !globalThis.__vitest__) {
 			queryResults.clear();
 		});
 
-		it.skip("should render dashboard with empty state when no data exists", async () => {
+		it("should render dashboard with empty state when no data exists", async () => {
 			if (!testInstance) throw new Error("testInstance not initialized");
 			// Pre-populate with empty data
 			const stats = await testInstance.query(api.tests.getDashboardStats);
 			const projects = await testInstance.query(api.tests.getProjects);
 			const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 10 });
 
+			// Ensure stats has the correct structure with pyramid
+			const statsWithPyramid = stats || {
+				projectCount: 0,
+				testRunCount: 0,
+				pyramid: {
+					unit: { total: 0, passed: 0, failed: 0 },
+					integration: { total: 0, passed: 0, failed: 0 },
+					e2e: { total: 0, passed: 0, failed: 0 },
+					visual: { total: 0, passed: 0, failed: 0 },
+				},
+			};
+
 			queryResults.set(
-				JSON.stringify({ query: String(api.tests.getDashboardStats), args: undefined }),
-				stats
+				JSON.stringify({ query: queryToString(api.tests.getDashboardStats), args: undefined }),
+				statsWithPyramid
 			);
 			queryResults.set(
-				JSON.stringify({ query: String(api.tests.getProjects), args: undefined }),
+				JSON.stringify({ query: queryToString(api.tests.getProjects), args: undefined }),
 				projects
 			);
 			queryResults.set(
-				JSON.stringify({ query: String(api.tests.getTestRuns), args: { limit: 10 } }),
+				JSON.stringify({ query: queryToString(api.tests.getTestRuns), args: { limit: 10 } }),
 				testRuns
 			);
 
@@ -95,7 +107,7 @@ if (typeof Bun !== "undefined" && !globalThis.__vitest__) {
 			});
 		});
 
-		it.skip("should display dashboard stats when test data exists", async () => {
+		it("should display dashboard stats when test data exists", async () => {
 			if (!testInstance) throw new Error("testInstance not initialized");
 			const projectId = await setupTestProject(testInstance);
 			await createTestRun(testInstance, projectId, {
@@ -109,9 +121,21 @@ if (typeof Bun !== "undefined" && !globalThis.__vitest__) {
 			const projects = await testInstance.query(api.tests.getProjects);
 			const testRuns = await testInstance.query(api.tests.getTestRuns, { limit: 10 });
 
+			// Ensure stats has the correct structure with pyramid
+			const statsWithPyramid = stats || {
+				projectCount: 0,
+				testRunCount: 0,
+				pyramid: {
+					unit: { total: 0, passed: 0, failed: 0 },
+					integration: { total: 0, passed: 0, failed: 0 },
+					e2e: { total: 0, passed: 0, failed: 0 },
+					visual: { total: 0, passed: 0, failed: 0 },
+				},
+			};
+
 			queryResults.set(
 				JSON.stringify({ query: queryToString(api.tests.getDashboardStats), args: undefined }),
-				stats
+				statsWithPyramid
 			);
 			queryResults.set(
 				JSON.stringify({ query: queryToString(api.tests.getProjects), args: undefined }),
