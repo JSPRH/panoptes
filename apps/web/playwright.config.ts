@@ -50,6 +50,9 @@ export default defineConfig({
 			threshold: 0.3,
 			maxDiffPixels: 100000,
 		},
+		/* Use OS-agnostic snapshot paths for CI compatibility */
+		/* Browser-specific but OS-agnostic: {arg}-{projectName}{ext} */
+		snapshotPathTemplate: "{testDir}/{testFile}-snapshots/{arg}-{projectName}{ext}",
 	},
 
 	/* Configure projects for major browsers */
