@@ -1,9 +1,8 @@
-// Aggregates temporarily disabled to unblock - will re-enable once components are working
-// import { TableAggregate } from "@convex-dev/aggregate";
+import { TableAggregate } from "@convex-dev/aggregate";
 import type { GenericMutationCtx } from "convex/server";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
-// import { components } from "./_generated/api";
+import { components } from "./_generated/api";
 import { api } from "./_generated/api";
 import type { DataModel, Doc, Id } from "./_generated/dataModel";
 import { action, mutation, query } from "./_generated/server";
@@ -1247,22 +1246,134 @@ export const getProjects = query({
 	},
 });
 
-/** Pre-computed overview for dashboard (one doc read). Use this instead of loading all projects/pyramid for overview cards. */
+/** Dynamically compute dashboard stats from actual data. */
 export const getDashboardStats = query({
 	handler: async (ctx) => {
-		const doc = await ctx.db.query("dashboardStats").first();
-		if (!doc) {
-			return {
-				projectCount: 0,
-				testRunCount: 0,
-				pyramid: ZERO_PYRAMID,
-			};
-		}
-		return {
-			projectCount: doc.projectCount,
-			testRunCount: doc.testRunCount,
-			pyramid: doc.pyramid,
+		// Count projects dynamically
+		const projects = await ctx.db.query("projects").collect();
+		const projectCount = projects.length;
+
+		// Count test runs dynamically
+		const testRuns = await ctx.db.query("testRuns").collect();
+		const testRunCount = testRuns.length;
+
+		// Compute pyramid stats using aggregates for efficient O(log(n)) counting
+		// This handles unlimited test definitions without query limits
+		const testTypes: Array<"unit" | "integration" | "e2e" | "visual"> = [
+			"unit",
+			"integration",
+			"e2e",
+			"visual",
+		];
+
+		const pyramid = {
+			unit: { total: 0, passed: 0, failed: 0 },
+			integration: { total: 0, passed: 0, failed: 0 },
+			e2e: { total: 0, passed: 0, failed: 0 },
+			visual: { total: 0, passed: 0, failed: 0 },
 		};
+
+		// Use aggregates to count by type and status - O(log(n)) instead of O(n)
+		// Fall back to database queries if aggregate is empty (for existing data)
+		for (const testType of testTypes) {
+			// Count total definitions for this type using aggregate
+			const aggregateTotal = await testDefinitionAggregate.count(ctx, {
+				namespace: testType,
+			});
+
+			// If aggregate is empty, fall back to querying the database
+			// This handles existing data that wasn't added to the aggregate
+			if (aggregateTotal === 0) {
+				// Query all projects and count definitions for this type
+				for (const project of projects) {
+					const projectTypeDefinitions = await ctx.db
+						.query("testDefinitionLatest")
+						.withIndex("by_project_type_key", (q) =>
+							q.eq("projectId", project._id).eq("testType", testType)
+						)
+						.take(1000); // Take up to 1000 per project+type
+
+					for (const def of projectTypeDefinitions) {
+						pyramid[testType].total += 1;
+						if (def.status === "passed") {
+							pyramid[testType].passed += 1;
+						} else if (def.status === "failed") {
+							pyramid[testType].failed += 1;
+						}
+					}
+				}
+			} else {
+				// Use aggregate counts
+				pyramid[testType].total = aggregateTotal;
+
+				// Count passed definitions for this type
+				pyramid[testType].passed = await testDefinitionAggregate.count(ctx, {
+					namespace: testType,
+					bounds: {
+						lower: { key: "passed", inclusive: true },
+						upper: { key: "passed", inclusive: true },
+					},
+				});
+
+				// Count failed definitions for this type
+				pyramid[testType].failed = await testDefinitionAggregate.count(ctx, {
+					namespace: testType,
+					bounds: {
+						lower: { key: "failed", inclusive: true },
+						upper: { key: "failed", inclusive: true },
+					},
+				});
+			}
+		}
+
+		return {
+			projectCount,
+			testRunCount,
+			pyramid,
+		};
+	},
+});
+
+/** Migration function to initialize aggregate with existing test definitions */
+export const initializeTestDefinitionAggregate = mutation({
+	handler: async (ctx) => {
+		const projects = await ctx.db.query("projects").collect();
+		const testTypes: Array<"unit" | "integration" | "e2e" | "visual"> = [
+			"unit",
+			"integration",
+			"e2e",
+			"visual",
+		];
+
+		let totalInserted = 0;
+
+		// Query all existing test definitions and insert them into the aggregate
+		for (const project of projects) {
+			for (const testType of testTypes) {
+				const definitions = await ctx.db
+					.query("testDefinitionLatest")
+					.withIndex("by_project_type_key", (q) =>
+						q.eq("projectId", project._id).eq("testType", testType)
+					)
+					.take(1000); // Process in batches
+
+				for (const def of definitions) {
+					try {
+						await testDefinitionAggregate.insert(ctx, def);
+						totalInserted++;
+					} catch (error) {
+						// If already exists, try replace instead
+						try {
+							await testDefinitionAggregate.replace(ctx, def, def);
+						} catch {
+							// Ignore errors for duplicates
+						}
+					}
+				}
+			}
+		}
+
+		return { success: true, totalInserted };
 	},
 });
 
@@ -1298,6 +1409,18 @@ const ZERO_PYRAMID = {
 
 type PyramidType = keyof typeof ZERO_PYRAMID;
 type TestStatus = "passed" | "failed" | "skipped" | "running";
+
+// Aggregate for efficient counting of test definitions by type and status
+// Uses namespace to separate by testType, and key to track status
+const testDefinitionAggregate = new TableAggregate<{
+	Namespace: "unit" | "integration" | "e2e" | "visual";
+	Key: "passed" | "failed" | "skipped" | "running";
+	DataModel: DataModel;
+	TableName: "testDefinitionLatest";
+}>(components.testDefinitionAggregate, {
+	namespace: (doc: Doc<"testDefinitionLatest">) => doc.testType,
+	sortKey: (doc: Doc<"testDefinitionLatest">) => doc.status,
+});
 
 async function updateDashboardStats(
 	ctx: GenericMutationCtx<DataModel>,
@@ -1410,22 +1533,33 @@ async function updateDashboardStats(
 			}
 		}
 
-		// Execute inserts in batches (atomic per batch)
+		// Execute inserts in batches (atomic per batch) and maintain aggregate
 		for (let i = 0; i < inserts.length; i += WRITE_BATCH_SIZE) {
 			const batch = inserts.slice(i, i + WRITE_BATCH_SIZE);
 			for (const insert of batch) {
-				await ctx.db.insert("testDefinitionLatest", insert);
+				const id = await ctx.db.insert("testDefinitionLatest", insert);
+				const doc = await ctx.db.get(id);
+				if (doc) {
+					// Maintain aggregate: insert new definition
+					await testDefinitionAggregate.insert(ctx, doc);
+				}
 			}
 		}
 
-		// Execute patches in batches (atomic per batch)
+		// Execute patches in batches (atomic per batch) and maintain aggregate
 		for (let i = 0; i < patches.length; i += WRITE_BATCH_SIZE) {
 			const batch = patches.slice(i, i + WRITE_BATCH_SIZE);
 			for (const patch of batch) {
-				await ctx.db.patch("testDefinitionLatest", patch.id, {
+				const oldDoc = await ctx.db.get(patch.id);
+				await ctx.db.patch(patch.id, {
 					status: patch.status,
 					lastRunStartedAt: patch.lastRunStartedAt,
 				});
+				const newDoc = await ctx.db.get(patch.id);
+				if (oldDoc && newDoc) {
+					// Maintain aggregate: replace old status with new status
+					await testDefinitionAggregate.replace(ctx, oldDoc, newDoc);
+				}
 			}
 		}
 	}

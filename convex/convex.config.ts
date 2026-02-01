@@ -1,14 +1,11 @@
-// Aggregates temporarily disabled to unblock - will re-enable once basic functions are working
-// import aggregate from "@convex-dev/aggregate/convex.config.js";
+import aggregate from "@convex-dev/aggregate/convex.config";
 import { defineApp } from "convex/server";
 
 const app = defineApp();
 
-// Three aggregates for tracking total, passed, and failed test counts
-// Temporarily commented out to unblock deployment
-// app.use(aggregate, { name: "testPyramidTotal" });
-// app.use(aggregate, { name: "testPyramidPassed" });
-// app.use(aggregate, { name: "testPyramidFailed" });
+// Aggregate for tracking test definition counts by type and status
+// Uses namespaces to separate by testType for efficient counting
+app.use(aggregate, { name: "testDefinitionAggregate" });
 
 // Cron jobs are automatically registered from scheduled.ts
 // No need to manually register them here - Convex auto-detects cronJobs() exports
