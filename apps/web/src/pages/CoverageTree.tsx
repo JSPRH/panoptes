@@ -21,15 +21,21 @@ export default function CoverageTreePage() {
 	const [trendPeriod, setTrendPeriod] = useState("30d");
 	const [showAllMetrics, setShowAllMetrics] = useState(false);
 
-	const treeData = useQuery(api.tests.getCoverageTree, {
-		useStatementCoverage,
-		historicalPeriod,
-	});
-
-	// Get project ID from tree data if available (we'll need to get it another way)
-	// For now, we'll get it from test runs
+	// Get project ID from test runs first
 	const testRuns = useQuery(api.tests.getTestRuns, { limit: 1 });
 	const projectId = testRuns?.[0]?.projectId;
+
+	// Get coverage tree data with projectId
+	const treeData = useQuery(
+		api.tests.getCoverageTree,
+		projectId
+			? {
+					projectId: projectId as Id<"projects">,
+					useStatementCoverage,
+					historicalPeriod,
+				}
+			: "skip"
+	);
 
 	// Get historical coverage data for trend chart
 	const startTimestamp = getPeriodStartTimestamp(trendPeriod);
