@@ -54,12 +54,9 @@ export const startCodebaseAnalysis = action({
 	},
 	handler: async (ctx, args): Promise<{ analysisId: Id<"codebaseAnalysis">; status: string }> => {
 		// Check if there's already a running analysis
-		const existingAnalysis = await ctx.runQuery(
-			internal.codebaseAnalysis._getLatestAnalysis,
-			{
-				projectId: args.projectId,
-			}
-		);
+		const existingAnalysis = await ctx.runQuery(internal.codebaseAnalysis._getLatestAnalysis, {
+			projectId: args.projectId,
+		});
 
 		if (existingAnalysis && existingAnalysis.status === "running") {
 			return {
@@ -153,14 +150,14 @@ export const _runAnalysis = internalAction({
 			});
 
 			// Phase 2: Get coverage data and test definitions
-			const [coverageData, testDefinitions] = await Promise.all([
+			const [coverageData, testDefinitions] = (await Promise.all([
 				ctx.runQuery(internal.codebaseAnalysis._getFileCoverageForProject, {
 					projectId: args.projectId,
 				}),
 				ctx.runQuery(internal.codebaseAnalysis._getTestDefinitions, {
 					projectId: args.projectId,
 				}),
-			]) as [Doc<"fileCoverage">[], Doc<"testDefinitionLatest">[]];
+			])) as [Doc<"fileCoverage">[], Doc<"testDefinitionLatest">[]];
 
 			// Phase 3: Select key files to analyze (prioritize pages, API, and covered files)
 			const coveredFiles = new Set<string>(coverageData.map((c: Doc<"fileCoverage">) => c.file));
