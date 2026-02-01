@@ -52,33 +52,53 @@ fi
 
 # Run tests (skip if no tests found)
 # Note: React component tests require vitest/jsdom and should be run separately with 'bunx vitest run'
+# Note: E2E tests require Playwright and should be run separately with 'bun run test:e2e'
 echo "🧪 Running tests..."
 # Clean up any leftover temp directories from previous runs
 if [ -d "apps/web/src/pages/__tests__.tmp" ]; then
 	rm -rf "apps/web/src/pages/__tests__.tmp"
 fi
 # Temporarily move React component tests to avoid bun test picking them up
-# Move to /tmp to ensure bun test doesn't scan them
 REACT_TEST_DIR="apps/web/src/pages/__tests__"
-TEMP_TEST_DIR="/tmp/panoptes-react-tests-$$"
+TEMP_REACT_TEST_DIR="/tmp/panoptes-react-tests-$$"
 if [ -d "$REACT_TEST_DIR" ]; then
-	mv "$REACT_TEST_DIR" "$TEMP_TEST_DIR"
+	mv "$REACT_TEST_DIR" "$TEMP_REACT_TEST_DIR"
 fi
 
-if bun run test 2>&1 | grep -q "No tests found"; then
+# Temporarily move E2E tests to avoid bun test picking them up
+E2E_TEST_DIR="apps/web/e2e"
+TEMP_E2E_TEST_DIR="/tmp/panoptes-e2e-tests-$$"
+if [ -d "$E2E_TEST_DIR" ]; then
+	mv "$E2E_TEST_DIR" "$TEMP_E2E_TEST_DIR"
+fi
+
+# Run bun test and capture both output and exit code
+TEST_OUTPUT=$(bun run test 2>&1)
+TEST_EXIT_CODE=$?
+
+# Restore React component tests immediately after test run
+if [ -d "$TEMP_REACT_TEST_DIR" ]; then
+	mv "$TEMP_REACT_TEST_DIR" "$REACT_TEST_DIR"
+fi
+
+# Restore E2E tests immediately after test run
+if [ -d "$TEMP_E2E_TEST_DIR" ]; then
+	mv "$TEMP_E2E_TEST_DIR" "$E2E_TEST_DIR"
+fi
+
+# Check if no tests were found
+if echo "$TEST_OUTPUT" | grep -q "No tests found"; then
 	echo "ℹ️  No tests found, skipping test step"
 	TEST_RESULT=0
 else
-	if bun run test; then
+	# Print the test output
+	echo "$TEST_OUTPUT"
+	# Check the exit code
+	if [ $TEST_EXIT_CODE -eq 0 ]; then
 		TEST_RESULT=0
 	else
 		TEST_RESULT=1
 	fi
-fi
-
-# Restore React component tests
-if [ -d "$TEMP_TEST_DIR" ]; then
-	mv "$TEMP_TEST_DIR" "$REACT_TEST_DIR"
 fi
 
 if [ $TEST_RESULT -ne 0 ]; then

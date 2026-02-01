@@ -91,6 +91,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Build shared package
+        run: bun run build:shared
+
       - name: Build reporter packages
         run: bun run build:reporters
 

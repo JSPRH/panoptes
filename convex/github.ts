@@ -792,7 +792,7 @@ export const getRepositoryTree = action({
 		}
 
 		const token = getGitHubToken();
-		
+
 		// If no ref provided, get the default branch from the repository
 		let ref = args.ref;
 		if (!ref) {
@@ -805,7 +805,7 @@ export const getRepositoryTree = action({
 					},
 				}
 			);
-			
+
 			if (repoResponse.ok) {
 				const repoData = (await repoResponse.json()) as { default_branch: string };
 				ref = repoData.default_branch || "main";
