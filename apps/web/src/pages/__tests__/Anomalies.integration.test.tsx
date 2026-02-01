@@ -1,15 +1,28 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { convexTest } from "convex-test";
 import { api } from "@convex/_generated/api";
-import Anomalies from "../Anomalies";
+import { render, screen, waitFor } from "@testing-library/react";
+import type { convexTest } from "convex-test";
+import { BrowserRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestInstance, setupTestProject } from "../../test-utils/convex-test-helper";
-import type { Id } from "@convex/_generated/dataModel";
+import Anomalies from "../Anomalies";
 
 // Mock Convex hooks
 let testInstance: ReturnType<typeof convexTest> | null = null;
 const queryResults = new Map<string, unknown>();
+
+// Helper to safely convert query to string
+function queryToString(query: unknown): string {
+	try {
+		return String(query);
+	} catch {
+		// Fallback: use a stable representation based on query path if available
+		if (query && typeof query === "object" && "path" in query) {
+			return String((query as { path: unknown }).path);
+		}
+		// Last resort: use object reference as string
+		return `[Query:${Object.prototype.toString.call(query)}]`;
+	}
+}
 
 vi.mock("convex/react", () => {
 	return {
@@ -17,8 +30,8 @@ vi.mock("convex/react", () => {
 			if (!testInstance) return undefined;
 			if (args === "skip") return undefined;
 
-			const cacheKey = JSON.stringify({ query: String(query), args });
-			
+			const cacheKey = JSON.stringify({ query: queryToString(query), args });
+
 			if (queryResults.has(cacheKey)) {
 				return queryResults.get(cacheKey);
 			}
@@ -34,9 +47,7 @@ vi.mock("convex/react", () => {
 
 // Skip these tests when running with bun test - they require vitest/jsdom
 // @ts-ignore
-const testSuite = typeof Bun !== "undefined" && !globalThis.__vitest__ 
-	? describe.skip 
-	: describe;
+const testSuite = typeof Bun !== "undefined" && !globalThis.__vitest__ ? describe.skip : describe;
 
 testSuite("Anomalies Integration Tests", () => {
 	beforeEach(async () => {
@@ -57,7 +68,8 @@ testSuite("Anomalies Integration Tests", () => {
 	});
 
 	it("should display empty state when no anomalies exist", async () => {
-		const projectId = await setupTestProject(testInstance!);
+		if (!testInstance) throw new Error("testInstance not initialized");
+		const projectId = await setupTestProject(testInstance);
 
 		const projects = await testInstance.query(api.tests.getProjects);
 		const anomalies = await testInstance.query(api.anomalies.getAnomalies, {
@@ -66,12 +78,12 @@ testSuite("Anomalies Integration Tests", () => {
 		});
 
 		queryResults.set(
-			JSON.stringify({ query: String(api.tests.getProjects), args: undefined }),
+			JSON.stringify({ query: queryToString(api.tests.getProjects), args: undefined }),
 			projects || []
 		);
 		queryResults.set(
 			JSON.stringify({
-				query: String(api.anomalies.getAnomalies),
+				query: queryToString(api.anomalies.getAnomalies),
 				args: { projectId, resolved: false },
 			}),
 			anomalies || []

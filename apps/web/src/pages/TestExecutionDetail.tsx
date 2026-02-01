@@ -108,7 +108,7 @@ export default function TestExecutionDetail() {
 		api.testFailureAnalysisActions.triggerCloudAgentForTest
 	);
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
-	const [selectedActionType, setSelectedActionType] = useState<"fix_test" | "fix_bug">("fix_bug");
+	const [selectedActionType] = useState<"fix_test" | "fix_bug">("fix_bug");
 	const [analysisError, setAnalysisError] = useState<string | null>(null);
 
 	useEffect(() => {

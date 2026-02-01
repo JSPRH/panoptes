@@ -84,7 +84,7 @@ export function normalizeRepositoryUrl(repository: string): string {
 export async function resolveRepositoryRef(
 	repository: string,
 	preferredRef?: string,
-	commitSha?: string
+	_commitSha?: string
 ): Promise<string> {
 	const repoInfo = parseRepositoryUrl(repository);
 	if (!repoInfo) {

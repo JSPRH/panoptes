@@ -329,7 +329,7 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 	const rerunCIRun = useAction(api.github.rerunCIRun);
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
 	const [isRestartingCI, setIsRestartingCI] = useState(false);
-	const [selectedActionType, setSelectedActionType] = useState<"fix_test" | "fix_bug">("fix_bug");
+	const [selectedActionType] = useState<"fix_test" | "fix_bug">("fix_bug");
 	const [error, setError] = useState<string | null>(null);
 
 	const handleAnalyze = async () => {
@@ -376,10 +376,12 @@ Please analyze the CI failure, identify the root cause, and fix the issue. Ensur
 		}
 	};
 
-	const handleTriggerCloudAgent = async (actionType?: "fix_test" | "fix_bug") => {
+	const handleTriggerCloudAgent = async (
+		actionType?: "fix_test" | "fix_bug" | "add_coverage" | "enhance_coverage"
+	) => {
 		const result = await triggerCloudAgent({
 			ciRunId,
-			actionType: actionType || selectedActionType,
+			actionType: (actionType || selectedActionType) as "fix_test" | "fix_bug",
 		});
 		// Handle restart_ci case
 		if ("success" in result && result.success) {

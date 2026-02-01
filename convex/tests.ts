@@ -1486,14 +1486,22 @@ export const getDashboardStats = query({
 		};
 
 		// Use aggregates to count by type and status - O(log(n)) instead of O(n)
-		// Fall back to database queries if aggregate is empty (for existing data)
+		// Fall back to database queries if aggregate is not available or empty
 		for (const testType of testTypes) {
-			// Count total definitions for this type using aggregate
-			const aggregateTotal = await testDefinitionAggregate.count(ctx, {
-				namespace: testType,
-			});
+			// Count total definitions for this type using aggregate if available
+			let aggregateTotal = 0;
+			if (testDefinitionAggregate) {
+				try {
+					aggregateTotal = await testDefinitionAggregate.count(ctx, {
+						namespace: testType,
+					});
+				} catch (error) {
+					// Aggregate not available (e.g., in test environment), fall back to DB queries
+					aggregateTotal = 0;
+				}
+			}
 
-			// If aggregate is empty, fall back to querying the database
+			// If aggregate is not available or empty, fall back to querying the database
 			// This handles existing data that wasn't added to the aggregate
 			if (aggregateTotal === 0) {
 				// Query all projects and count definitions for this type
@@ -1514,27 +1522,48 @@ export const getDashboardStats = query({
 						}
 					}
 				}
-			} else {
-				// Use aggregate counts
-				pyramid[testType].total = aggregateTotal;
+			} else if (testDefinitionAggregate) {
+				// Use aggregate counts if available
+				try {
+					pyramid[testType].total = aggregateTotal;
 
-				// Count passed definitions for this type
-				pyramid[testType].passed = await testDefinitionAggregate.count(ctx, {
-					namespace: testType,
-					bounds: {
-						lower: { key: "passed", inclusive: true },
-						upper: { key: "passed", inclusive: true },
-					},
-				});
+					// Count passed definitions for this type
+					pyramid[testType].passed = await testDefinitionAggregate.count(ctx, {
+						namespace: testType,
+						bounds: {
+							lower: { key: "passed", inclusive: true },
+							upper: { key: "passed", inclusive: true },
+						},
+					});
 
-				// Count failed definitions for this type
-				pyramid[testType].failed = await testDefinitionAggregate.count(ctx, {
-					namespace: testType,
-					bounds: {
-						lower: { key: "failed", inclusive: true },
-						upper: { key: "failed", inclusive: true },
-					},
-				});
+					// Count failed definitions for this type
+					pyramid[testType].failed = await testDefinitionAggregate.count(ctx, {
+						namespace: testType,
+						bounds: {
+							lower: { key: "failed", inclusive: true },
+							upper: { key: "failed", inclusive: true },
+						},
+					});
+				} catch (error) {
+					// Aggregate failed, fall back to database queries for this type
+					for (const project of projects) {
+						const projectTypeDefinitions = await ctx.db
+							.query("testDefinitionLatest")
+							.withIndex("by_project_type_key", (q) =>
+								q.eq("projectId", project._id).eq("testType", testType)
+							)
+							.take(1000);
+
+						for (const def of projectTypeDefinitions) {
+							pyramid[testType].total += 1;
+							if (def.status === "passed") {
+								pyramid[testType].passed += 1;
+							} else if (def.status === "failed") {
+								pyramid[testType].failed += 1;
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -1569,16 +1598,18 @@ export const initializeTestDefinitionAggregate = mutation({
 					)
 					.take(1000); // Process in batches
 
-				for (const def of definitions) {
-					try {
-						await testDefinitionAggregate.insert(ctx, def);
-						totalInserted++;
-					} catch (error) {
-						// If already exists, try replace instead
+				if (testDefinitionAggregate) {
+					for (const def of definitions) {
 						try {
-							await testDefinitionAggregate.replace(ctx, def, def);
-						} catch {
-							// Ignore errors for duplicates
+							await testDefinitionAggregate.insert(ctx, def);
+							totalInserted++;
+						} catch (error) {
+							// If already exists, try replace instead
+							try {
+								await testDefinitionAggregate.replace(ctx, def, def);
+							} catch {
+								// Ignore errors for duplicates
+							}
 						}
 					}
 				}
@@ -1625,19 +1656,34 @@ type TestStatus = "passed" | "failed" | "skipped" | "running";
 // Aggregate for efficient counting of test definitions by type and status
 // Uses namespace to separate by testType, and key to track status
 // Type assertion needed because TypeScript doesn't infer the component type from generated API
-const testDefinitionAggregate = new TableAggregate<{
+// Make aggregate optional - it may not be available in test environments
+let testDefinitionAggregate: TableAggregate<{
 	Namespace: "unit" | "integration" | "e2e" | "visual";
 	Key: "passed" | "failed" | "skipped" | "running";
 	DataModel: DataModel;
 	TableName: "testDefinitionLatest";
-}>(
-	// biome-ignore lint/suspicious/noExplicitAny: Generated API types don't properly expose component types at compile time, but the property exists at runtime
-	(components as { testDefinitionAggregate: any }).testDefinitionAggregate,
-	{
-		namespace: (doc: Doc<"testDefinitionLatest">) => doc.testType,
-		sortKey: (doc: Doc<"testDefinitionLatest">) => doc.status,
+}> | null = null;
+
+try {
+	// biome-ignore lint/suspicious/noExplicitAny: Generated API types don't properly expose component types at compile time
+	const aggregateComponent = (components as { testDefinitionAggregate: any })
+		.testDefinitionAggregate;
+	if (aggregateComponent) {
+		testDefinitionAggregate = new TableAggregate<{
+			Namespace: "unit" | "integration" | "e2e" | "visual";
+			Key: "passed" | "failed" | "skipped" | "running";
+			DataModel: DataModel;
+			TableName: "testDefinitionLatest";
+		}>(aggregateComponent, {
+			namespace: (doc: Doc<"testDefinitionLatest">) => doc.testType,
+			sortKey: (doc: Doc<"testDefinitionLatest">) => doc.status,
+		});
 	}
-);
+} catch (error) {
+	// Aggregate not available (e.g., in test environment without internal modules)
+	// Code will fall back to database queries
+	console.warn("Aggregate component not available, falling back to database queries");
+}
 
 async function updateDashboardStats(
 	ctx: GenericMutationCtx<DataModel>,
@@ -1756,9 +1802,13 @@ async function updateDashboardStats(
 			for (const insert of batch) {
 				const id = await ctx.db.insert("testDefinitionLatest", insert);
 				const doc = await ctx.db.get(id);
-				if (doc) {
+				if (doc && testDefinitionAggregate) {
 					// Maintain aggregate: insert new definition
-					await testDefinitionAggregate.insert(ctx, doc);
+					try {
+						await testDefinitionAggregate.insert(ctx, doc);
+					} catch (error) {
+						// Aggregate not available (e.g., in test environment), skip aggregate update
+					}
 				}
 			}
 		}
@@ -1773,9 +1823,13 @@ async function updateDashboardStats(
 					lastRunStartedAt: patch.lastRunStartedAt,
 				});
 				const newDoc = await ctx.db.get(patch.id);
-				if (oldDoc && newDoc) {
+				if (oldDoc && newDoc && testDefinitionAggregate) {
 					// Maintain aggregate: replace old status with new status
-					await testDefinitionAggregate.replace(ctx, oldDoc, newDoc);
+					try {
+						await testDefinitionAggregate.replace(ctx, oldDoc, newDoc);
+					} catch (error) {
+						// Aggregate not available (e.g., in test environment), skip aggregate update
+					}
 				}
 			}
 		}
@@ -2010,9 +2064,6 @@ export const seedHistoricalCoverage = mutation({
 		}
 
 		const now = Date.now();
-		const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
-		const oneMonthAgo = now - 30 * 24 * 60 * 60 * 1000;
-		const oneYearAgo = now - 365 * 24 * 60 * 60 * 1000;
 
 		// Sample files with different coverage scenarios, organized by package/directory
 		const sampleFiles = [

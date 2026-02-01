@@ -1,22 +1,24 @@
 import path from "node:path";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
-import PanoptesReporter from "./packages/reporters/vitest/src/index.ts";
+import PanoptesReporter from "./packages/reporters/vitest/src/index";
 
 export default defineConfig({
+	plugins: [react()],
 	resolve: {
 		alias: {
 			"@": path.resolve(__dirname, "./apps/web/src"),
 			"@convex": path.resolve(__dirname, "./convex"),
+			// Ensure React and React DOM are resolved from the same location
+			react: path.resolve(__dirname, "./apps/web/node_modules/react"),
+			"react-dom": path.resolve(__dirname, "./apps/web/node_modules/react-dom"),
 		},
 	},
 	test: {
+		environment: "happy-dom",
 		environmentMatchGlobs: [
 			// All tests in convex/ will run in edge-runtime
 			["convex/**", "edge-runtime"],
-			// React component integration tests need jsdom (not edge-runtime)
-			// Only backend integration tests in convex/ use edge-runtime
-			// All other tests use jsdom
-			["**", "jsdom"],
 		],
 		setupFiles: ["./apps/web/src/test-setup.ts"],
 		exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**", "**/*.spec.ts", "**/*.spec.tsx"],
@@ -26,7 +28,11 @@ export default defineConfig({
 			"apps/web/src/**/*.test.tsx",
 			"convex/**/*.test.ts",
 		],
-		server: { deps: { inline: ["convex-test"] } },
+		server: {
+			deps: {
+				inline: ["convex-test", "react", "react-dom"],
+			},
+		},
 		reporters: [
 			"default",
 			new PanoptesReporter({
