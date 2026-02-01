@@ -261,7 +261,6 @@ Look for: pages, API endpoints, UI components, data flows, user interactions.`;
 					prompt: featureDiscoveryPrompt,
 					system:
 						"You are an expert software architect analyzing a codebase to identify user-facing features and user journeys. Be thorough but precise - identify distinct features that users would recognize.",
-					temperature: 0.3,
 				});
 				discoveredFeatures = object;
 			} catch (error) {
@@ -344,7 +343,6 @@ Only include mappings where confidence >= 0.5.`;
 							prompt: mappingPrompt,
 							system:
 								"You are a test analysis expert. Map tests to features based on what functionality they verify. Be precise - only map tests to features they actually test.",
-							temperature: 0.2,
 						});
 
 						// Store mappings
