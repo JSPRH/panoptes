@@ -47,6 +47,9 @@ jobs:
         run: bunx tsc --noEmit --project convex/tsconfig.json
         continue-on-error: true
 
+      - name: Build shared package
+        run: bun run build:shared
+
       - name: Type check Packages
         run: |
           bunx tsc --noEmit --project packages/shared/tsconfig.json || true
