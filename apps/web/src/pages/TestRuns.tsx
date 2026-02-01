@@ -48,7 +48,8 @@ export default function TestRuns() {
 	});
 
 	// Get historical data
-	const startTimestamp = getPeriodStartTimestamp(period);
+	// Memoize startTimestamp to prevent recalculation on every render (Date.now() changes)
+	const startTimestamp = useMemo(() => getPeriodStartTimestamp(period), [period]);
 	const testRunHistoryArgs = useMemo(() => {
 		const args: {
 			projectId?: Id<"projects">;
