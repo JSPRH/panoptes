@@ -73,9 +73,8 @@ jobs:
         env:
           CONVEX_URL: ${{ secrets.CONVEX_URL }}
           CI: "true"
-          NODE_ENV: "production"
+          NODE_ENV: "test"
         run: bun run test:coverage
-        continue-on-error: true
 
   test-e2e:
     name: Run E2E Tests
@@ -132,13 +131,14 @@ jobs:
   all-checks:
     name: All Checks
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, build]
+    needs: [lint, typecheck, test, build]
     if: always()
     steps:
       - name: Check all jobs
         run: |
           if [ "${{ needs.lint.result }}" != "success" ] || \
              [ "${{ needs.typecheck.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
              [ "${{ needs.build.result }}" != "success" ]; then
             echo "One or more checks failed"
             exit 1
