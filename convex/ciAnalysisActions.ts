@@ -9,6 +9,7 @@ import {
 	analyzeFailure,
 	getCursorApiKey,
 	normalizeRepositoryUrl,
+	resolveRepositoryRef,
 } from "./aiAnalysisUtils";
 
 /**
@@ -295,9 +296,11 @@ Please fix the issue and ensure all tests pass.`;
 			// Generate background agent data for Cloud Agents API
 			// See: https://cursor.com/docs/cloud-agent/api/endpoints
 			// Normalize repository URL to full GitHub URL format required by Cursor API
+			// Use commit SHA as ref (more reliable than branch name - commits never change)
+			// Fallback to branch name if commit SHA is not available
 			const cursorBackgroundAgentData = {
 				repository: normalizeRepositoryUrl(project.repository),
-				ref: ciRun.branch,
+				ref: ciRun.commitSha || ciRun.branch,
 				prompt: cursorPrompt,
 			};
 
@@ -384,12 +387,22 @@ export const triggerCursorCloudAgent = action({
 			throw new Error("Background agent data not available");
 		}
 
-		const { repository: rawRepository, ref } = analysis.analysis.cursorBackgroundAgentData;
+		const { repository: rawRepository, ref: storedRef } =
+			analysis.analysis.cursorBackgroundAgentData;
 		const apiKey = getCursorApiKey();
 
 		// Normalize repository URL to full GitHub URL format required by Cursor API
 		// (in case it was stored in a different format)
 		const repository = normalizeRepositoryUrl(rawRepository);
+
+		// Get the CI run to access commit SHA (more reliable than branch name)
+		const ciRun = await ctx.runQuery(internal.github._getCIRunById, {
+			ciRunId: args.ciRunId,
+		});
+
+		// Resolve the ref: prefer commit SHA (most reliable), fallback to fetching default branch
+		// The Cursor API accepts commit SHAs as refs, which is more reliable than branch names
+		const ref = await resolveRepositoryRef(repository, storedRef, ciRun?.commitSha);
 
 		// Build prompt based on action type
 		let prompt = analysis.analysis.cursorBackgroundAgentData.prompt;

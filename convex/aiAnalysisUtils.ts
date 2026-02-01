@@ -29,6 +29,26 @@ export function getCursorApiKey(): string {
 }
 
 /**
+ * Parse repository URL to extract owner and repo.
+ * Supports formats: https://github.com/owner/repo, git@github.com:owner/repo.git, owner/repo
+ */
+function parseRepositoryUrl(repository: string): { owner: string; repo: string } | null {
+	const patterns = [
+		/https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?(?:\/|$)/,
+		/git@github\.com:([^\/]+)\/([^\/]+?)(?:\.git)?$/,
+		/^([^\/]+)\/([^\/]+)$/,
+	];
+
+	for (const pattern of patterns) {
+		const match = repository.match(pattern);
+		if (match) {
+			return { owner: match[1], repo: match[2] };
+		}
+	}
+	return null;
+}
+
+/**
  * Normalize a repository URL to the full GitHub URL format required by Cursor Cloud Agents API.
  * Supports formats: https://github.com/owner/repo, git@github.com:owner/repo.git, owner/repo
  * Returns: https://github.com/owner/repo
@@ -41,23 +61,78 @@ export function normalizeRepositoryUrl(repository: string): string {
 	}
 
 	// Parse owner/repo from various formats
-	const patterns = [
-		/https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?(?:\/|$)/,
-		/git@github\.com:([^\/]+)\/([^\/]+?)(?:\.git)?$/,
-		/^([^\/]+)\/([^\/]+)$/,
-	];
-
-	for (const pattern of patterns) {
-		const match = repository.match(pattern);
-		if (match) {
-			return `https://github.com/${match[1]}/${match[2]}`;
-		}
+	const parsed = parseRepositoryUrl(repository);
+	if (parsed) {
+		return `https://github.com/${parsed.owner}/${parsed.repo}`;
 	}
 
 	// If we can't parse it, throw an error
 	throw new Error(
 		`Invalid repository URL format: ${repository}. Expected formats: https://github.com/owner/repo, git@github.com:owner/repo.git, or owner/repo`
 	);
+}
+
+/**
+ * Resolve a ref (branch/commit) for use with Cursor Cloud Agents API.
+ * Prefers commit SHA (most reliable), falls back to fetching default branch from GitHub.
+ * @param repository - Full GitHub repository URL (e.g., https://github.com/owner/repo)
+ * @param preferredRef - Preferred ref (branch name or commit SHA)
+ * @param commitSha - Commit SHA if available (preferred over branch name)
+ * @returns Resolved ref (commit SHA, branch name, or default branch)
+ */
+export async function resolveRepositoryRef(
+	repository: string,
+	preferredRef?: string,
+	commitSha?: string
+): Promise<string> {
+	// Prefer commit SHA if available (commits are immutable and always exist)
+	if (commitSha) {
+		return commitSha;
+	}
+
+	// If we have a preferred ref, try to use it
+	if (preferredRef) {
+		// If it looks like a commit SHA (40 hex characters), use it directly
+		if (/^[a-f0-9]{40}$/i.test(preferredRef)) {
+			return preferredRef;
+		}
+		// Otherwise, it's a branch name - we'll try to fetch default branch as fallback
+	}
+
+	// Fetch default branch from GitHub API as fallback
+	try {
+		const repoInfo = parseRepositoryUrl(repository);
+		if (!repoInfo) {
+			throw new Error(`Invalid repository URL: ${repository}`);
+		}
+
+		const token = process.env.GITHUB_ACCESS_TOKEN;
+		if (!token) {
+			// If no GitHub token, fall back to preferred ref or "main"
+			return preferredRef || "main";
+		}
+
+		const repoResponse = await fetch(
+			`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}`,
+			{
+				headers: {
+					Authorization: `Bearer ${token}`,
+					Accept: "application/vnd.github.v3+json",
+				},
+			}
+		);
+
+		if (repoResponse.ok) {
+			const repoData = (await repoResponse.json()) as { default_branch: string };
+			return repoData.default_branch || preferredRef || "main";
+		}
+	} catch (error) {
+		// If fetching default branch fails, fall back to preferred ref or "main"
+		console.warn(`Failed to fetch default branch for ${repository}:`, error);
+	}
+
+	// Final fallback
+	return preferredRef || "main";
 }
 
 /**
