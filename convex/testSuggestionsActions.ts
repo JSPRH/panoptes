@@ -283,6 +283,7 @@ Focus on covering the uncovered lines listed above.`;
 					openAsCursorGithubApp: false,
 					skipReviewerRequest: false,
 				},
+				model: "composer-1",
 			}),
 		});
 

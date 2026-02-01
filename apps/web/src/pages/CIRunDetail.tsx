@@ -4,6 +4,7 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import { useAction, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { CloudAgentButton } from "../components/CloudAgentButton";
 import CodeSnippet from "../components/CodeSnippet";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
@@ -327,13 +328,9 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 	const triggerCloudAgent = useAction(api.ciAnalysisActions.triggerCursorCloudAgent);
 	const rerunCIRun = useAction(api.github.rerunCIRun);
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
-	const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
 	const [isRestartingCI, setIsRestartingCI] = useState(false);
 	const [selectedActionType, setSelectedActionType] = useState<"fix_test" | "fix_bug">("fix_bug");
 	const [error, setError] = useState<string | null>(null);
-	const [agentResult, setAgentResult] = useState<{ agentUrl?: string; prUrl?: string } | null>(
-		null
-	);
 
 	const handleAnalyze = async () => {
 		if (isAnalyzing) return;
@@ -353,43 +350,50 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 			// Generate deeplink dynamically from analysis data
 			const deeplink = generateCursorDeeplinkFromCIAnalysis(analysis.analysis, ciRun, failedTests);
 			window.open(deeplink, "_blank");
+		} else if (ciRun) {
+			// Build prompt from CI run data if no analysis
+			const failedTestsList =
+				failedTests && failedTests.length > 0
+					? failedTests
+							.slice(0, 5)
+							.map(
+								(t) => `${t.testName}${t.file ? ` (${t.file}${t.line ? `:${t.line}` : ""})` : ""}`
+							)
+							.join(", ")
+					: "No specific test failures identified";
+
+			const prompt = `Fix the CI failure for ${ciRun.workflowName} on branch ${ciRun.branch} (commit ${ciRun.commitSha.substring(0, 7)}).
+
+Failed Tests: ${failedTestsList}
+
+${ciRun.commitMessage ? `Commit Message: ${ciRun.commitMessage}` : ""}
+
+Please analyze the CI failure, identify the root cause, and fix the issue. Ensure all tests pass after your changes.`;
+
+			const encodedPrompt = encodeURIComponent(prompt);
+			const deeplink = `https://cursor.com/link/prompt?text=${encodedPrompt}`;
+			window.open(deeplink, "_blank");
 		}
 	};
 
-	const handleTriggerCloudAgent = async () => {
-		if (isTriggeringAgent) return;
-		setIsTriggeringAgent(true);
-		setError(null);
-		setAgentResult(null);
-		try {
-			const result = await triggerCloudAgent({
-				ciRunId,
-				actionType: selectedActionType,
-			});
-			// Handle restart_ci case
-			if ("success" in result && result.success) {
-				// CI restart was successful, no agent URL to set
-				return;
-			}
-			// Handle agent launch case - check for agentId to narrow type
-			if ("agentId" in result) {
-				setAgentResult({
-					agentUrl: result.agentUrl,
-					prUrl: result.prUrl,
-				});
-				if (result.prUrl) {
-					// Open PR in new tab
-					window.open(result.prUrl, "_blank");
-				} else if (result.agentUrl) {
-					// Open agent page in new tab
-					window.open(result.agentUrl, "_blank");
-				}
-			}
-		} catch (e) {
-			setError(e instanceof Error ? e.message : "Failed to trigger cloud agent");
-		} finally {
-			setIsTriggeringAgent(false);
+	const handleTriggerCloudAgent = async (actionType?: "fix_test" | "fix_bug") => {
+		const result = await triggerCloudAgent({
+			ciRunId,
+			actionType: actionType || selectedActionType,
+		});
+		// Handle restart_ci case
+		if ("success" in result && result.success) {
+			// CI restart was successful, no agent URL to return
+			return { agentUrl: undefined, prUrl: undefined };
 		}
+		// Handle agent launch case
+		if ("agentId" in result) {
+			return {
+				agentUrl: result.agentUrl,
+				prUrl: result.prUrl,
+			};
+		}
+		return { agentUrl: undefined, prUrl: undefined };
 	};
 
 	const handleRestartCI = async () => {
@@ -422,7 +426,7 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 				<div className="flex items-center justify-between">
 					<CardTitle>AI Failure Analysis</CardTitle>
 					<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-						{analysis?.analysis && (
+						{(analysis?.analysis || ciRun) && (
 							<Button
 								onClick={handleOpenCursorDeeplink}
 								size="sm"
@@ -443,32 +447,15 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 								{isRestartingCI ? "Restarting..." : "🔄 Restart CI"}
 							</Button>
 						)}
-						{analysis?.analysis?.cursorBackgroundAgentData && (
-							<div className="flex gap-2 flex-1">
-								<select
-									value={selectedActionType}
-									onChange={(e) => setSelectedActionType(e.target.value as "fix_test" | "fix_bug")}
-									className="px-3 py-1.5 text-sm border rounded-md bg-background"
-									disabled={isTriggeringAgent || !!analysis?.analysis?.cursorAgentId}
-								>
-									<option value="fix_bug">Fix Bug</option>
-									<option value="fix_test">Fix Test</option>
-								</select>
-								<Button
-									onClick={handleTriggerCloudAgent}
-									disabled={isTriggeringAgent || !!analysis?.analysis?.cursorAgentId}
-									size="sm"
-									variant="default"
-									className="flex-1"
-								>
-									{isTriggeringAgent
-										? "Launching..."
-										: analysis?.analysis?.cursorAgentId
-											? "✅ Agent Launched"
-											: "🚀 Launch Agent"}
-								</Button>
-							</div>
-						)}
+						<CloudAgentButton
+							onTrigger={handleTriggerCloudAgent}
+							actionType={selectedActionType}
+							showActionSelector={true}
+							disabled={!!analysis?.analysis?.cursorAgentId}
+							className="flex-1"
+						>
+							{analysis?.analysis?.cursorAgentId ? "✅ Agent Launched" : "🚀 Launch Agent"}
+						</CloudAgentButton>
 						{analysis?.analysis?.cursorAgentUrl && (
 							<Button
 								onClick={() => window.open(analysis.analysis.cursorAgentUrl, "_blank")}
@@ -581,62 +568,6 @@ function CIRunAnalysis({ ciRunId, conclusion }: { ciRunId: Id<"ciRuns">; conclus
 										</div>
 									)}
 								</div>
-								{(agentResult || analysis.analysis.cursorAgentId) && (
-									<div className="mt-2 p-2 bg-muted rounded text-sm">
-										{analysis.analysis.cursorAgentUrl ? (
-											<div>
-												✅ Cloud agent launched!{" "}
-												<a
-													href={analysis.analysis.cursorAgentUrl}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="text-primary hover:underline"
-												>
-													View Agent →
-												</a>
-												{agentResult?.prUrl && (
-													<>
-														{" • "}
-														<a
-															href={agentResult.prUrl}
-															target="_blank"
-															rel="noopener noreferrer"
-															className="text-primary hover:underline"
-														>
-															View Pull Request →
-														</a>
-													</>
-												)}
-											</div>
-										) : agentResult?.prUrl ? (
-											<div>
-												✅ Cloud agent launched!{" "}
-												<a
-													href={agentResult.prUrl}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="text-primary hover:underline"
-												>
-													View Pull Request →
-												</a>
-											</div>
-										) : agentResult?.agentUrl ? (
-											<div>
-												✅ Cloud agent launched!{" "}
-												<a
-													href={agentResult.agentUrl}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="text-primary hover:underline"
-												>
-													View Agent →
-												</a>
-											</div>
-										) : (
-											<div>✅ Cloud agent launched!</div>
-										)}
-									</div>
-								)}
 								{analysis.analysis.cursorPrompt && (
 									<details className="mt-2">
 										<summary className="text-xs text-muted-foreground cursor-pointer">

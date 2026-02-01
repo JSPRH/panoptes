@@ -3,6 +3,7 @@ import { api } from "@convex/_generated/api.js";
 import { useAction, useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { CloudAgentButton } from "../components/CloudAgentButton";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import TestSuggestions from "../components/TestSuggestions";
@@ -63,11 +64,6 @@ export default function FileCoverageDetail() {
 	const [coverageViewType, setCoverageViewType] = useState<"line" | "statement">("line");
 	const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 	const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
-	const [isTriggeringAgent, setIsTriggeringAgent] = useState(false);
-	const [agentError, setAgentError] = useState<string | null>(null);
-	const [agentResult, setAgentResult] = useState<{ agentUrl?: string; prUrl?: string } | null>(
-		null
-	);
 
 	const fileCoverage = fileCoverageData
 		? {
@@ -340,74 +336,30 @@ export default function FileCoverageDetail() {
 										{fileCoverage &&
 											projects &&
 											projects.find((p) => p._id === fileCoverage.projectId)?.repository && (
-												<Button
-													onClick={async () => {
-														if (isTriggeringAgent || !fileCoverage) return;
-														setIsTriggeringAgent(true);
-														setAgentError(null);
-														setAgentResult(null);
-														try {
-															const uncoveredLines = lineDetails?.uncovered || [];
-															const result = await triggerCloudAgentForTestCoverage({
-																file: decodedFilePath,
-																projectId: fileCoverage.projectId,
-																uncoveredLines,
-																commitSha: fileCoverageData?.testRun?.commitSha,
-															});
-															setAgentResult(result);
-															if (result.prUrl) {
-																window.open(result.prUrl, "_blank");
-															} else if (result.agentUrl) {
-																window.open(result.agentUrl, "_blank");
-															}
-														} catch (e) {
-															setAgentError(
-																e instanceof Error ? e.message : "Failed to trigger cloud agent"
-															);
-														} finally {
-															setIsTriggeringAgent(false);
+												<CloudAgentButton
+													onTrigger={async () => {
+														if (!fileCoverage) {
+															throw new Error("File coverage data not available");
 														}
+														const uncoveredLines = lineDetails?.uncovered || [];
+														const result = await triggerCloudAgentForTestCoverage({
+															file: decodedFilePath,
+															projectId: fileCoverage.projectId,
+															uncoveredLines,
+															commitSha: fileCoverageData?.testRun?.commitSha,
+														});
+														return {
+															agentUrl: result.agentUrl,
+															prUrl: result.prUrl,
+														};
 													}}
-													disabled={isTriggeringAgent}
-													variant="default"
+													actionType="add_coverage"
 													size="sm"
 												>
-													{isTriggeringAgent ? "Launching..." : "🚀 Launch Agent"}
-												</Button>
+													🚀 Launch Agent
+												</CloudAgentButton>
 											)}
 									</div>
-									{agentResult && (
-										<div className="mt-2 p-2 bg-muted rounded text-sm">
-											{agentResult.prUrl ? (
-												<div>
-													✅ Cloud agent launched!{" "}
-													<a
-														href={agentResult.prUrl}
-														target="_blank"
-														rel="noopener noreferrer"
-														className="text-primary hover:underline"
-													>
-														View Pull Request →
-													</a>
-												</div>
-											) : agentResult.agentUrl ? (
-												<div>
-													✅ Cloud agent launched!{" "}
-													<a
-														href={agentResult.agentUrl}
-														target="_blank"
-														rel="noopener noreferrer"
-														className="text-primary hover:underline"
-													>
-														View Agent →
-													</a>
-												</div>
-											) : (
-												<div>✅ Cloud agent launched!</div>
-											)}
-										</div>
-									)}
-									{agentError && <div className="mt-2 text-sm text-destructive">{agentError}</div>}
 								</div>
 							</div>
 						</CardHeader>

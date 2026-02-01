@@ -79,8 +79,10 @@ if [ -d "$E2E_TEST_DIR" ]; then
 	mv "$E2E_TEST_DIR" "$TEMP_E2E_TEST_DIR"
 fi
 
-# Run bun test and capture both output and exit code
-TEST_OUTPUT=$(bun run test 2>&1)
+# Run bun test only on tests directory (exclude hook tests that require vitest/jsdom)
+# Explicitly cd into tests directory to avoid bun scanning the workspace
+echo "🧪 Running bun tests (tests directory only)..."
+TEST_OUTPUT=$(cd tests && bun test . 2>&1)
 TEST_EXIT_CODE=$?
 
 # Restore React component tests immediately after test run
@@ -98,22 +100,44 @@ if [ -d "$TEMP_E2E_TEST_DIR" ]; then
 	mv "$TEMP_E2E_TEST_DIR" "$E2E_TEST_DIR"
 fi
 
-# Check if no tests were found
+# Check bun test results
+BUN_TEST_RESULT=0
 if echo "$TEST_OUTPUT" | grep -q "No tests found"; then
-	echo "ℹ️  No tests found, skipping test step"
-	TEST_RESULT=0
+	echo "ℹ️  No bun tests found, skipping bun test step"
+	BUN_TEST_RESULT=0
 else
 	# Print the test output
 	echo "$TEST_OUTPUT"
 	# Check the exit code
 	if [ $TEST_EXIT_CODE -eq 0 ]; then
-		TEST_RESULT=0
+		BUN_TEST_RESULT=0
 	else
-		TEST_RESULT=1
+		BUN_TEST_RESULT=1
 	fi
 fi
 
-if [ $TEST_RESULT -ne 0 ]; then
+# Run vitest for hook tests and React component tests (require jsdom)
+echo "🧪 Running vitest (hook tests and React components)..."
+VITEST_OUTPUT=$(bunx vitest run --reporter=verbose 2>&1)
+VITEST_EXIT_CODE=$?
+
+VITEST_RESULT=0
+if echo "$VITEST_OUTPUT" | grep -q "No test files found"; then
+	echo "ℹ️  No vitest tests found, skipping vitest step"
+	VITEST_RESULT=0
+else
+	# Print the test output
+	echo "$VITEST_OUTPUT"
+	# Check the exit code
+	if [ $VITEST_EXIT_CODE -eq 0 ]; then
+		VITEST_RESULT=0
+	else
+		VITEST_RESULT=1
+	fi
+fi
+
+# Check if either test suite failed
+if [ $BUN_TEST_RESULT -ne 0 ] || [ $VITEST_RESULT -ne 0 ]; then
 	echo "❌ Tests failed. Please fix the errors above."
 	exit 1
 fi

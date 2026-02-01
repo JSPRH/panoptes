@@ -90,19 +90,35 @@ export const analyzeTestFailure = action({
 			if (isE2ETest) {
 				// Get attachments (screenshots) for e2e tests
 				try {
-					const attachmentsWithUrls = await ctx.runAction(api.tests.getTestAttachmentsWithUrls, {
+					// Get attachments with storage IDs (not URLs, since URLs may be localhost)
+					const attachments = await ctx.runQuery(api.tests.getTestAttachments, {
 						testId: args.testId,
 					});
-					// Filter for image attachments (screenshots)
-					screenshots = attachmentsWithUrls
-						.filter(
-							(att): att is typeof att & { url: string } =>
-								att.url !== null && att.contentType.startsWith("image/")
-						)
-						.map((att) => ({
-							url: att.url,
-							contentType: att.contentType,
-						}));
+
+					// Filter for image attachments and convert to base64 data URLs
+					const imageAttachments = attachments.filter((att) =>
+						att.contentType.startsWith("image/")
+					);
+
+					screenshots = await Promise.all(
+						imageAttachments.map(async (att) => {
+							// Fetch blob from storage
+							const blob = await ctx.storage.get(att.storageId);
+							if (!blob) {
+								throw new Error(`Failed to fetch blob for storage ID: ${att.storageId}`);
+							}
+
+							// Convert blob to base64 data URL
+							const arrayBuffer = await blob.arrayBuffer();
+							const base64 = Buffer.from(arrayBuffer).toString("base64");
+							const dataUrl = `data:${att.contentType};base64,${base64}`;
+
+							return {
+								url: dataUrl,
+								contentType: att.contentType,
+							};
+						})
+					);
 				} catch (error) {
 					console.warn("Failed to fetch attachments:", error);
 					// Continue without screenshots
@@ -352,6 +368,7 @@ Please fix the bug and ensure the test passes.`;
 					openAsCursorGithubApp: false,
 					skipReviewerRequest: false,
 				},
+				model: "composer-1",
 			}),
 		});
 

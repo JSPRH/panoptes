@@ -6,7 +6,7 @@ import { useState } from "react";
 import { CoverageTree } from "../components/CoverageTree";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
-import { ChartCard, CoverageTrendChart } from "../components/charts";
+import { ChartCard, CoverageTrendChart, PackageCoverageChart } from "../components/charts";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Switch } from "../components/ui/switch";
@@ -57,6 +57,27 @@ export default function CoverageTreePage() {
 				: "skip"
 	);
 
+	// Get coverage data by package for package chart
+	const packageCoverage = useQuery(
+		api.tests.getCoverageByPackage,
+		projectId && startTimestamp
+			? {
+					projectId: projectId as Id<"projects">,
+					startTimestamp,
+					limit: 100,
+					useStatementCoverage,
+					maxPackages: 8,
+				}
+			: projectId
+				? {
+						projectId: projectId as Id<"projects">,
+						limit: 100,
+						useStatementCoverage,
+						maxPackages: 8,
+					}
+				: "skip"
+	);
+
 	return (
 		<div className="space-y-8">
 			<PageHeader
@@ -94,6 +115,17 @@ export default function CoverageTreePage() {
 						height={300}
 						showAllMetrics={showAllMetrics}
 					/>
+				</ChartCard>
+			)}
+
+			{packageCoverage && packageCoverage.length > 0 && (
+				<ChartCard
+					title="Coverage by Package Over Time"
+					description="Coverage trends organized by top-level packages/directories"
+					selectedPeriod={trendPeriod}
+					onPeriodChange={setTrendPeriod}
+				>
+					<PackageCoverageChart data={packageCoverage} showArea height={300} maxPackages={8} />
 				</ChartCard>
 			)}
 

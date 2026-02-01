@@ -9,6 +9,7 @@ import {
 	analyzeFailure,
 	getCursorApiKey,
 	normalizeRepositoryUrl,
+	resolveRepositoryRef,
 } from "./aiAnalysisUtils";
 
 /**
@@ -295,9 +296,11 @@ Please fix the issue and ensure all tests pass.`;
 			// Generate background agent data for Cloud Agents API
 			// See: https://cursor.com/docs/cloud-agent/api/endpoints
 			// Normalize repository URL to full GitHub URL format required by Cursor API
+			// Use commit SHA as ref (more reliable than branch name - commits never change)
+			// Fallback to branch name if commit SHA is not available
 			const cursorBackgroundAgentData = {
 				repository: normalizeRepositoryUrl(project.repository),
-				ref: ciRun.branch,
+				ref: ciRun.commitSha || ciRun.branch,
 				prompt: cursorPrompt,
 			};
 
@@ -344,6 +347,7 @@ Please fix the issue and ensure all tests pass.`;
 /**
  * Trigger a Cursor Cloud Agent to fix a CI failure.
  * This calls the Cursor Cloud Agents API to launch an agent.
+ * Can work with or without AI analysis - if analysis exists, uses it; otherwise builds prompt from CI run data.
  * See: https://cursor.com/docs/cloud-agent/api/endpoints
  */
 export const triggerCursorCloudAgent = action({
@@ -360,16 +364,37 @@ export const triggerCursorCloudAgent = action({
 		| { success: true; action: "restart_ci"; message: string }
 		| { agentId: string; agentUrl: string; prUrl?: string; action: string }
 	> => {
+		// Get CI run and project info
+		const ciRun = await ctx.runQuery(internal.github._getCIRunById, {
+			ciRunId: args.ciRunId,
+		});
+
+		if (!ciRun) {
+			throw new Error("CI run not found");
+		}
+
+		// Get project for repository info
+		const project = await ctx.runQuery(internal.github._getProject, {
+			projectId: ciRun.projectId,
+		});
+
+		if (!project || !project.repository) {
+			throw new Error("Project repository not configured");
+		}
+
+		const apiKey = getCursorApiKey();
+		const repository = normalizeRepositoryUrl(project.repository);
+
+		// Resolve the ref: verify branch exists, fallback to default branch
+		const ref = await resolveRepositoryRef(repository, ciRun.branch, ciRun.commitSha);
+
+		// Try to get analysis if it exists
 		const analysis = await ctx.runQuery(api.ciAnalysis.getCIRunAnalysis, {
 			ciRunId: args.ciRunId,
 		});
 
-		if (!analysis || !analysis.analysis) {
-			throw new Error("Analysis not found");
-		}
-
 		// If flaky and actionType is restart_ci, use GitHub API directly
-		if (analysis.analysis.isFlaky && args.actionType === "restart_ci") {
+		if (analysis?.analysis?.isFlaky && args.actionType === "restart_ci") {
 			const rerunResult = await ctx.runAction(api.github.rerunCIRun, {
 				ciRunId: args.ciRunId,
 			});
@@ -380,23 +405,16 @@ export const triggerCursorCloudAgent = action({
 			} as const;
 		}
 
-		if (!analysis.analysis.cursorBackgroundAgentData) {
-			throw new Error("Background agent data not available");
-		}
+		// Build prompt - use analysis if available, otherwise build from CI run data
+		let prompt = "";
 
-		const { repository: rawRepository, ref } = analysis.analysis.cursorBackgroundAgentData;
-		const apiKey = getCursorApiKey();
+		if (analysis?.analysis?.cursorBackgroundAgentData) {
+			// Use existing analysis
+			prompt = analysis.analysis.cursorBackgroundAgentData.prompt;
 
-		// Normalize repository URL to full GitHub URL format required by Cursor API
-		// (in case it was stored in a different format)
-		const repository = normalizeRepositoryUrl(rawRepository);
-
-		// Build prompt based on action type
-		let prompt = analysis.analysis.cursorBackgroundAgentData.prompt;
-
-		if (args.actionType === "fix_test") {
-			// Focus on test code, assertions, mocking
-			prompt = `Fix the failing test(s) in the CI failure for ${analysis.analysis.title || "CI Failure"}.
+			if (args.actionType === "fix_test") {
+				// Focus on test code, assertions, mocking
+				prompt = `Fix the failing test(s) in the CI failure for ${analysis.analysis.title || "CI Failure"}.
 
 ${analysis.analysis.summary}
 
@@ -411,9 +429,9 @@ Focus on:
 ${analysis.analysis.proposedFix}
 
 Please fix the test(s) and ensure they pass.`;
-		} else if (args.actionType === "fix_bug") {
-			// Focus on production code, logic errors
-			prompt = `Fix the bug causing the CI failure for ${analysis.analysis.title || "CI Failure"}.
+			} else if (args.actionType === "fix_bug") {
+				// Focus on production code, logic errors
+				prompt = `Fix the bug causing the CI failure for ${analysis.analysis.title || "CI Failure"}.
 
 ${analysis.analysis.summary}
 
@@ -428,8 +446,59 @@ Focus on:
 ${analysis.analysis.proposedFix}
 
 Please fix the bug and ensure all tests pass.`;
+			}
+		} else {
+			// Build prompt from CI run data (no analysis available)
+			// Get failed tests if available
+			const parsedTests = await ctx.runQuery(api.github.getCIRunParsedTests, {
+				ciRunId: args.ciRunId,
+			});
+			const failedTests = parsedTests?.filter((t) => t.status === "failed") || [];
+
+			const title = ciRun.workflowName || "CI Failure";
+			const failedTestsList =
+				failedTests.length > 0
+					? failedTests
+							.slice(0, 5)
+							.map(
+								(t) => `${t.testName}${t.file ? ` (${t.file}${t.line ? `:${t.line}` : ""})` : ""}`
+							)
+							.join("\n- ")
+					: "No specific test failures identified";
+
+			if (args.actionType === "fix_test") {
+				prompt = `Fix the failing test(s) in the CI failure for ${title} on branch ${ciRun.branch} (commit ${ciRun.commitSha.substring(0, 7)}).
+
+Failed Tests:
+- ${failedTestsList}
+
+${ciRun.commitMessage ? `Commit Message: ${ciRun.commitMessage}` : ""}
+
+Please analyze the CI failure, identify the root cause, and fix the failing test(s). Focus on:
+- Fixing test code, assertions, and expectations
+- Updating mocks and test fixtures
+- Correcting test setup/teardown
+- Ensuring tests accurately reflect expected behavior
+
+Ensure all tests pass after your changes.`;
+			} else {
+				// Default: fix_bug
+				prompt = `Fix the bug causing the CI failure for ${title} on branch ${ciRun.branch} (commit ${ciRun.commitSha.substring(0, 7)}).
+
+Failed Tests:
+- ${failedTestsList}
+
+${ciRun.commitMessage ? `Commit Message: ${ciRun.commitMessage}` : ""}
+
+Please analyze the CI failure, identify the root cause, and fix the bug. Focus on:
+- Fixing production code logic errors
+- Correcting business logic issues
+- Fixing API/function implementations
+- Ensuring code correctness and edge case handling
+
+Ensure all tests pass after your changes.`;
+			}
 		}
-		// If no actionType specified, use the default prompt from analysis
 
 		// Call Cursor Cloud Agents API
 		// See: https://cursor.com/docs/cloud-agent/api/endpoints#launch-an-agent
@@ -452,6 +521,7 @@ Please fix the bug and ensure all tests pass.`;
 					openAsCursorGithubApp: false,
 					skipReviewerRequest: false,
 				},
+				model: "composer-1",
 			}),
 		});
 
@@ -474,47 +544,49 @@ Please fix the bug and ensure all tests pass.`;
 		// Format: https://cursor.com/agents?id={agentId}
 		const agentUrl = result.target?.url || `https://cursor.com/agents?id=${result.id}`;
 
-		// Store agent ID and URL in analysis (preserve existing analysis data)
-		const updateAnalysis: {
-			title: string;
-			summary: string;
-			rootCause: string;
-			proposedFix: string;
-			proposedTest: string;
-			isFlaky: boolean;
-			confidence: number;
-			cursorPrompt?: string;
-			cursorBackgroundAgentData?: {
-				repository: string;
-				ref: string;
-				prompt: string;
+		// Store agent ID and URL in analysis if analysis exists
+		if (analysis) {
+			const updateAnalysis: {
+				title: string;
+				summary: string;
+				rootCause: string;
+				proposedFix: string;
+				proposedTest: string;
+				isFlaky: boolean;
+				confidence: number;
+				cursorPrompt?: string;
+				cursorBackgroundAgentData?: {
+					repository: string;
+					ref: string;
+					prompt: string;
+				};
+				cursorAgentId: string;
+				cursorAgentUrl: string;
+			} = {
+				title: analysis.analysis?.title || "CI Failure Analysis",
+				summary: analysis.analysis?.summary || "",
+				rootCause: analysis.analysis?.rootCause || "",
+				proposedFix: analysis.analysis?.proposedFix || "",
+				proposedTest: analysis.analysis?.proposedTest || "",
+				isFlaky: analysis.analysis?.isFlaky || false,
+				confidence: analysis.analysis?.confidence || 0.5,
+				cursorAgentId: result.id,
+				cursorAgentUrl: agentUrl,
 			};
-			cursorAgentId: string;
-			cursorAgentUrl: string;
-		} = {
-			title: analysis.analysis.title || "CI Failure Analysis",
-			summary: analysis.analysis.summary,
-			rootCause: analysis.analysis.rootCause,
-			proposedFix: analysis.analysis.proposedFix,
-			proposedTest: analysis.analysis.proposedTest,
-			isFlaky: analysis.analysis.isFlaky,
-			confidence: analysis.analysis.confidence,
-			cursorAgentId: result.id,
-			cursorAgentUrl: agentUrl,
-		};
 
-		if (analysis.analysis.cursorPrompt) {
-			updateAnalysis.cursorPrompt = analysis.analysis.cursorPrompt;
-		}
-		if (analysis.analysis.cursorBackgroundAgentData) {
-			updateAnalysis.cursorBackgroundAgentData = analysis.analysis.cursorBackgroundAgentData;
-		}
+			if (analysis.analysis?.cursorPrompt) {
+				updateAnalysis.cursorPrompt = analysis.analysis.cursorPrompt;
+			}
+			if (analysis.analysis?.cursorBackgroundAgentData) {
+				updateAnalysis.cursorBackgroundAgentData = analysis.analysis.cursorBackgroundAgentData;
+			}
 
-		await ctx.runMutation(internal.ciAnalysis._updateCIRunAnalysis, {
-			analysisId: analysis._id,
-			status: analysis.status,
-			analysis: updateAnalysis,
-		});
+			await ctx.runMutation(internal.ciAnalysis._updateCIRunAnalysis, {
+				analysisId: analysis._id,
+				status: analysis.status,
+				analysis: updateAnalysis,
+			});
+		}
 
 		return {
 			agentId: result.id,
