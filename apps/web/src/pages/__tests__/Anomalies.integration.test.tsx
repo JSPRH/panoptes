@@ -10,13 +10,27 @@ import Anomalies from "../Anomalies";
 let testInstance: ReturnType<typeof convexTest> | null = null;
 const queryResults = new Map<string, unknown>();
 
+// Helper to safely convert query to string
+function queryToString(query: unknown): string {
+	try {
+		return String(query);
+	} catch {
+		// Fallback: use a stable representation based on query path if available
+		if (query && typeof query === "object" && "path" in query) {
+			return String((query as { path: unknown }).path);
+		}
+		// Last resort: use object reference as string
+		return `[Query:${Object.prototype.toString.call(query)}]`;
+	}
+}
+
 vi.mock("convex/react", () => {
 	return {
 		useQuery: (query: unknown, args?: unknown) => {
 			if (!testInstance) return undefined;
 			if (args === "skip") return undefined;
 
-			const cacheKey = JSON.stringify({ query: String(query), args });
+			const cacheKey = JSON.stringify({ query: queryToString(query), args });
 
 			if (queryResults.has(cacheKey)) {
 				return queryResults.get(cacheKey);
@@ -64,12 +78,12 @@ testSuite("Anomalies Integration Tests", () => {
 		});
 
 		queryResults.set(
-			JSON.stringify({ query: String(api.tests.getProjects), args: undefined }),
+			JSON.stringify({ query: queryToString(api.tests.getProjects), args: undefined }),
 			projects || []
 		);
 		queryResults.set(
 			JSON.stringify({
-				query: String(api.anomalies.getAnomalies),
+				query: queryToString(api.anomalies.getAnomalies),
 				args: { projectId, resolved: false },
 			}),
 			anomalies || []
