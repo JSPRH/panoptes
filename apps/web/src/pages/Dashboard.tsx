@@ -6,10 +6,12 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import { ProjectSelector } from "../components/ProjectSelector";
 import { ChartCard, HistoricalBarChart, HistoricalLineChart } from "../components/charts";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
+import { useProjectSelection } from "../hooks/useProjectSelection";
 import { chartColors, formatPercentage, getPeriodStartTimestamp } from "../lib/chartUtils";
 
 type TestRun = Doc<"testRuns">;
@@ -17,9 +19,16 @@ type Project = Doc<"projects">;
 
 export default function Dashboard() {
 	const [period, setPeriod] = useState("30d");
+	const { selectedProjectId, setSelectedProjectId } = useProjectSelection();
 	const dashboardStats = useQuery(api.tests.getDashboardStats);
 	const projects = useQuery(api.tests.getProjects);
 	const testRuns = useQuery(api.tests.getTestRuns, { limit: 10 });
+
+	// Use the same query as TestPyramid to ensure numbers match
+	const pyramidData = useQuery(
+		api.tests.getTestPyramidData,
+		selectedProjectId ? { projectId: selectedProjectId } : {}
+	);
 
 	// Get CI runs and PRs for the first project with a repository
 	const projectWithRepo = projects?.find((p: Project) => p.repository);
@@ -87,10 +96,21 @@ export default function Dashboard() {
 		}));
 	}, [ciRunHistory]);
 
-	if (dashboardStats === undefined || projects === undefined || testRuns === undefined) {
+	if (
+		dashboardStats === undefined ||
+		projects === undefined ||
+		testRuns === undefined ||
+		pyramidData === undefined
+	) {
 		return (
 			<div className="space-y-8">
-				<PageHeader title="Dashboard" description="Overview of your testing pyramid" />
+				<div className="flex items-center justify-between flex-wrap gap-4">
+					<PageHeader title="Dashboard" description="Overview of your testing pyramid" />
+					<ProjectSelector
+						selectedProjectId={selectedProjectId}
+						onProjectSelect={setSelectedProjectId}
+					/>
+				</div>
 				<div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
 					{[1, 2, 3, 4].map((i) => (
 						<Card key={i}>
@@ -122,82 +142,119 @@ export default function Dashboard() {
 
 	return (
 		<div className="space-y-8">
-			<PageHeader title="Dashboard" description="Overview of your testing pyramid" />
+			<div className="flex items-center justify-between flex-wrap gap-4">
+				<PageHeader title="Dashboard" description="Overview of your testing pyramid" />
+				<ProjectSelector
+					selectedProjectId={selectedProjectId}
+					onProjectSelect={setSelectedProjectId}
+				/>
+			</div>
 
 			<div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-				<Card>
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="text-2xl font-bold">{dashboardStats?.projectCount ?? 0}</div>
-					</CardContent>
-				</Card>
+				<Link to="/test-pyramid" className="block">
+					<Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{dashboardStats?.projectCount ?? 0}</div>
+							<Link to="/test-pyramid" className="text-xs text-primary hover:underline mt-1 block">
+								View test pyramid
+							</Link>
+						</CardContent>
+					</Card>
+				</Link>
 
-				<Card>
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">Total Test Runs</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="text-2xl font-bold">{dashboardStats?.testRunCount ?? 0}</div>
-					</CardContent>
-				</Card>
+				<Link to="/runs" className="block">
+					<Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">Total Test Runs</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{dashboardStats?.testRunCount ?? 0}</div>
+							<Link to="/runs" className="text-xs text-primary hover:underline mt-1 block">
+								View all test runs
+							</Link>
+						</CardContent>
+					</Card>
+				</Link>
 
-				{dashboardStats?.pyramid && (
+				{pyramidData && (
 					<>
-						<Card>
-							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">Unit test definitions</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">{dashboardStats.pyramid.unit.total}</div>
-								<p className="text-xs text-muted-foreground">
-									{dashboardStats.pyramid.unit.passed} passed, {dashboardStats.pyramid.unit.failed}{" "}
-									failed
-								</p>
-							</CardContent>
-						</Card>
+						<Link to="/runs?testType=unit" className="block">
+							<Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+									<CardTitle className="text-sm font-medium">Unit test definitions</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">{pyramidData.unit.total}</div>
+									<p className="text-xs text-muted-foreground">
+										{pyramidData.unit.passed} passed, {pyramidData.unit.failed} failed
+									</p>
+									<Link
+										to="/runs?testType=unit"
+										className="text-xs text-primary hover:underline mt-1 block"
+									>
+										View unit tests
+									</Link>
+								</CardContent>
+							</Card>
+						</Link>
 
-						<Card>
-							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">E2E test definitions</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">{dashboardStats.pyramid.e2e.total}</div>
-								<p className="text-xs text-muted-foreground">
-									{dashboardStats.pyramid.e2e.passed} passed, {dashboardStats.pyramid.e2e.failed}{" "}
-									failed
-								</p>
-							</CardContent>
-						</Card>
+						<Link to="/runs?testType=e2e" className="block">
+							<Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+									<CardTitle className="text-sm font-medium">E2E test definitions</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">{pyramidData.e2e.total}</div>
+									<p className="text-xs text-muted-foreground">
+										{pyramidData.e2e.passed} passed, {pyramidData.e2e.failed} failed
+									</p>
+									<Link
+										to="/runs?testType=e2e"
+										className="text-xs text-primary hover:underline mt-1 block"
+									>
+										View E2E tests
+									</Link>
+								</CardContent>
+							</Card>
+						</Link>
 					</>
 				)}
 
 				{projectWithRepo && (
 					<>
-						<Card>
-							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">Recent CI Runs</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">{ciRuns?.length || 0}</div>
-								<Link to="/ci-runs" className="text-xs text-primary hover:underline">
-									View all CI runs
-								</Link>
-							</CardContent>
-						</Card>
+						<Link to="/ci-runs" className="block">
+							<Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+									<CardTitle className="text-sm font-medium">Recent CI Runs</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">{ciRuns?.length || 0}</div>
+									<Link to="/ci-runs" className="text-xs text-primary hover:underline mt-1 block">
+										View all CI runs
+									</Link>
+								</CardContent>
+							</Card>
+						</Link>
 
-						<Card>
-							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">Open PRs</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">{prs?.length || 0}</div>
-								<Link to="/pull-requests" className="text-xs text-primary hover:underline">
-									View all PRs
-								</Link>
-							</CardContent>
-						</Card>
+						<Link to="/pull-requests" className="block">
+							<Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+									<CardTitle className="text-sm font-medium">Open PRs</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">{prs?.length || 0}</div>
+									<Link
+										to="/pull-requests"
+										className="text-xs text-primary hover:underline mt-1 block"
+									>
+										View all PRs
+									</Link>
+								</CardContent>
+							</Card>
+						</Link>
 					</>
 				)}
 			</div>
