@@ -68,16 +68,15 @@ export default function MainBranch() {
 			: "skip"
 	);
 
-	// Find the latest failed CI run
-	const latestFailedCIRun = useMemo(() => {
-		if (!ciRuns) return null;
+	// Find all failed CI runs (sorted by most recent first)
+	const failedCIRuns = useMemo(() => {
+		if (!ciRuns) return [];
 		const failedRuns = ciRuns.filter(
 			(run) =>
 				run.conclusion === "failure" || (run.status === "completed" && run.conclusion !== "success")
 		);
-		if (failedRuns.length === 0) return null;
-		// Sort by startedAt descending to get the latest
-		return failedRuns.sort((a, b) => b.startedAt - a.startedAt)[0];
+		// Sort by startedAt descending to get the most recent first
+		return failedRuns.sort((a, b) => b.startedAt - a.startedAt);
 	}, [ciRuns]);
 
 	// Sort all CI runs by startedAt descending (most recent first)
@@ -88,29 +87,29 @@ export default function MainBranch() {
 
 	const triggerCloudAgent = useAction(api.ciAnalysisActions.triggerCursorCloudAgent);
 
-	const handleTriggerCloudAgent = async (actionType?: CloudAgentActionType) => {
-		if (!latestFailedCIRun) {
-			throw new Error("No failed CI run found");
-		}
-		// Only pass fix_test or fix_bug to the action, as it doesn't support other types
-		const validActionType =
-			actionType === "fix_test" || actionType === "fix_bug" ? actionType : "fix_bug";
-		const result = await triggerCloudAgent({
-			ciRunId: latestFailedCIRun._id,
-			actionType: validActionType,
-		});
-		// Handle restart_ci case
-		if ("success" in result && result.success) {
+	// Create handler for a specific CI run
+	const createHandleTriggerCloudAgent = (ciRunId: Id<"ciRuns">) => {
+		return async (actionType?: CloudAgentActionType) => {
+			// Only pass fix_test or fix_bug to the action, as it doesn't support other types
+			const validActionType =
+				actionType === "fix_test" || actionType === "fix_bug" ? actionType : "fix_bug";
+			const result = await triggerCloudAgent({
+				ciRunId,
+				actionType: validActionType,
+			});
+			// Handle restart_ci case
+			if ("success" in result && result.success) {
+				return { agentUrl: undefined, prUrl: undefined };
+			}
+			// Handle agent launch case
+			if ("agentId" in result) {
+				return {
+					agentUrl: result.agentUrl,
+					prUrl: result.prUrl,
+				};
+			}
 			return { agentUrl: undefined, prUrl: undefined };
-		}
-		// Handle agent launch case
-		if ("agentId" in result) {
-			return {
-				agentUrl: result.agentUrl,
-				prUrl: result.prUrl,
-			};
-		}
-		return { agentUrl: undefined, prUrl: undefined };
+		};
 	};
 
 	return (
@@ -138,45 +137,65 @@ export default function MainBranch() {
 
 			{selectedProject?.repository && (
 				<>
-					{latestFailedCIRun && (
+					{failedCIRuns.length > 0 && (
 						<Card>
 							<CardHeader>
-								<CardTitle>Fix CI Failure</CardTitle>
+								<CardTitle>Fix CI Failures</CardTitle>
 								<CardDescription>
-									Latest failed CI run: {latestFailedCIRun.workflowName} (commit{" "}
-									{latestFailedCIRun.commitSha.substring(0, 7)})
+									{failedCIRuns.length} failed CI run{failedCIRuns.length !== 1 ? "s" : ""} found.
+									Launch agents in parallel to fix multiple failures simultaneously.
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
 								<div className="space-y-4">
-									<div className="flex items-center gap-2">
-										<Badge variant="error">Failed</Badge>
-										<span className="text-sm text-muted-foreground">
-											{formatTime(latestFailedCIRun.startedAt)}
-											{latestFailedCIRun.completedAt &&
-												` • Duration: ${formatDuration(latestFailedCIRun.startedAt, latestFailedCIRun.completedAt)}`}
-										</span>
-									</div>
-									{latestFailedCIRun.commitMessage && (
-										<div className="text-sm text-muted-foreground">
-											{latestFailedCIRun.commitMessage}
-										</div>
-									)}
-									<div className="pt-2">
-										<CloudAgentButton
-											onTrigger={handleTriggerCloudAgent}
-											actionType="fix_bug"
-											showActionSelector={true}
-											className="w-full"
-											variant="default"
-											size="default"
+									{failedCIRuns.map((run: CIRun) => (
+										<div
+											key={run._id}
+											className="p-4 rounded-lg border border-destructive/50 bg-destructive/5"
 										>
-											🚀 Launch Agent to Fix CI
-										</CloudAgentButton>
-									</div>
-									<div className="text-xs text-muted-foreground">
-										The agent will have access to: CI run details, failed tests, and codebase
-										information.
+											<div className="space-y-3">
+												<div className="flex items-start justify-between gap-4">
+													<div className="flex-1">
+														<div className="flex items-center gap-2 mb-1">
+															<div className="font-medium">{run.workflowName}</div>
+															<Badge variant="error">Failed</Badge>
+														</div>
+														<div className="text-sm text-muted-foreground">
+															Commit: {run.commitSha.substring(0, 7)}
+															{run.commitMessage && ` • ${run.commitMessage}`}
+														</div>
+														<div className="text-xs text-muted-foreground mt-1">
+															{formatTime(run.startedAt)}
+															{run.completedAt &&
+																` • Duration: ${formatDuration(run.startedAt, run.completedAt)}`}
+														</div>
+													</div>
+													<Link
+														to={`/ci-runs/${run._id}`}
+														className="text-sm text-primary hover:underline whitespace-nowrap"
+													>
+														View Details →
+													</Link>
+												</div>
+												<div className="pt-2">
+													<CloudAgentButton
+														onTrigger={createHandleTriggerCloudAgent(run._id)}
+														actionType="fix_bug"
+														showActionSelector={true}
+														className="w-full"
+														variant="default"
+														size="default"
+													>
+														🚀 Launch Agent to Fix This CI Run
+													</CloudAgentButton>
+												</div>
+											</div>
+										</div>
+									))}
+									<div className="text-xs text-muted-foreground pt-2 border-t">
+										Each agent will have access to: CI run details, failed tests, and codebase
+										information. You can launch multiple agents in parallel to fix different CI
+										failures simultaneously.
 									</div>
 								</div>
 							</CardContent>
