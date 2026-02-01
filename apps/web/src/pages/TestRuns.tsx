@@ -51,41 +51,24 @@ export default function TestRuns() {
 	const startTimestamp = getPeriodStartTimestamp(period);
 	const testRunHistory = useQuery(
 		api.tests.getTestRunHistory,
-		selectedProjectId && startTimestamp
+		selectedProjectId
 			? {
 					projectId: selectedProjectId,
 					testType:
 						urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
 							? (urlTestType as "unit" | "integration" | "e2e" | "visual")
 							: undefined,
-					startTimestamp,
+					startTimestamp: startTimestamp ?? undefined,
 					limit: 500,
 				}
-			: startTimestamp
-				? {
-						testType:
-							urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
-								? (urlTestType as "unit" | "integration" | "e2e" | "visual")
-								: undefined,
-						startTimestamp,
-						limit: 500,
-					}
-				: selectedProjectId
-					? {
-							projectId: selectedProjectId,
-							testType:
-								urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
-									? (urlTestType as "unit" | "integration" | "e2e" | "visual")
-									: undefined,
-							limit: 500,
-						}
-					: {
-							testType:
-								urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
-									? (urlTestType as "unit" | "integration" | "e2e" | "visual")
-									: undefined,
-							limit: 500,
-						}
+			: {
+					testType:
+						urlTestType && ["unit", "integration", "e2e", "visual"].includes(urlTestType)
+							? (urlTestType as "unit" | "integration" | "e2e" | "visual")
+							: undefined,
+					startTimestamp: startTimestamp ?? undefined,
+					limit: 500,
+				}
 	);
 
 	// Prepare chart data
