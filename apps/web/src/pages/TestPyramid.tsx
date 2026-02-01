@@ -3,8 +3,10 @@ import { api } from "@convex/_generated/api.js";
 import { useQuery } from "convex/react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
+import { ProjectSelector } from "../components/ProjectSelector";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { useProjectSelection } from "../hooks/useProjectSelection";
 
 type PyramidLayer = {
 	total: number;
@@ -69,15 +71,25 @@ const LAYER_CONFIGS = {
 } as const;
 
 export default function TestPyramid() {
-	const pyramidData = useQuery(api.tests.getTestPyramidData, {});
+	const { selectedProjectId, setSelectedProjectId } = useProjectSelection();
+	const pyramidData = useQuery(
+		api.tests.getTestPyramidData,
+		selectedProjectId ? { projectId: selectedProjectId } : {}
+	);
 
 	if (!pyramidData) {
 		return (
 			<div className="space-y-8">
-				<PageHeader
-					title="Test Pyramid"
-					description="Visual representation of your testing pyramid"
-				/>
+				<div className="flex items-center justify-between flex-wrap gap-4">
+					<PageHeader
+						title="Test Pyramid"
+						description="Visual representation of your testing pyramid"
+					/>
+					<ProjectSelector
+						selectedProjectId={selectedProjectId}
+						onProjectSelect={setSelectedProjectId}
+					/>
+				</div>
 				<Card>
 					<CardContent className="py-16">
 						<div className="text-center text-muted-foreground">Loading pyramid data...</div>
@@ -151,7 +163,13 @@ export default function TestPyramid() {
 
 	return (
 		<div className="space-y-8">
-			<PageHeader title="Test Pyramid" description="Distribution of test definitions by type" />
+			<div className="flex items-center justify-between flex-wrap gap-4">
+				<PageHeader title="Test Pyramid" description="Distribution of test definitions by type" />
+				<ProjectSelector
+					selectedProjectId={selectedProjectId}
+					onProjectSelect={setSelectedProjectId}
+				/>
+			</div>
 
 			{/* Main Pyramid Visualization */}
 			<Card className="overflow-hidden">

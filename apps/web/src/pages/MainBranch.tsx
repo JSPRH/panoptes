@@ -17,7 +17,6 @@ import { useProjectSelection } from "../hooks/useProjectSelection";
 
 type CIRun = Doc<"ciRuns">;
 type CIRunJob = Doc<"ciRunJobs">;
-type CIRunJobStep = Doc<"ciRunJobSteps">;
 
 function formatTime(ts: number): string {
 	return new Date(ts).toLocaleString(undefined, {
