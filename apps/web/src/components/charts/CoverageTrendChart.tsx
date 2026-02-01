@@ -9,7 +9,12 @@ import {
 	Area,
 	AreaChart,
 } from "recharts";
-import { formatChartDate, formatChartDateTime, formatPercentage, chartColors } from "@/lib/chartUtils";
+import {
+	formatChartDate,
+	formatChartDateTime,
+	formatPercentage,
+	chartColors,
+} from "@/lib/chartUtils";
 import type { TooltipProps } from "recharts";
 
 interface CoverageTrendChartProps {
