@@ -182,6 +182,9 @@ export async function analyzeFailure<T extends z.ZodTypeAny>(options: {
 /**
  * Analyze a failure with images using a vision model (GPT-4o-mini).
  * This is specifically for e2e tests that have screenshots.
+ *
+ * Note: generateObject doesn't directly support images, so we use generateText
+ * with images and then parse the JSON response according to the schema.
  */
 export async function analyzeFailureWithImages<T extends z.ZodTypeAny>(options: {
 	schema: T;
@@ -193,46 +196,67 @@ export async function analyzeFailureWithImages<T extends z.ZodTypeAny>(options: 
 	const { schema, prompt, images, system, temperature = 0.3 } = options;
 
 	const openai = createOpenAIClient();
+	const { generateText } = await import("ai");
 
 	// Build message content with text and images
-	// The content array can contain both text and image_url objects
+	// ImagePart format: { type: 'image', image: string | URL, mediaType?: string }
 	const content: Array<
-		| { type: "text"; text: string }
-		| { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } }
+		{ type: "text"; text: string } | { type: "image"; image: string | URL; mediaType?: string }
 	> = [{ type: "text", text: prompt }];
 
 	// Add images to the content
 	for (const image of images) {
-		// Use the image URL directly (can be a data URI or public URL)
 		content.push({
-			type: "image_url",
-			image_url: {
-				url: image.url,
-				detail: "high", // Use high detail for better analysis of screenshots
-			},
+			type: "image",
+			image: image.url, // Can be a URL string or URL object
+			mediaType: image.contentType, // e.g., "image/png"
 		});
 	}
 
-	const { object: analysis } = await generateObject({
+	// Use generateText with vision model, then parse JSON response
+	// Note: generateObject doesn't support vision models, so we use generateText and parse JSON
+	const enhancedPrompt = `${prompt}
+
+IMPORTANT: Respond with ONLY valid JSON that matches the requested schema. Do not include any markdown formatting, code blocks, or explanatory text. Return pure JSON only.`;
+
+	const { text } = await generateText({
 		model: openai("gpt-4o-mini"), // Use vision-capable model
-		schema,
+		system:
+			system ||
+			"You are an expert software engineer analyzing end-to-end test failures. You can see screenshots from the test execution. Provide clear, actionable insights based on both the error messages and what you see in the screenshots. Always respond with valid JSON only, no markdown or additional text.",
 		messages: [
 			{
-				role: "system",
-				content:
-					system ||
-					"You are an expert software engineer analyzing end-to-end test failures. You can see screenshots from the test execution. Provide clear, actionable insights based on both the error messages and what you see in the screenshots.",
-			},
-			{
 				role: "user",
-				// biome-ignore lint/suspicious/noExplicitAny: AI SDK requires mixed content types
-				content: content as any,
+				content: [
+					{ type: "text", text: enhancedPrompt },
+					...content.filter((c) => c.type === "image"),
+				],
 			},
 		],
 		temperature,
 	});
 
-	return analysis as z.infer<T>;
+	// Parse the JSON response and validate against schema
+	try {
+		const parsed = JSON.parse(text);
+		const validated = schema.parse(parsed);
+		return validated as z.infer<T>;
+	} catch (error) {
+		// If parsing fails, try to extract JSON from the response
+		const jsonMatch = text.match(/\{[\s\S]*\}/);
+		if (jsonMatch) {
+			try {
+				const parsed = JSON.parse(jsonMatch[0]);
+				const validated = schema.parse(parsed);
+				return validated as z.infer<T>;
+			} catch {
+				throw new Error(
+					`Failed to parse AI response as JSON: ${error instanceof Error ? error.message : String(error)}`
+				);
+			}
+		}
+		throw new Error(`AI response is not valid JSON: ${text.substring(0, 200)}`);
+	}
 }
 
 /**
