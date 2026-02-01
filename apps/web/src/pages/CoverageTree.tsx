@@ -77,7 +77,9 @@ export default function CoverageTreePage() {
 								onChange={(e) => setShowAllMetrics(e.target.checked)}
 								className="rounded border-border"
 							/>
-							<span className="text-muted-foreground">Show all metrics (Lines, Statements, Branches, Functions)</span>
+							<span className="text-muted-foreground">
+								Show all metrics (Lines, Statements, Branches, Functions)
+							</span>
 						</label>
 					</div>
 					<CoverageTrendChart
