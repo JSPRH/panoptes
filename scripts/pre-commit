@@ -65,6 +65,13 @@ if [ -d "$REACT_TEST_DIR" ]; then
 	mv "$REACT_TEST_DIR" "$TEMP_REACT_TEST_DIR"
 fi
 
+# Temporarily move hook tests (require vitest/jsdom for React hooks)
+HOOK_TEST_DIR="apps/web/src/hooks/__tests__"
+TEMP_HOOK_TEST_DIR="/tmp/panoptes-hook-tests-$$"
+if [ -d "$HOOK_TEST_DIR" ]; then
+	mv "$HOOK_TEST_DIR" "$TEMP_HOOK_TEST_DIR"
+fi
+
 # Temporarily move E2E tests to avoid bun test picking them up
 E2E_TEST_DIR="apps/web/e2e"
 TEMP_E2E_TEST_DIR="/tmp/panoptes-e2e-tests-$$"
@@ -79,6 +86,11 @@ TEST_EXIT_CODE=$?
 # Restore React component tests immediately after test run
 if [ -d "$TEMP_REACT_TEST_DIR" ]; then
 	mv "$TEMP_REACT_TEST_DIR" "$REACT_TEST_DIR"
+fi
+
+# Restore hook tests immediately after test run
+if [ -d "$TEMP_HOOK_TEST_DIR" ]; then
+	mv "$TEMP_HOOK_TEST_DIR" "$HOOK_TEST_DIR"
 fi
 
 # Restore E2E tests immediately after test run
