@@ -106,7 +106,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: "https://panoptes-web-taupe.vercel.app"
           CI: "true"
           NODE_ENV: "production"
-          PANOPTES_PROJECT_NAME: "panoptes-web"
+          PANOPTES_PROJECT_NAME: "panoptes"
         run: bun run --cwd apps/web test:e2e
 
   build:
