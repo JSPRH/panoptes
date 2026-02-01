@@ -171,7 +171,13 @@ export default function FeatureExplorer() {
 				>
 					<div className="flex-1">
 						<div className="flex items-center gap-2">
-							<span className="font-medium">{feature.name}</span>
+							<Link
+								to={`/features/${feature._id}`}
+								onClick={(e) => e.stopPropagation()}
+								className="font-medium hover:text-primary transition-colors"
+							>
+								{feature.name}
+							</Link>
 							{feature.category && (
 								<Badge variant="neutral" className="text-xs">
 									{feature.category}

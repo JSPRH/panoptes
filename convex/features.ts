@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 
 // =============================================================================
@@ -250,6 +251,111 @@ export const getFeatureStats = query({
 			userDefinedCount: features.filter((f) => f.isUserDefined).length,
 			aiDiscoveredCount: features.filter((f) => !f.isUserDefined).length,
 		};
+	},
+});
+
+/**
+ * Get historical test execution data for all tests mapped to a feature.
+ * Returns aggregated data points suitable for charting test run history.
+ */
+export const getFeatureTestHistory = query({
+	args: {
+		featureId: v.id("features"),
+		startTimestamp: v.optional(v.number()),
+		limit: v.optional(v.number()),
+	},
+	handler: async (ctx, args) => {
+		const limit = args.limit ?? 100;
+		const startTimestamp = args.startTimestamp ?? Date.now() - 90 * 24 * 60 * 60 * 1000; // Default 90 days
+
+		// Get the feature
+		const feature = await ctx.db.get(args.featureId);
+		if (!feature) return [];
+
+		// Get all test mappings for this feature
+		const mappings = await ctx.db
+			.query("testFeatureMappings")
+			.withIndex("by_feature", (q) => q.eq("featureId", args.featureId))
+			.collect();
+
+		if (mappings.length === 0) return [];
+
+		// Get all test executions for mapped tests
+		const allTestExecutions: Array<{
+			test: Doc<"tests">;
+			run: Doc<"testRuns"> | null;
+		}> = [];
+
+		for (const mapping of mappings) {
+			// Parse test definition key to get test details
+			const parts = mapping.testDefinitionKey.split("|");
+			const testName = parts[1] || "";
+			const testFile = parts[2] || "";
+			const testLine = parts[3] ? Number.parseInt(parts[3], 10) : undefined;
+
+			// Get all tests matching this definition
+			const matchingTests = await ctx.db
+				.query("tests")
+				.withIndex("by_project", (q) => q.eq("projectId", mapping.projectId))
+				.filter((q) => {
+					return (
+						q.eq(q.field("name"), testName) &&
+						q.eq(q.field("file"), testFile) &&
+						(testLine === undefined || q.eq(q.field("line"), testLine))
+					);
+				})
+				.take(1000); // Reasonable limit
+
+			// Get test runs for these tests
+			for (const test of matchingTests) {
+				const run = await ctx.db.get(test.testRunId);
+				if (run && run.startedAt >= startTimestamp) {
+					allTestExecutions.push({ test, run });
+				}
+			}
+		}
+
+		// Group by test run (aggregate all tests from same run)
+		const runsMap = new Map<
+			string,
+			{
+				date: number;
+				passed: number;
+				failed: number;
+				skipped: number;
+				total: number;
+			}
+		>();
+
+		for (const { test, run } of allTestExecutions) {
+			if (!run) continue;
+			const runKey = run._id;
+
+			if (!runsMap.has(runKey)) {
+				runsMap.set(runKey, {
+					date: run.startedAt,
+					passed: 0,
+					failed: 0,
+					skipped: 0,
+					total: 0,
+				});
+			}
+
+			const runData = runsMap.get(runKey);
+			if (runData) {
+				runData.total++;
+				if (test.status === "passed") runData.passed++;
+				else if (test.status === "failed") runData.failed++;
+				else if (test.status === "skipped") runData.skipped++;
+			}
+		}
+
+		// Convert to array and sort by date
+		const history = Array.from(runsMap.values())
+			.sort((a, b) => a.date - b.date)
+			.slice(-limit);
+
+		return history;
 	},
 });
 

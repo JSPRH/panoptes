@@ -2122,6 +2122,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/FailedResponse"
 
+  /api/run/features/getFeatureTestHistory:
+    post:
+      summary: Calls a query at the path features.js:getFeatureTestHistory
+      tags:
+        - query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request_features.getFeatureTestHistory"
+        required: true
+      responses:
+        "200":
+          description: Convex executed your request and returned a result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response_features.getFeatureTestHistory"
+        "400":
+          description: Failed operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+        "500":
+          description: Convex Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedResponse"
+
   /api/run/features/updateFeature:
     post:
       summary: Calls a mutation at the path features.js:updateFeature
@@ -6089,6 +6120,40 @@ components:
               description: ID from table "projects"
 
     Response_features.getFeatureStats:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - "success"
+            - "error"
+        errorMessage:
+          type: string
+        errorData:
+          type: object
+        value: {}
+
+    Request_features.getFeatureTestHistory:
+      type: object
+      required:
+        - args
+      properties:
+        args:
+          type: object
+          required:
+            - featureId
+          properties:
+            featureId:
+              type: string
+              description: ID from table "features"
+            limit:
+              type: number
+            startTimestamp:
+              type: number
+
+    Response_features.getFeatureTestHistory:
       type: object
       required:
         - status
