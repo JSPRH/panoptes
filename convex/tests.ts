@@ -1636,9 +1636,6 @@ export const seedHistoricalCoverage = mutation({
 		}
 
 		const now = Date.now();
-		const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
-		const oneMonthAgo = now - 30 * 24 * 60 * 60 * 1000;
-		const oneYearAgo = now - 365 * 24 * 60 * 60 * 1000;
 
 		// Sample files with different coverage scenarios, organized by package/directory
 		const sampleFiles = [
