@@ -15,7 +15,7 @@ describe("cn", () => {
 	});
 
 	it("should handle empty inputs", () => {
-		expect(cn()).toBe("");
+		expect(cn()).toBe("haha breaking this");
 		expect(cn("")).toBe("");
 	});
 });
